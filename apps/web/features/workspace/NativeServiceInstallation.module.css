@@ -1,0 +1,54 @@
+.installation {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.panel {
+  max-width: 64rem;
+  margin-inline: auto;
+}
+
+.panel summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.content {
+  max-width: 48rem;
+  padding-top: 0.75rem;
+  line-height: 1.5;
+}
+
+.content p {
+  margin: 0 0 0.75rem;
+}
+
+.download {
+  display: inline-block;
+  padding: 0.65rem 1rem;
+  border-radius: 0.35rem;
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.download:hover {
+  text-decoration: underline;
+}
+
+.content .note {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.content ol {
+  padding-inline-start: 1.5rem;
+}
+
+.content li + li {
+  margin-top: 0.5rem;
+}

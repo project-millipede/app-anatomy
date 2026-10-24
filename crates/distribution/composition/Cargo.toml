@@ -1,0 +1,17 @@
+[package]
+name = "composition"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version = "1.92"
+
+[[bin]]
+name = "native-workbench"
+path = "src/bin/native-workbench.rs"
+
+[dependencies]
+# The concrete executable selects its service; integration remains reusable.
+filesystem-service = { path = "../../services/filesystem" }
+anyhow = "1"
+directories = "=6.0.0"
+integration = { path = "../integration" }
