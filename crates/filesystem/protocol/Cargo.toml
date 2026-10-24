@@ -1,0 +1,12 @@
+[package]
+name = "filesystem-protocol"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+filesystem-data = { path = "../data", features = ["serde"] }
+rmp-serde = "=1.3.1"
+serde = { version = "1", features = ["derive"] }
+serde_bytes = "=0.11.19"
+thiserror.workspace = true
