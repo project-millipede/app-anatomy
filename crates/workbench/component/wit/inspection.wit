@@ -1,0 +1,35 @@
+package apple-code:analysis@0.5.0;
+
+interface inspection {
+  use apple-code:filesystem/source@0.2.0.{read-error};
+  use binary.{analysis-error};
+
+  enum source-operation {
+    byte-length,
+    read-at,
+    selection,
+  }
+
+  record source-failure {
+    operation: source-operation,
+    offset: option<u64>,
+    cause: read-error,
+  }
+
+  record incomplete-read {
+    offset: u64,
+    remaining: u64,
+  }
+
+  record invalid-read-count {
+    reported: u64,
+    capacity: u64,
+  }
+
+  variant inspection-error {
+    analysis(analysis-error),
+    source(source-failure),
+    unexpected-eof(incomplete-read),
+    invalid-read-count(invalid-read-count),
+  }
+}

@@ -1,0 +1,133 @@
+package apple-code:analysis@0.5.0;
+
+/// Portable header analysis. All offsets are absolute offsets in the input file.
+interface binary {
+  enum endianness {
+    little,
+    big,
+  }
+
+  enum container-kind {
+    thin,
+    universal32,
+    universal64,
+  }
+
+  enum header-format {
+    mach-o32,
+    mach-o64,
+  }
+
+  enum analysis-scope {
+    headers-only,
+  }
+
+  /// An input-file range. Offset and size remain u64 across the component boundary.
+  record file-range {
+    offset: u64,
+    size: u64,
+  }
+
+  /// Numeric Mach-O evidence with an optional canonical name from object.
+  /// A missing name preserves the value without guessing its meaning.
+  record macho-value {
+    value: u32,
+    name: option<string>,
+  }
+
+  record cpu-identity {
+    cpu-type: macho-value,
+    /// Value includes capability bits; name identifies only the CPU-specific
+    /// subtype, excluding those bits. It does not describe the complete bitset.
+    cpu-subtype: macho-value,
+  }
+
+  record command-location {
+    kind: macho-value,
+    file-range: file-range,
+  }
+
+  record platform-declaration {
+    /// Present for LC_BUILD_VERSION, including unrecognized numeric identifiers.
+    /// Legacy commands have no platform field; source.kind retains their identity.
+    platform: option<macho-value>,
+    /// Minimum OS version formatted by object's Version Display implementation.
+    minimum-os: string,
+    /// SDK version formatted by object's Version Display implementation.
+    sdk: string,
+    source: command-location,
+  }
+
+  /// Command presence and byte ranges only; cryptographic verification is not performed.
+  record signature-command {
+    command-range: file-range,
+    data-range: file-range,
+  }
+
+  record image {
+    cpu: cpu-identity,
+    header-format: header-format,
+    endianness: endianness,
+    file-range: file-range,
+    file-type: macho-value,
+    header-flags: u32,
+    platforms: list<platform-declaration>,
+    signature-commands: list<signature-command>,
+  }
+
+  record report {
+    container: container-kind,
+    container-endianness: endianness,
+    byte-length: u64,
+    images: list<image>,
+    scope: analysis-scope,
+  }
+
+  record truncated-range {
+    requested-size: u64,
+    available-size: u64,
+  }
+
+  variant error-kind {
+    truncated(truncated-range),
+    range-overflow,
+    unsupported-image,
+    /// Upstream decoding message, intended for people rather than classification.
+    decode(string),
+  }
+
+  /// Rust-formatted message and structured failure details.
+  record analysis-error {
+    message: string,
+    kind: error-kind,
+  }
+}
+
+// 1. Export by interface identity:
+//      export native;
+//    The component export uses the package's versioned interface identity.
+//    jco exposes that full name and adds the short alias `native`:
+//      root['apple-code:analysis/native@<version>']
+//      root.native
+//
+// 2. Export with an explicit name:
+//      export native: native;
+//    The left side names the component export; the right side references
+//    the existing interface definition. jco exposes only:
+//      root.native
+//
+// 3. Export `native` explicitly to give consumers one public export name.
+//    The interface remains separately defined. This export name also
+//    determines generated Rust binding paths and Wasm export names.
+world analysis {
+  // Import host WebSocket operations for the Rust filesystem client.
+  // The host binds these operations to the Polymorph browser provider.
+  import polymorph:websocket/connections@0.1.0;
+
+  export native: native;
+
+  // Provide the report and error types referenced by native.
+  // Omitting these exports makes their interfaces implicit imports.
+  export inspection;
+  export binary;
+}

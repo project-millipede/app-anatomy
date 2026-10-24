@@ -1,0 +1,16 @@
+[package]
+name = "workbench-component"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+binary-inspection = { path = "../../binary/inspection" }
+workbench-operations = { path = "../operations" }
+filesystem-data = { path = "../../filesystem/data" }
+filesystem-protocol = { path = "../../filesystem/protocol" }
+object.workspace = true
+wit-bindgen = { version = "=0.60.0", features = ["async"] }

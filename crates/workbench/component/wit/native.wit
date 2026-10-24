@@ -1,0 +1,52 @@
+package apple-code:analysis@0.5.0;
+
+interface native {
+  use binary.{report};
+  use inspection.{inspection-error};
+
+  enum failure-kind { transport, provider }
+  record failure { kind: failure-kind, message: string }
+  record selected-resource { name: string, %resource: string }
+  enum entry-kind { file, directory, symlink, other }
+  record directory-entry { id: u32, name: string, kind: entry-kind }
+  record selection-state {
+    file: option<selected-resource>,
+    directory: option<selected-resource>,
+    entries: list<directory-entry>,
+  }
+  enum step-kind { select-file, select-directory, open-entry, query-selection, inspect }
+  record selection-step-outcome {
+    kind: step-kind,
+    /// Successful actions return none; successful queries return some state,
+    /// including when no file or directory is selected.
+    %result: result<option<selection-state>, failure>,
+  }
+  /// Completed steps in execution order. A standalone query contains one step;
+  /// selection requests include a follow-up query even after selection fails.
+  record selection-outcome {
+    steps: list<selection-step-outcome>,
+  }
+  record inspection-failure {
+    /// Complete diagnostic formatted by the ordinary Rust error's Display implementation.
+    message: string,
+    /// Structured diagnostic for consumers that need more than display text.
+    detail: inspection-error,
+  }
+  record inspection-step-outcome {
+    kind: step-kind,
+    %result: result<report, inspection-failure>,
+  }
+  record inspection-outcome {
+    steps: list<inspection-step-outcome>,
+  }
+
+  resource session {
+    query-selection: func() -> selection-outcome;
+    choose-file: func() -> selection-outcome;
+    choose-folder: func() -> selection-outcome;
+    open-file: func(directory: string, entry-id: u32) -> selection-outcome;
+    open-directory: func(directory: string, entry-id: u32) -> selection-outcome;
+    inspect: func(%resource: string) -> inspection-outcome;
+  }
+  create-selection-session: func() -> own<session>;
+}

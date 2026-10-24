@@ -1,0 +1,12 @@
+package apple-code:filesystem@0.2.0;
+
+interface source {
+  record io-failure {
+    message: string,
+  }
+
+  variant read-error {
+    cancelled,
+    io-failure(io-failure),
+  }
+}
