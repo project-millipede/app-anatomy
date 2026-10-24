@@ -1,0 +1,28 @@
+.navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.8125rem;
+}
+.navigation span {
+  color: var(--muted);
+  padding: 0 0.5rem;
+}
+.navigation a {
+  padding: 0.5rem 0.75rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+}
+.navigation a[aria-current='page'] {
+  border-color: var(--border);
+  background: var(--subtle);
+  color: var(--accent);
+}
+.navigation a:hover {
+  background: var(--subtle);
+}
