@@ -1,0 +1,3521 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"
+    />
+    <title>Application Explorer · Linked perimeter bridges</title>
+    <!--
+  Illustrative interaction prototype. Plain HTML, CSS and JavaScript over fixed example data:
+  no React, Rust, WIT component, Wasm runtime, native service or network dependency.
+  Layout follows the linked tree bridge workspace; the movable perimeter, unplaced tray,
+  placement explanation and two-hop notes come from the perimeter bridges candidate.
+-->
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: light-dark(#f5f6f8, #12161c);
+        --panel: light-dark(#fff, #1a2028);
+        --text: light-dark(#252e3d, #e8edf5);
+        --muted: light-dark(#657083, #a6b2c5);
+        --line: light-dark(#dde3eb, #35404e);
+        --soft: light-dark(#eef1f5, #242d39);
+        --blue: light-dark(#365e9e, #a2c2f4);
+        --blue-soft: light-dark(#eaf0fb, #26374f);
+        --amber: light-dark(#8a5b1c, #e8bd79);
+        --amber-soft: light-dark(#fbf2e5, #342d23);
+        --incoming: light-dark(#246f66, #8bd2c5);
+        --incoming-soft: light-dark(#e4f3ee, #203b36);
+        --violet: light-dark(#7859a4, #c8afea);
+        --violet-soft: light-dark(#f1ecf9, #30283d);
+        --warn: light-dark(#9b4317, #f0a37c);
+        --warn-soft: light-dark(#fbebe2, #3a2419);
+        --dots: light-dark(#dce2eb, #28313d);
+        --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      button,
+      select {
+        font: inherit;
+        color: inherit;
+        border-radius: 6px;
+      }
+      button {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      button:focus-visible,
+      select:focus-visible,
+      summary:focus-visible,
+      input:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 3px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      strong,
+      h1,
+      h2,
+      h3 {
+        font-weight: 600;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .mono {
+        font-family: var(--mono);
+        font-size: 11px;
+        overflow-wrap: anywhere;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .eyebrow {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .icon {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+        vertical-align: middle;
+      }
+
+      .chrome {
+        min-height: 69px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 15px 25px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        color: var(--blue);
+      }
+      .brand strong {
+        display: block;
+        font-size: 13px;
+        letter-spacing: 0.02em;
+      }
+      .brand small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .chrome-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .study {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .study::before {
+        content: '';
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--amber);
+        margin-right: 7px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        min-height: 33px;
+        font-size: 12px;
+        text-decoration: none;
+        color: inherit;
+      }
+      .button:hover:not(:disabled) {
+        background: var(--soft);
+      }
+      .button.primary {
+        background: var(--text);
+        border-color: var(--text);
+        color: var(--panel);
+      }
+      .toolbar {
+        padding: 14px 25px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+      }
+      .toolbar h1 {
+        font-size: 17px;
+        letter-spacing: -0.02em;
+      }
+      .toolbar p {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 3px;
+      }
+      .axis-key {
+        display: flex;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 11px;
+        flex-wrap: wrap;
+      }
+      .axis-key span {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .axis-key b {
+        font-size: 17px;
+      }
+      .axis-key .inside b {
+        color: var(--violet);
+      }
+      .axis-key .crossing b {
+        color: var(--amber);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 294px minmax(0, 1fr) 310px;
+        min-height: calc(100vh - 180px);
+      }
+
+      /* Physical tree */
+      .sidebar {
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 20px 16px 10px;
+      }
+      .sidebar-heading h2 {
+        font-size: 12px;
+      }
+      .text-button {
+        border: 0;
+        padding: 3px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .text-button:hover {
+        color: var(--blue);
+      }
+      .follow {
+        display: flex;
+        align-items: flex-start;
+        gap: 7px;
+        margin: 0 16px 10px;
+        font-size: 11px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+      .follow input {
+        margin: 2px 0 0;
+        accent-color: var(--blue);
+      }
+      .follow strong {
+        color: var(--text);
+        font-weight: 500;
+        display: block;
+      }
+      .tree-key {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        margin: 0 15px 8px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .tree-key span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .tree-key i {
+        height: 6px;
+        width: 6px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .tree-key .k-west i {
+        background: var(--incoming);
+      }
+      .tree-key .k-east i {
+        background: var(--violet);
+      }
+      .tree-key .k-cross i {
+        background: var(--amber);
+      }
+      .tree-key .k-perimeter i {
+        width: 12px;
+        height: 0;
+        border-radius: 0;
+        border-top: 1px dashed var(--violet);
+        background: none;
+      }
+      .tree-key-note {
+        padding: 0 15px 12px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .tree-scroll {
+        padding: 0 10px 20px;
+        max-height: 640px;
+        overflow: auto;
+        flex: 1;
+      }
+      .file-tree,
+      .file-tree ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .file-tree ul {
+        margin-left: 8px;
+        padding-left: 3px;
+        border-left: 1px solid var(--line);
+      }
+      .file-tree ul.inside-perimeter {
+        border-left: 1px dashed var(--violet);
+      }
+      .tree-row {
+        display: flex;
+        align-items: center;
+        border-radius: 5px;
+        gap: 2px;
+        min-height: 30px;
+        position: relative;
+      }
+      .tree-row[data-role='west'] {
+        --row-mark: var(--incoming);
+        background: var(--incoming-soft);
+        color: var(--incoming);
+      }
+      .tree-row[data-role='east'] {
+        --row-mark: var(--violet);
+        background: var(--violet-soft);
+        color: var(--violet);
+      }
+      .tree-row[data-role='north'],
+      .tree-row[data-role='south'] {
+        --row-mark: var(--amber);
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+      .tree-row[data-mixed='true'] {
+        background: linear-gradient(
+          90deg,
+          var(--incoming-soft) 50%,
+          var(--violet-soft) 50%
+        );
+      }
+      .tree-row[data-preview='true'] {
+        outline: 2px solid var(--row-mark, var(--violet));
+        outline-offset: -2px;
+      }
+      .tree-row[data-revealed='true']:not([data-preview='true']) {
+        outline: 1px dashed var(--muted);
+        outline-offset: -1px;
+      }
+      .tree-row[data-selected='true'] {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+      .tree-row[data-perimeter='true'] .file-button span {
+        font-weight: 600;
+      }
+      .tree-badge {
+        font-size: 8px;
+        line-height: 16px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        border-radius: 3px;
+        padding: 0 4px;
+        margin-right: 3px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        background: var(--panel);
+        color: var(--blue);
+      }
+      .tree-badge.b-west {
+        color: var(--incoming);
+      }
+      .tree-badge.b-east {
+        color: var(--violet);
+      }
+      .tree-badge.b-north,
+      .tree-badge.b-south,
+      .tree-badge.b-unplaced {
+        color: var(--amber);
+      }
+      .tree-badge.perimeter {
+        color: var(--violet);
+        border: 1px dashed var(--violet);
+        line-height: 14px;
+      }
+      .tree-badge.hidden-count {
+        background: var(--soft);
+        color: var(--muted);
+      }
+      .disclosure,
+      .spacer {
+        width: 17px;
+        flex: 0 0 17px;
+      }
+      .disclosure {
+        align-self: stretch;
+        border: 0;
+        background: transparent;
+        font-size: 11px;
+        color: var(--muted);
+        padding: 0;
+      }
+      .file-button {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 3px;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        min-width: 0;
+        flex: 1;
+        font-size: 11px;
+      }
+      .file-button .icon {
+        width: 14px;
+        height: 14px;
+        opacity: 0.75;
+      }
+      .file-button span {
+        overflow-wrap: anywhere;
+      }
+      .unknown-row {
+        font-size: 10px;
+        color: var(--muted);
+        padding: 4px 8px 4px 20px;
+      }
+      .sidebar-footer {
+        margin: 0 16px;
+        padding: 15px 0;
+        border-top: 1px solid var(--line);
+      }
+      .sidebar-footer p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      /* Canvas */
+      .main {
+        min-width: 0;
+        padding: 22px 26px 18px;
+      }
+      .context-bar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .context-bar .path {
+        flex: 1 1 260px;
+        min-width: 0;
+      }
+      .path small {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        margin-bottom: 3px;
+      }
+      .context-select {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      select {
+        padding: 6px 9px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        min-height: 32px;
+      }
+      .segmented {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--panel);
+        padding: 2px;
+      }
+      .segmented button {
+        border: 0;
+        background: transparent;
+        padding: 4px 9px;
+        font-size: 11px;
+        border-radius: 5px;
+        color: var(--muted);
+        text-align: left;
+      }
+      .segmented button small {
+        display: block;
+        font-size: 10px;
+        opacity: 0.8;
+      }
+      .segmented button[aria-pressed='true'] {
+        background: var(--violet-soft);
+        color: var(--violet);
+        font-weight: 600;
+      }
+      .canvas-viewport {
+        overflow-x: auto;
+        padding: 18px 2px 5px;
+      }
+      .bridge-grid {
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        grid-template-columns: minmax(160px, 1fr) minmax(190px, 1.1fr) minmax(
+            160px,
+            1fr
+          );
+        grid-template-areas: 'north north north' 'west focus east' 'south south south' 'unplaced unplaced unplaced';
+        column-gap: 34px;
+        row-gap: 52px;
+        min-width: 600px;
+        padding: 0 12px 5px;
+        background-image: radial-gradient(var(--dots) 0.7px, transparent 0.7px);
+        background-size: 16px 16px;
+        border-radius: 10px;
+      }
+      .perimeter-frame {
+        grid-area: 2 / 1 / 3 / 4;
+        align-self: stretch;
+        position: relative;
+        margin: -22px -11px;
+        border: 1.5px dashed var(--violet);
+        border-radius: 11px;
+        background: color-mix(in srgb, var(--violet-soft) 30%, var(--bg));
+        z-index: 0;
+      }
+      .perimeter-frame .frame-label {
+        position: absolute;
+        top: -10px;
+        left: 17px;
+        padding: 0 7px;
+        background: var(--bg);
+        color: var(--violet);
+        font-size: 10px;
+        font-weight: 600;
+        white-space: nowrap;
+        max-width: calc(50% - 70px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .gate {
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 3;
+        white-space: nowrap;
+        padding: 1px 9px;
+        border-radius: 99px;
+        border: 1px solid var(--amber);
+        background: var(--panel);
+        color: var(--amber);
+        font-size: 10px;
+        font-weight: 600;
+      }
+      .gate.gate-top {
+        top: 0;
+      }
+      .gate.gate-bottom {
+        top: 100%;
+      }
+      .gate[data-empty='true'] {
+        border-color: var(--line);
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .bridge {
+        position: relative;
+        z-index: 2;
+        min-width: 0;
+        align-self: center;
+      }
+      .north {
+        grid-area: north;
+        width: 100%;
+        justify-self: center;
+      }
+      .south {
+        grid-area: south;
+        width: 100%;
+        justify-self: center;
+      }
+      .unplaced {
+        grid-area: unplaced;
+        width: min(100%, 520px);
+        justify-self: center;
+      }
+      .west {
+        grid-area: west;
+      }
+      .east {
+        grid-area: east;
+      }
+      .bridge-heading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 11px;
+        background: var(--bg);
+        width: max-content;
+        max-width: 100%;
+        padding-right: 4px;
+      }
+      .west .bridge-heading,
+      .east .bridge-heading {
+        background: transparent;
+      }
+      .south .bridge-heading {
+        margin-bottom: 20px;
+      }
+      .compass {
+        display: inline-grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        font-size: 10px;
+        background: var(--panel);
+        flex-shrink: 0;
+      }
+      .north .compass,
+      .south .compass {
+        color: var(--amber);
+      }
+      .west .compass {
+        color: var(--incoming);
+      }
+      .east .compass {
+        color: var(--violet);
+      }
+      .unplaced .compass {
+        color: var(--muted);
+        border-style: dashed;
+      }
+      .bridge-heading h2 {
+        font-size: 12px;
+      }
+      .bridge-heading p {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .count {
+        font-size: 10px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .relation-list {
+        display: grid;
+        gap: 9px;
+      }
+      .north .relation-list,
+      .south .relation-list,
+      .unplaced .relation-list {
+        justify-content: center;
+      }
+      .relation {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        text-align: left;
+        padding: 11px 12px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+        min-height: 104px;
+      }
+      .relation:hover,
+      .relation.hot {
+        border-color: var(--muted);
+      }
+      .relation[aria-pressed='true'] {
+        border-color: var(--amber);
+        box-shadow: 0 0 0 2px var(--amber-soft);
+      }
+      .west .relation[aria-pressed='true'] {
+        border-color: var(--incoming);
+        box-shadow: 0 0 0 2px var(--incoming-soft);
+      }
+      .east .relation[aria-pressed='true'] {
+        border-color: var(--violet);
+        box-shadow: 0 0 0 2px var(--violet-soft);
+      }
+      .unplaced .relation {
+        border-style: dashed;
+      }
+      .relation.moved {
+        animation: moved 1.6s ease-out;
+      }
+      @keyframes moved {
+        0%,
+        40% {
+          box-shadow: 0 0 0 3px var(--blue);
+        }
+        100% {
+          box-shadow: 0 0 0 3px transparent;
+        }
+      }
+      .relation-type {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        width: 100%;
+        font-size: 9px;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+      .relation-type svg {
+        width: 22px;
+        height: 6px;
+        flex: 0 0 22px;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        margin-top: 3px;
+      }
+      .relation strong {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 4px;
+        overflow-wrap: anywhere;
+      }
+      .relation strong small {
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .record {
+        color: var(--muted);
+        font-size: 10px;
+        overflow-wrap: anywhere;
+        width: 100%;
+      }
+      .relation .state {
+        font-size: 10px;
+        color: var(--muted);
+        padding-top: 7px;
+        margin-top: auto;
+      }
+      .relation .state::before {
+        content: '';
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        background: currentColor;
+        border-radius: 50%;
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+      .relation .state.derived {
+        color: var(--violet);
+      }
+      .west .relation .state.derived {
+        color: var(--incoming);
+      }
+      .relation .state.unknown {
+        color: var(--amber);
+      }
+      .note-chip {
+        margin-top: 6px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+      }
+      .note-chip.bypass {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+      .note-chip.standin,
+      .note-chip.roundtrip,
+      .note-chip.provider {
+        background: var(--violet-soft);
+        color: var(--violet);
+      }
+      .more {
+        border: 1px dashed var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+        font-size: 11px;
+        color: var(--muted);
+        padding: 8px;
+        min-height: 40px;
+      }
+      .focus-lane {
+        grid-area: focus;
+        align-self: center;
+        position: relative;
+        z-index: 2;
+      }
+      .focus-card {
+        position: relative;
+        background: var(--panel);
+        border: 1px solid var(--blue);
+        border-radius: 10px;
+        padding: 15px 14px;
+        box-shadow: 0 4px 18px #00000006;
+        min-width: 0;
+      }
+      .focus-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 12px 0;
+      }
+      .focus-title h2 {
+        font-size: 21px;
+        letter-spacing: -0.03em;
+        overflow-wrap: anywhere;
+      }
+      .focus-title p {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .file-glyph {
+        display: grid;
+        place-items: center;
+        width: 31px;
+        height: 36px;
+        flex-shrink: 0;
+        border-radius: 7px;
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+      .focus-meta {
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+        margin-top: 12px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 6px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .focus-meta b {
+        color: var(--violet);
+        font-weight: 600;
+      }
+      .focus-note {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      .focus-warn {
+        font-size: 10px;
+        color: var(--warn);
+        background: var(--warn-soft);
+        border-radius: 4px;
+        padding: 3px 6px;
+        margin-top: 8px;
+      }
+      .empty {
+        padding: 12px;
+        border: 1px dashed var(--line);
+        border-radius: 7px;
+        background: var(--bg);
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .edges {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        overflow: visible;
+      }
+      .edges path.edge {
+        fill: none;
+        stroke-width: 1.4;
+        opacity: 0.65;
+        transition:
+          opacity 0.12s,
+          stroke-width 0.12s;
+      }
+      .edges .west-edge {
+        stroke: var(--incoming);
+      }
+      .edges .east-edge {
+        stroke: var(--violet);
+      }
+      .edges .north-edge,
+      .edges .south-edge {
+        stroke: var(--amber);
+      }
+      .edges .derived-edge {
+        stroke-dasharray: 4 3;
+      }
+      .edges .string-edge {
+        stroke-dasharray: 1 3;
+        stroke-linecap: round;
+      }
+      .edges .more-edge {
+        stroke-dasharray: 2 3;
+        opacity: 0.45;
+      }
+      .edges .active-edge,
+      .edges .hot {
+        stroke-width: 2.2;
+        opacity: 1;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        padding: 18px 0 10px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .line-sample {
+        width: 20px;
+        border-top: 2px solid var(--violet);
+      }
+      .line-sample.incoming {
+        border-color: var(--incoming);
+      }
+      .line-sample.crossing {
+        border-color: var(--amber);
+      }
+      .line-sample.derived {
+        border-top-style: dashed;
+        border-color: var(--muted);
+      }
+      .line-sample.string {
+        border-top-style: dotted;
+        border-color: var(--muted);
+      }
+      .try {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        padding-top: 4px;
+      }
+      .try > span {
+        font-size: 10px;
+        color: var(--muted);
+        margin-right: 2px;
+      }
+      .chip {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 99px;
+        padding: 3px 10px;
+        font-size: 11px;
+      }
+      .chip small {
+        color: var(--muted);
+        margin-left: 4px;
+      }
+      .chip:hover {
+        border-color: var(--muted);
+      }
+      .status {
+        font-size: 11px;
+        color: var(--muted);
+        padding: 12px 0 0;
+        min-height: 30px;
+      }
+
+      /* Inspector */
+      .inspector {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        min-width: 0;
+        min-height: calc(100vh - 180px);
+        max-height: 100dvh;
+        border-left: 1px solid var(--line);
+        background: var(--panel);
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+      }
+      .inspector-header {
+        padding: 14px 17px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+        background: var(--soft);
+      }
+      .inspector-header h2 {
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+      .inspector-header p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      .inspector-header > span {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .bridge-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .bridge-tag[data-bridge='west'] {
+        color: var(--incoming);
+      }
+      .bridge-tag[data-bridge='east'] {
+        color: var(--violet);
+      }
+      .bridge-tag[data-bridge='north'],
+      .bridge-tag[data-bridge='south'] {
+        color: var(--amber);
+      }
+      .bridge-tag[data-bridge='unplaced'] {
+        color: var(--muted);
+      }
+      .inspector-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+        padding: 16px 17px;
+      }
+      .inspector-grid > div {
+        min-width: 0;
+      }
+      .inspector-grid > div + div {
+        border-top: 1px solid var(--line);
+        padding-top: 16px;
+      }
+      .step-title {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        margin-bottom: 7px;
+      }
+      .inspector-grid strong {
+        font-size: 12px;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .inspector-grid p {
+        font-size: 11px;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      .inspector-grid code {
+        display: block;
+        background: var(--soft);
+        border-radius: 5px;
+        padding: 8px;
+        margin-top: 7px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        font: 10px/1.6 var(--mono);
+      }
+      .why {
+        margin: 0;
+        padding-left: 16px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .why li {
+        margin-bottom: 5px;
+      }
+      .why b {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .steps {
+        list-style: none;
+        counter-reset: step;
+        margin: 6px 0 0;
+        padding: 0;
+      }
+      .steps li {
+        position: relative;
+        padding: 3px 0 3px 23px;
+        font: 10px/1.55 var(--mono);
+        overflow-wrap: anywhere;
+      }
+      .steps li::before {
+        counter-increment: step;
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        top: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--soft);
+        color: var(--muted);
+        font:
+          600 9px/16px -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        text-align: center;
+      }
+      .notebox {
+        padding: 9px 11px;
+        border-radius: 6px;
+        font-size: 11px;
+        overflow-wrap: anywhere;
+      }
+      .notebox.bypass {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+      .notebox.standin,
+      .notebox.roundtrip,
+      .notebox.provider {
+        background: var(--violet-soft);
+        color: var(--violet);
+      }
+      .notebox b {
+        font-weight: 600;
+      }
+      .evidence-limit {
+        font-size: 11px;
+        color: var(--muted);
+        padding: 0 17px 14px;
+      }
+      .inspector-actions {
+        border-top: 1px solid var(--line);
+        padding: 12px 17px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .inspector-actions > span {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 15px;
+        padding: 11px 25px;
+        border-top: 1px solid var(--line);
+        background: var(--panel);
+        font-size: 10px;
+        color: var(--muted);
+      }
+      dialog {
+        width: min(760px, calc(100vw - 36px));
+        max-height: 85vh;
+        padding: 0;
+        color: var(--text);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        box-shadow: 0 22px 90px #00000030;
+      }
+      dialog::backdrop {
+        background: #0a142861;
+        backdrop-filter: blur(3px);
+      }
+      .notes-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--line);
+      }
+      .notes-header h2 {
+        font-size: 18px;
+      }
+      .notes-body {
+        padding: 20px 24px 24px;
+      }
+      .notes-body p {
+        margin: 0 0 13px;
+        color: var(--muted);
+      }
+      .notes-body h3 {
+        margin: 20px 0 8px;
+        font-size: 13px;
+      }
+      .notes-body a {
+        color: var(--blue);
+      }
+      .notes-body li {
+        margin: 6px 0;
+        color: var(--muted);
+      }
+      .notes-body code {
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+      .comparison {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        margin: 14px 0;
+      }
+      .comparison th,
+      .comparison td {
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--line);
+        padding: 9px 10px 9px 0;
+      }
+      .comparison th {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      /* Fixed app shell on desktop: the page never scrolls. The middle canvas is
+         the main scroller; the tree and inspector scroll on their own when their
+         content is taller than the window, without chaining into each other. */
+      @media (min-width: 781px) {
+        body {
+          display: flex;
+          flex-direction: column;
+          height: 100vh;
+          height: 100dvh;
+          overflow: hidden;
+        }
+        .chrome,
+        .toolbar,
+        .footer {
+          flex: none;
+        }
+        .workspace {
+          flex: 1;
+          min-height: 0;
+          grid-template-rows: minmax(0, 1fr);
+        }
+        .sidebar,
+        .main,
+        .inspector {
+          min-height: 0;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+        .tree-scroll {
+          flex: 1 1 auto;
+          min-height: 160px;
+          max-height: none;
+          overscroll-behavior: contain;
+        }
+        .inspector {
+          position: static;
+          align-self: stretch;
+          max-height: none;
+        }
+      }
+      @media (max-width: 1190px) {
+        .workspace {
+          grid-template-columns: 236px minmax(0, 1fr) 286px;
+        }
+        .main {
+          padding: 18px 13px;
+        }
+        .bridge-grid {
+          column-gap: 28px;
+          min-width: 580px;
+        }
+        .relation {
+          padding: 10px;
+        }
+        .focus-card {
+          padding: 14px 12px;
+        }
+        .axis-key {
+          font-size: 10px;
+        }
+      }
+      @media (max-width: 780px) {
+        .chrome,
+        .toolbar {
+          padding: 13px 16px;
+        }
+        .chrome {
+          flex-wrap: wrap;
+        }
+        .toolbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .study {
+          display: none;
+        }
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+        .inspector {
+          position: static;
+          min-height: 0;
+          max-height: none;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+          overflow: visible;
+        }
+        .sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .tree-scroll {
+          max-height: 220px;
+        }
+        .sidebar-heading {
+          padding: 12px 16px;
+        }
+        .main {
+          padding: 16px 12px;
+        }
+        .footer {
+          padding: 11px 16px;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        button {
+          transition:
+            border-color 0.12s,
+            background-color 0.12s;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .relation.moved {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="chrome">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">⌘</span>
+        <div>
+          <strong>CODE WORKBENCH</strong><small>Application anatomy</small>
+        </div>
+      </div>
+      <div class="chrome-right">
+        <span class="study">Copy · linked perimeter</span>
+        <a
+          class="button"
+          href="../linked-tree-bridge-workspace/index.html"
+          target="_blank"
+          rel="noopener"
+          >Linked tree version ↗</a
+        >
+        <a
+          class="button"
+          href="../perimeter-bridges/index.html"
+          target="_blank"
+          rel="noopener"
+          >Perimeter bridges ↗</a
+        >
+        <button class="button" id="open-notes" type="button">
+          Design notes ↗
+        </button>
+      </div>
+    </header>
+    <section class="toolbar" aria-label="Prototype layout">
+      <div>
+        <h1>Application Explorer</h1>
+        <p>
+          One selected file stays at the center. The perimeter decides which
+          connections stay inside and which cross it.
+        </p>
+      </div>
+      <div class="axis-key" aria-label="Relationship axes">
+        <span class="inside"><b>↔</b> Stays inside the perimeter</span>
+        <span class="crossing"><b>↕</b> Crosses the perimeter</span>
+      </div>
+    </section>
+    <div class="workspace">
+      <aside class="sidebar" aria-label="Physical file navigation">
+        <div class="sidebar-heading">
+          <h2>Atlas.app <span class="muted">/ Files</span></h2>
+          <button class="text-button" id="collapse-tree" type="button">
+            Collapse all
+          </button>
+        </div>
+        <label class="follow"
+          ><input type="checkbox" id="follow" checked /><span
+            ><strong>Tree follows connections</strong>Off keeps the tree to
+            containment only.</span
+          ></label
+        >
+        <div class="tree-key" id="tree-key" aria-label="Tree highlight legend">
+          <span><i></i>Selected</span>
+          <span class="k-west"><i></i>W · IN</span>
+          <span class="k-east"><i></i>E · OUT</span>
+          <span class="k-cross"><i></i>N · IN / S · OUT</span>
+          <span class="k-perimeter"><i></i>Perimeter</span>
+        </div>
+        <p class="tree-key-note" id="tree-key-note">
+          Badges name the bridge a row appears on. Outlined row = active
+          connection. +count = related rows in a collapsed branch.
+        </p>
+        <nav class="tree-scroll" aria-label="Illustrative bundle files">
+          <ul class="file-tree" id="file-tree"></ul>
+        </nav>
+        <div class="sidebar-footer">
+          <p id="tree-note">
+            Containment only. Select a file to explore its connections.
+          </p>
+          <button class="button" id="reveal-selected" type="button">
+            Locate selection
+          </button>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="context-bar">
+          <button
+            class="button"
+            id="back"
+            type="button"
+            disabled
+            aria-label="Back to previous exploration"
+          >
+            ←
+          </button>
+          <div class="path">
+            <small>SELECTED FILE / EXACT LOCATION</small
+            ><span class="mono" id="selected-path"></span>
+          </div>
+          <div class="context-select" role="group" aria-label="Perimeter">
+            Perimeter
+            <div class="segmented" id="perimeter"></div>
+          </div>
+          <label class="context-select"
+            >Example slice
+            <select id="architecture" aria-label="Example slice">
+              <option value="arm64">arm64</option>
+              <option value="x86_64">x86_64</option>
+            </select>
+          </label>
+        </div>
+        <div
+          class="canvas-viewport"
+          role="region"
+          aria-label="Four-bridge relationship canvas; scroll horizontally on narrow screens"
+          tabindex="0"
+        >
+          <div class="bridge-grid" id="bridge-grid">
+            <div class="perimeter-frame" aria-hidden="true">
+              <span class="frame-label" id="frame-label"></span>
+              <span class="gate gate-top" id="gate-north"></span>
+              <span class="gate gate-bottom" id="gate-south"></span>
+            </div>
+            <svg class="edges" id="edges" aria-hidden="true"></svg>
+            <section class="bridge north" aria-labelledby="north-title">
+              <div class="bridge-heading">
+                <span class="compass">N</span>
+                <div>
+                  <h2 id="north-title">
+                    Ingress across the perimeter
+                    <span class="count" id="north-count"></span>
+                  </h2>
+                  <p id="north-sub"></p>
+                </div>
+              </div>
+              <div class="relation-list" id="north-list"></div>
+            </section>
+            <section class="bridge west" aria-labelledby="west-title">
+              <div class="bridge-heading">
+                <span class="compass">W</span>
+                <div>
+                  <h2 id="west-title">
+                    Internal ingress <span class="count" id="west-count"></span>
+                  </h2>
+                  <p id="west-sub"></p>
+                </div>
+              </div>
+              <div class="relation-list" id="west-list"></div>
+            </section>
+            <section class="focus-lane" aria-label="Selected file">
+              <div class="focus-card" id="focus-card"></div>
+            </section>
+            <section class="bridge east" aria-labelledby="east-title">
+              <div class="bridge-heading">
+                <span class="compass">E</span>
+                <div>
+                  <h2 id="east-title">
+                    Internal resolution
+                    <span class="count" id="east-count"></span>
+                  </h2>
+                  <p id="east-sub"></p>
+                </div>
+              </div>
+              <div class="relation-list" id="east-list"></div>
+            </section>
+            <section class="bridge south" aria-labelledby="south-title">
+              <div class="bridge-heading">
+                <span class="compass">S</span>
+                <div>
+                  <h2 id="south-title">
+                    Egress across the perimeter
+                    <span class="count" id="south-count"></span>
+                  </h2>
+                  <p id="south-sub"></p>
+                </div>
+              </div>
+              <div class="relation-list" id="south-list"></div>
+            </section>
+            <section
+              class="bridge unplaced"
+              id="unplaced-section"
+              aria-labelledby="unplaced-title"
+            >
+              <div class="bridge-heading">
+                <span class="compass">?</span>
+                <div>
+                  <h2 id="unplaced-title">
+                    Unplaced · containment unknown
+                    <span class="count" id="unplaced-count"></span>
+                  </h2>
+                  <p>
+                    Neither inside nor outside the perimeter · not routed
+                    through a gate
+                  </p>
+                </div>
+              </div>
+              <div class="relation-list" id="unplaced-list"></div>
+            </section>
+          </div>
+        </div>
+        <div class="legend" aria-label="Bridge legend">
+          <span><i class="line-sample incoming"></i>Internal ingress</span>
+          <span><i class="line-sample"></i>Internal resolution</span>
+          <span><i class="line-sample crossing"></i>Crosses the perimeter</span>
+          <span><i class="line-sample derived"></i>Derived / candidate</span>
+          <span><i class="line-sample string"></i>String / inferred</span>
+          <span>Static relationships · no runtime traffic</span>
+        </div>
+        <div class="try" id="try"></div>
+        <p class="status" id="status" role="status">
+          Select a connection to preview its evidence. The center stays on your
+          file.
+        </p>
+      </main>
+      <aside
+        class="inspector"
+        id="resolution"
+        aria-label="Connection details; outside the graph"
+        tabindex="0"
+      ></aside>
+    </div>
+    <footer class="footer">
+      <span>Linked perimeter bridges / separate design copy</span>
+      <span
+        >Fixed example data · no files inspected · no observed runtime
+        activity</span
+      >
+    </footer>
+    <dialog id="design-notes" aria-labelledby="notes-title">
+      <div class="notes-header">
+        <h2 id="notes-title">Why a movable perimeter?</h2>
+        <button
+          class="button"
+          id="close-notes"
+          type="button"
+          aria-label="Close design notes"
+        >
+          ✕
+        </button>
+      </div>
+      <div class="notes-body">
+        <p>
+          This copy keeps the
+          <a href="../linked-tree-bridge-workspace/index.html"
+            >linked tree bridge workspace</a
+          >
+          layout: physical tree, four-bridge canvas and a vertical inspector
+          outside the graph. It replaces the fixed Atlas.app scope with a
+          perimeter you can move, as explored in
+          <a href="../perimeter-bridges/index.html">perimeter bridges</a>.
+        </p>
+        <h3>Bridges</h3>
+        <table class="comparison">
+          <thead>
+            <tr>
+              <th>Bridge</th>
+              <th>Direction</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>North</td>
+              <td>Other side → selection</td>
+              <td>Ingress across the perimeter, through the north gate.</td>
+            </tr>
+            <tr>
+              <td>West</td>
+              <td>Same side → selection</td>
+              <td>Internal ingress from inside the perimeter.</td>
+            </tr>
+            <tr>
+              <td>East</td>
+              <td>Selection → same side</td>
+              <td>
+                Internal resolution: targets that resolve, or are proposed to
+                resolve, without leaving the perimeter.
+              </td>
+            </tr>
+            <tr>
+              <td>South</td>
+              <td>Selection → other side</td>
+              <td>
+                Egress across the perimeter: system names, external paths,
+                capabilities and files outside a narrow perimeter.
+              </td>
+            </tr>
+            <tr>
+              <td>Unplaced</td>
+              <td>Either</td>
+              <td>
+                Containment unknown. Such endpoints are not treated as leaving
+                the perimeter.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <h3>Perimeter</h3>
+        <p>
+          <strong>Atlas.app</strong> matches the linked tree workspace:
+          everything in the application inventory is internal.
+          <strong>Nearest bundle</strong> shrinks the frame to the closest
+          enclosing bundle, or the selection itself when it is a bundle. The
+          same record can then move, for example from West to North when Render
+          Helper's dependency on Example.framework crosses the framework's edge.
+          Switching never adds, removes or upgrades evidence; the tree marks the
+          perimeter with a dashed rail.
+        </p>
+        <h3>Tree follows connections</h3>
+        <p>
+          With linking on, each related row receives a badge naming its bridge
+          (N, W, E or S), ancestors open automatically and previewing a
+          connection outlines its other endpoint. A file outside a narrow
+          perimeter is still a file, so North and South rows can be marked too.
+          Turn linking off to keep the tree to containment only; Reveal still
+          locates an endpoint on request.
+        </p>
+        <h3>Notes that follow a second hop</h3>
+        <ul>
+          <li>
+            <strong>Bypass:</strong> an absolute load reference leaves the
+            perimeter although a staged copy exists inside it. Copying or
+            re-signing does not rewrite recorded paths.
+          </li>
+          <li>
+            <strong>Stand-in:</strong> the same pair seen from the staged copy,
+            which is only a proposed candidate.
+          </li>
+          <li>
+            <strong>Round trip / provider:</strong> a service name leaves
+            through the OS and a bundle inside matches it. Name matching does
+            not establish registration or IPC.
+          </li>
+        </ul>
+        <h3>Try</h3>
+        <p>
+          Select Example and switch the perimeter between Atlas.app and
+          Example.framework. Then select Atlas on arm64 to see the bypass, and
+          on x86_64 to see the bundle-relative reference resolve east. Select
+          Render Helper with the nearest-bundle perimeter: Example.framework
+          leaves south while RenderKit stays east.
+        </p>
+        <h3>Evidence and implementation limits</h3>
+        <p>
+          All data is authored for this design study. A recorded load name is
+          not a loaded library; a candidate is not a resolved target; a seal
+          entry or bound hash is not integrity or trust; an entitlement or path
+          string is not observed access. Empty north bridges mean no records
+          were supplied, not that no external consumers exist.
+        </p>
+        <p>
+          This file uses only HTML, CSS and presentation JavaScript. Perimeter
+          placement and the two-hop notes are computed here for discussion only;
+          in a product they would be relationship semantics composed by their
+          ordinary Rust owners under <code>crates/binary/inspection</code>. No
+          resolver, filesystem acquisition, React, Wasm or service integration
+          is added.
+        </p>
+      </div>
+    </dialog>
+    <script>
+      (() => {
+        'use strict';
+        const $ = (id) => document.getElementById(id);
+        const esc = (value) =>
+          String(value).replace(
+            /[&<>"']/g,
+            (c) =>
+              ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+              })[c],
+          );
+
+        // ---------------------------------------------------------------------------
+        // Illustrative data: a staged copy of Atlas.app plus reference records whose
+        // targets were not acquired. Nothing here was produced by inspecting files.
+        // ---------------------------------------------------------------------------
+        const artifacts = [
+          {
+            id: 'bundle',
+            parent: null,
+            label: 'Atlas.app',
+            kind: 'bundle',
+            role: 'Application bundle · staged copy',
+          },
+          {
+            id: 'contents',
+            parent: 'bundle',
+            label: 'Contents',
+            kind: 'directory',
+            role: 'Bundle contents',
+          },
+          {
+            id: 'info',
+            parent: 'contents',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Bundle metadata',
+          },
+          {
+            id: 'macos',
+            parent: 'contents',
+            label: 'MacOS',
+            kind: 'directory',
+            role: 'Executable directory',
+          },
+          {
+            id: 'main',
+            parent: 'macos',
+            label: 'Atlas',
+            kind: 'binary',
+            role: 'Main executable',
+            arches: ['arm64', 'x86_64'],
+          },
+          {
+            id: 'frameworks',
+            parent: 'contents',
+            label: 'Frameworks',
+            kind: 'directory',
+            role: 'Embedded frameworks',
+          },
+          {
+            id: 'telemetry-code',
+            parent: 'frameworks',
+            label: 'libTelemetry.dylib',
+            kind: 'binary',
+            role: 'Shared dynamic library',
+            arches: ['arm64', 'x86_64'],
+          },
+          {
+            id: 'framework',
+            parent: 'frameworks',
+            label: 'Example.framework',
+            kind: 'bundle',
+            role: 'Framework bundle',
+          },
+          {
+            id: 'framework-alias',
+            parent: 'framework',
+            label: 'Example',
+            kind: 'symlink',
+            role: 'Executable alias',
+          },
+          {
+            id: 'framework-resources-link',
+            parent: 'framework',
+            label: 'Resources',
+            kind: 'symlink',
+            role: 'Resource alias',
+          },
+          {
+            id: 'framework-versions',
+            parent: 'framework',
+            label: 'Versions',
+            kind: 'directory',
+            role: 'Framework versions',
+          },
+          {
+            id: 'framework-current',
+            parent: 'framework-versions',
+            label: 'Current',
+            kind: 'symlink',
+            role: 'Current version alias',
+          },
+          {
+            id: 'framework-a',
+            parent: 'framework-versions',
+            label: 'A',
+            kind: 'directory',
+            role: 'Framework version',
+          },
+          {
+            id: 'framework-code',
+            parent: 'framework-a',
+            label: 'Example',
+            kind: 'binary',
+            role: 'Framework executable',
+            arches: ['arm64', 'x86_64'],
+          },
+          {
+            id: 'framework-resources',
+            parent: 'framework-a',
+            label: 'Resources',
+            kind: 'directory',
+            role: 'Framework resources',
+          },
+          {
+            id: 'framework-info',
+            parent: 'framework-resources',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Framework metadata',
+          },
+          {
+            id: 'framework-signatures',
+            parent: 'framework-a',
+            label: '_CodeSignature',
+            kind: 'directory',
+            role: 'Signing artifacts',
+          },
+          {
+            id: 'framework-seal',
+            parent: 'framework-signatures',
+            label: 'CodeResources',
+            kind: 'seal',
+            role: 'Framework resource seal',
+          },
+          {
+            id: 'helpers',
+            parent: 'contents',
+            label: 'Helpers',
+            kind: 'directory',
+            role: 'Helper applications',
+          },
+          {
+            id: 'helper',
+            parent: 'helpers',
+            label: 'Render Helper.app',
+            kind: 'bundle',
+            role: 'Helper application',
+          },
+          {
+            id: 'helper-contents',
+            parent: 'helper',
+            label: 'Contents',
+            kind: 'directory',
+            role: 'Helper contents',
+          },
+          {
+            id: 'helper-info',
+            parent: 'helper-contents',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Helper metadata',
+          },
+          {
+            id: 'helper-macos',
+            parent: 'helper-contents',
+            label: 'MacOS',
+            kind: 'directory',
+            role: 'Executable directory',
+          },
+          {
+            id: 'helper-code',
+            parent: 'helper-macos',
+            label: 'Render Helper',
+            kind: 'binary',
+            role: 'Helper executable',
+            arches: ['arm64'],
+          },
+          {
+            id: 'helper-frameworks',
+            parent: 'helper-contents',
+            label: 'Frameworks',
+            kind: 'directory',
+            role: 'Helper frameworks',
+          },
+          {
+            id: 'renderkit',
+            parent: 'helper-frameworks',
+            label: 'RenderKit.framework',
+            kind: 'bundle',
+            role: 'Nested framework bundle',
+          },
+          {
+            id: 'renderkit-code',
+            parent: 'renderkit',
+            label: 'RenderKit',
+            kind: 'binary',
+            role: 'Framework executable',
+            arches: ['arm64'],
+          },
+          {
+            id: 'helper-signatures',
+            parent: 'helper-contents',
+            label: '_CodeSignature',
+            kind: 'directory',
+            role: 'Signing artifacts',
+          },
+          {
+            id: 'helper-seal',
+            parent: 'helper-signatures',
+            label: 'CodeResources',
+            kind: 'seal',
+            role: 'Helper resource seal',
+          },
+          {
+            id: 'xpcs',
+            parent: 'contents',
+            label: 'XPCServices',
+            kind: 'directory',
+            role: 'XPC services',
+          },
+          {
+            id: 'xpc',
+            parent: 'xpcs',
+            label: 'Indexer.xpc',
+            kind: 'bundle',
+            role: 'XPC service bundle',
+          },
+          {
+            id: 'xpc-contents',
+            parent: 'xpc',
+            label: 'Contents',
+            kind: 'directory',
+            role: 'Service contents',
+          },
+          {
+            id: 'xpc-info',
+            parent: 'xpc-contents',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Service metadata',
+          },
+          {
+            id: 'xpc-macos',
+            parent: 'xpc-contents',
+            label: 'MacOS',
+            kind: 'directory',
+            role: 'Executable directory',
+          },
+          {
+            id: 'xpc-code',
+            parent: 'xpc-macos',
+            label: 'Indexer',
+            kind: 'binary',
+            role: 'Service executable',
+            arches: ['arm64'],
+          },
+          {
+            id: 'plugins',
+            parent: 'contents',
+            label: 'PlugIns',
+            kind: 'directory',
+            role: 'Plug-ins',
+          },
+          {
+            id: 'plugin',
+            parent: 'plugins',
+            label: 'Preview.bundle',
+            kind: 'bundle',
+            role: 'Plug-in bundle',
+          },
+          {
+            id: 'plugin-contents',
+            parent: 'plugin',
+            label: 'Contents',
+            kind: 'directory',
+            role: 'Plug-in contents',
+          },
+          {
+            id: 'plugin-macos',
+            parent: 'plugin-contents',
+            label: 'MacOS',
+            kind: 'directory',
+            role: 'Executable directory',
+          },
+          {
+            id: 'plugin-code',
+            parent: 'plugin-macos',
+            label: 'Preview',
+            kind: 'binary',
+            role: 'Loadable bundle image',
+            arches: ['arm64', 'x86_64'],
+          },
+          {
+            id: 'resources',
+            parent: 'contents',
+            label: 'Resources',
+            kind: 'directory',
+            role: 'Application resources',
+          },
+          {
+            id: 'icon',
+            parent: 'resources',
+            label: 'AppIcon.icns',
+            kind: 'resource',
+            role: 'Icon resource',
+          },
+          {
+            id: 'settings',
+            parent: 'resources',
+            label: 'Settings.plist',
+            kind: 'metadata',
+            role: 'Application settings',
+          },
+          {
+            id: 'assets',
+            parent: 'resources',
+            label: 'Additional Assets',
+            kind: 'directory',
+            role: 'Inventory not available',
+            pending: true,
+          },
+          {
+            id: 'signatures',
+            parent: 'contents',
+            label: '_CodeSignature',
+            kind: 'directory',
+            role: 'Signing artifacts',
+          },
+          {
+            id: 'seal',
+            parent: 'signatures',
+            label: 'CodeResources',
+            kind: 'seal',
+            role: 'Application resource seal',
+          },
+          // Reference records: relationship endpoints only, never tree rows.
+          {
+            id: 'original-reference',
+            label: 'Original Example library',
+            kind: 'reference',
+            role: 'Recorded absolute load name',
+            external: true,
+            domain: 'filesystem',
+            path: '/Original/Atlas.app/Contents/Frameworks/Example.framework/Versions/A/Example',
+          },
+          {
+            id: 'system-library',
+            label: 'libSystem.B.dylib',
+            kind: 'reference',
+            role: 'System library reference',
+            external: true,
+            domain: 'os',
+            path: '/usr/lib/libSystem.B.dylib',
+          },
+          {
+            id: 'user-cache',
+            label: 'Atlas cache path',
+            kind: 'reference',
+            role: 'Possible user-data path',
+            external: true,
+            domain: 'filesystem',
+            path: '~/Library/Application Support/Atlas/cache.db',
+          },
+          {
+            id: 'indexer-service',
+            label: 'Indexer service name',
+            kind: 'service',
+            role: 'XPC service-name reference',
+            external: true,
+            domain: 'os',
+            path: 'com.example.atlas.indexer',
+          },
+          {
+            id: 'file-capability',
+            label: 'User-selected file access',
+            kind: 'capability',
+            role: 'Declared entitlement',
+            external: true,
+            domain: 'os',
+            path: 'com.apple.security.files.user-selected.read-write',
+          },
+          {
+            id: 'unresolved-library',
+            label: 'Optional.dylib',
+            kind: 'reference',
+            role: 'Unresolved weak dependency',
+            external: true,
+            domain: 'unknown',
+            path: '@rpath/Optional.dylib',
+          },
+        ];
+        const ORIGINAL =
+          '/Original/Atlas.app/Contents/Frameworks/Example.framework/Versions/A/Example';
+        const BOTH = ['arm64', 'x86_64'];
+        // strength: recorded (solid) · derived (dashed, includes candidates) · string (dotted, includes inferred paths)
+        const relationships = [
+          {
+            id: 'declared-main',
+            source: 'info',
+            target: 'main',
+            cat: 'metadata',
+            strength: 'recorded',
+            verb: 'declares main executable',
+            status: 'Recorded metadata',
+            evidence: 'Info.plist · CFBundleExecutable',
+            raw: 'CFBundleExecutable = Atlas',
+            limits:
+              'A declared executable is not evidence of a process launch.',
+          },
+          {
+            id: 'plugin-binds-main',
+            source: 'plugin-code',
+            target: 'main',
+            cat: 'symbol',
+            strength: 'recorded',
+            verb: 'binds symbols to the main executable',
+            status: 'Recorded bind ordinal · binding not performed',
+            evidence:
+              'Mach-O bind opcodes · BIND_SPECIAL_DYLIB_MAIN_EXECUTABLE',
+            raw: '_AtlasPreviewHostRegister → main executable (illustrative symbol)',
+            arches: BOTH,
+            limits:
+              'A recorded binding names the host image the plug-in expects. It does not establish which process loads the plug-in.',
+          },
+          {
+            id: 'main-info-slot',
+            source: 'main',
+            target: 'info',
+            cat: 'slot',
+            strength: 'recorded',
+            verb: 'binds Info.plist hash',
+            status: 'Recorded special slot · hash not checked',
+            evidence: 'CodeDirectory special slot −1',
+            raw: 'slot −1 · sha256 4be1…c07a (illustrative)',
+            arches: BOTH,
+            limits:
+              'A recorded hash does not establish that the present Info.plist matches it.',
+          },
+          {
+            id: 'main-seal-slot',
+            source: 'main',
+            target: 'seal',
+            cat: 'slot',
+            strength: 'recorded',
+            verb: 'binds resource-seal hash',
+            status: 'Recorded special slot · hash not checked',
+            evidence: 'CodeDirectory special slot −3',
+            raw: 'slot −3 · sha256 91d0…5e2f (illustrative)',
+            arches: BOTH,
+            limits:
+              'Binding a seal is not seal validity, resource integrity or certificate trust.',
+          },
+          {
+            id: 'settings-path-reference',
+            source: 'main',
+            target: 'settings',
+            cat: 'path',
+            strength: 'string',
+            verb: 'mentions resource path',
+            status: 'String evidence · access not observed',
+            evidence: 'Illustrative executable string',
+            raw: 'Contents/Resources/Settings.plist',
+            arches: BOTH,
+            limits:
+              'A path string does not establish that the application reads or writes the resource.',
+          },
+          {
+            id: 'original-library-reference',
+            source: 'main',
+            target: 'original-reference',
+            cat: 'library',
+            strength: 'recorded',
+            verb: 'records absolute load reference',
+            status: 'Recorded · target not acquired',
+            evidence: 'Mach-O arm64 slice · LC_LOAD_DYLIB',
+            raw: ORIGINAL,
+            arches: ['arm64'],
+            limits:
+              'The load name alone does not establish target existence or runtime loading. Copying or re-signing the bundle leaves this recorded path unchanged.',
+          },
+          {
+            id: 'main-example-x86',
+            source: 'main',
+            target: 'framework-code',
+            cat: 'library',
+            strength: 'derived',
+            verb: 'records bundle-relative load reference',
+            status: 'Derived target · not loaded',
+            evidence: 'Mach-O x86_64 slice · LC_LOAD_DYLIB',
+            raw: '@executable_path/../Frameworks/Example.framework/Versions/A/Example',
+            arches: ['x86_64'],
+            steps: [
+              '@executable_path → Contents/MacOS',
+              '../Frameworks → Contents/Frameworks',
+              'Example.framework/Versions/A/Example',
+            ],
+            limits:
+              'Derived from the executable location in this illustrative layout. Loader behavior and actual loading were not observed.',
+          },
+          {
+            id: 'system-library-reference',
+            source: 'main',
+            target: 'system-library',
+            cat: 'library',
+            strength: 'recorded',
+            verb: 'records system load reference',
+            status: 'Recorded · target not acquired',
+            evidence: 'Mach-O · LC_LOAD_DYLIB',
+            raw: '/usr/lib/libSystem.B.dylib',
+            arches: BOTH,
+            limits:
+              'This is a library reference, not an observed OS service connection.',
+          },
+          {
+            id: 'cache-path-reference',
+            source: 'main',
+            target: 'user-cache',
+            cat: 'path',
+            strength: 'string',
+            verb: 'mentions possible cache path',
+            status: 'Inferred path · target not inspected',
+            evidence: 'Illustrative executable string',
+            raw: '~/Library/Application Support/Atlas/cache.db',
+            arches: BOTH,
+            limits:
+              'Neither file existence nor a read or write operation has been established.',
+          },
+          {
+            id: 'indexer-name-reference',
+            source: 'main',
+            target: 'indexer-service',
+            cat: 'service',
+            strength: 'string',
+            verb: 'names XPC service',
+            status: 'String reference · lookup not observed',
+            evidence: 'Illustrative service-name string',
+            raw: 'com.example.atlas.indexer',
+            arches: BOTH,
+            limits:
+              'A named endpoint does not establish an IPC exchange or a running provider.',
+          },
+          {
+            id: 'file-access-entitlement',
+            source: 'main',
+            target: 'file-capability',
+            cat: 'capability',
+            strength: 'recorded',
+            verb: 'declares entitlement',
+            status: 'Declared capability · not exercised',
+            evidence: 'Illustrative entitlements blob',
+            raw: 'com.apple.security.files.user-selected.read-write = true',
+            arches: BOTH,
+            limits:
+              'A declaration is not proof that permission was granted or a file was accessed.',
+          },
+          {
+            id: 'weak-library-reference',
+            source: 'main',
+            target: 'unresolved-library',
+            cat: 'library',
+            strength: 'recorded',
+            verb: 'records weak load reference',
+            status: 'Recorded · target unresolved',
+            evidence: 'Mach-O · LC_LOAD_WEAK_DYLIB',
+            raw: '@rpath/Optional.dylib',
+            arches: BOTH,
+            limits:
+              'No runpath candidate exists in the example inventory. Containment and the actual loading target remain unknown.',
+          },
+          {
+            id: 'staged-library-candidate',
+            source: 'original-reference',
+            target: 'framework-code',
+            cat: 'staging',
+            strength: 'derived',
+            verb: 'has proposed staged candidate',
+            status: 'Candidate · not resolved',
+            evidence: 'Proposed staging inventory',
+            raw: 'Staged/Atlas.app/Contents/Frameworks/Example.framework/Versions/A/Example',
+            arches: ['arm64'],
+            limits:
+              'The recorded original reference still needs a supported rewrite and a resolution check.',
+          },
+          {
+            id: 'framework-link-target',
+            source: 'framework-alias',
+            target: 'framework-code',
+            cat: 'link',
+            strength: 'derived',
+            verb: 'resolves through version aliases',
+            status: 'Derived link target · not opened',
+            evidence: 'Illustrative symlink inventory',
+            raw: 'Example → Versions/Current/Example; Current → A',
+            steps: [
+              'Example → Versions/Current/Example',
+              'Versions/Current → A',
+              'Versions/A/Example',
+            ],
+            limits:
+              'The link remains a separate filesystem entry; the target subtree is not duplicated.',
+          },
+          {
+            id: 'current-version-target',
+            source: 'framework-current',
+            target: 'framework-a',
+            cat: 'link',
+            strength: 'recorded',
+            verb: 'points to',
+            status: 'Stored link target',
+            evidence: 'Illustrative symlink inventory',
+            raw: 'Current → A',
+            limits:
+              'Target identity and access require their own filesystem checks.',
+          },
+          {
+            id: 'resources-link-target',
+            source: 'framework-resources-link',
+            target: 'framework-resources',
+            cat: 'link',
+            strength: 'derived',
+            verb: 'resolves through version aliases',
+            status: 'Derived link target · not opened',
+            evidence: 'Illustrative symlink inventory',
+            raw: 'Resources → Versions/Current/Resources; Current → A',
+            steps: [
+              'Resources → Versions/Current/Resources',
+              'Versions/Current → A',
+              'Versions/A/Resources',
+            ],
+            limits:
+              'The link remains a separate filesystem entry; the target subtree is not duplicated.',
+          },
+          {
+            id: 'framework-info-slot',
+            source: 'framework-code',
+            target: 'framework-info',
+            cat: 'slot',
+            strength: 'recorded',
+            verb: 'binds Info.plist hash',
+            status: 'Recorded special slot · hash not checked',
+            evidence: 'CodeDirectory special slot −1',
+            raw: 'slot −1 · sha256 0c9a…71d4 (illustrative)',
+            arches: BOTH,
+            limits:
+              'A recorded hash does not establish that the present Info.plist matches it.',
+          },
+          {
+            id: 'framework-seal-slot',
+            source: 'framework-code',
+            target: 'framework-seal',
+            cat: 'slot',
+            strength: 'recorded',
+            verb: 'binds resource-seal hash',
+            status: 'Recorded special slot · hash not checked',
+            evidence: 'CodeDirectory special slot −3',
+            raw: 'slot −3 · sha256 e83f…02bb (illustrative)',
+            arches: BOTH,
+            limits:
+              'Binding a seal is not seal validity, resource integrity or certificate trust.',
+          },
+          {
+            id: 'framework-telemetry-candidate',
+            source: 'framework-code',
+            target: 'telemetry-code',
+            cat: 'library',
+            strength: 'derived',
+            verb: 'has candidate dependency',
+            status: 'Derived candidate · not loaded',
+            evidence: 'LC_LOAD_DYLIB + LC_RPATH (illustrative)',
+            raw: '@rpath/libTelemetry.dylib',
+            arches: BOTH,
+            steps: [
+              '@rpath/libTelemetry.dylib',
+              'LC_RPATH @loader_path/../../..',
+              '→ Atlas.app/Contents/Frameworks',
+              'libTelemetry.dylib',
+            ],
+            limits:
+              'The illustrative inventory supplies a candidate. Resolution and runtime loading have not been established.',
+          },
+          {
+            id: 'framework-settings-reference',
+            source: 'framework-code',
+            target: 'settings',
+            cat: 'path',
+            strength: 'string',
+            verb: 'mentions configuration path',
+            status: 'String evidence · access not observed',
+            evidence: 'Illustrative framework executable string',
+            raw: 'Contents/Resources/Settings.plist',
+            arches: ['arm64'],
+            limits:
+              'A string reference does not establish that the framework reads or writes the file.',
+          },
+          {
+            id: 'framework-system-reference',
+            source: 'framework-code',
+            target: 'system-library',
+            cat: 'library',
+            strength: 'recorded',
+            verb: 'records system load reference',
+            status: 'Recorded · target not acquired',
+            evidence: 'Mach-O · LC_LOAD_DYLIB',
+            raw: '/usr/lib/libSystem.B.dylib',
+            arches: BOTH,
+            limits:
+              'The system library has not been acquired or inspected in this sample.',
+          },
+          {
+            id: 'declared-helper',
+            source: 'helper-info',
+            target: 'helper-code',
+            cat: 'metadata',
+            strength: 'recorded',
+            verb: 'declares helper executable',
+            status: 'Recorded metadata',
+            evidence: 'Info.plist · CFBundleExecutable',
+            raw: 'CFBundleExecutable = Render Helper',
+            limits:
+              'A declared executable is not evidence of a process launch.',
+          },
+          {
+            id: 'helper-renderkit-candidate',
+            source: 'helper-code',
+            target: 'renderkit-code',
+            cat: 'library',
+            strength: 'derived',
+            verb: 'has candidate dependency',
+            status: 'Derived candidate · not loaded',
+            evidence: 'LC_LOAD_DYLIB + LC_RPATH (illustrative)',
+            raw: '@rpath/RenderKit.framework/RenderKit',
+            arches: ['arm64'],
+            steps: [
+              '@rpath/RenderKit.framework/RenderKit',
+              'LC_RPATH @executable_path/../Frameworks',
+              '→ Render Helper.app/Contents/Frameworks',
+              'RenderKit.framework/RenderKit',
+            ],
+            limits:
+              'Candidate selection is specific to the illustrative launch context.',
+          },
+          {
+            id: 'helper-library-reference',
+            source: 'helper-code',
+            target: 'framework-code',
+            cat: 'library',
+            strength: 'derived',
+            verb: 'has candidate dependency',
+            status: 'Derived candidate · not loaded',
+            evidence: 'LC_LOAD_DYLIB + LC_RPATH (illustrative)',
+            raw: '@rpath/Example.framework/Versions/A/Example',
+            arches: ['arm64'],
+            steps: [
+              '@rpath/Example.framework/Versions/A/Example',
+              'LC_RPATH @executable_path/../../../../Frameworks',
+              '→ Atlas.app/Contents/Frameworks',
+              'Example.framework/Versions/A/Example',
+            ],
+            limits:
+              'Candidate selection is specific to the illustrative launch context.',
+          },
+          {
+            id: 'helper-system-reference',
+            source: 'helper-code',
+            target: 'system-library',
+            cat: 'library',
+            strength: 'recorded',
+            verb: 'records system load reference',
+            status: 'Recorded · target not acquired',
+            evidence: 'Mach-O · LC_LOAD_DYLIB',
+            raw: '/usr/lib/libSystem.B.dylib',
+            arches: ['arm64'],
+            limits:
+              'This is a library reference, not an observed OS service connection.',
+          },
+          {
+            id: 'plugin-library-reference',
+            source: 'plugin-code',
+            target: 'framework-code',
+            cat: 'library',
+            strength: 'derived',
+            verb: 'has candidate dependency',
+            status: 'Derived candidate · not loaded',
+            evidence: 'LC_LOAD_DYLIB + LC_RPATH (illustrative)',
+            raw: '@rpath/Example.framework/Versions/A/Example',
+            arches: BOTH,
+            steps: [
+              '@rpath/Example.framework/Versions/A/Example',
+              'LC_RPATH @loader_path/../../../../Frameworks',
+              '→ Atlas.app/Contents/Frameworks',
+              'Example.framework/Versions/A/Example',
+            ],
+            limits:
+              'Candidate selection is specific to the illustrative loading context.',
+          },
+          {
+            id: 'declared-xpc',
+            source: 'xpc-info',
+            target: 'xpc-code',
+            cat: 'metadata',
+            strength: 'recorded',
+            verb: 'declares service executable',
+            status: 'Recorded metadata',
+            evidence: 'Info.plist · CFBundleExecutable',
+            raw: 'CFBundleExecutable = Indexer',
+            limits:
+              'A declared executable is not evidence of a process launch.',
+          },
+          {
+            id: 'indexer-provider-candidate',
+            source: 'indexer-service',
+            target: 'xpc',
+            cat: 'service',
+            strength: 'derived',
+            verb: 'has candidate provider bundle',
+            status: 'Candidate · binding not verified',
+            evidence: 'Service name and bundle metadata',
+            raw: 'Indexer.xpc · CFBundleIdentifier = com.example.atlas.indexer',
+            limits:
+              'Matching an identifier does not establish service registration or execution.',
+          },
+          {
+            id: 'xpc-system-reference',
+            source: 'xpc-code',
+            target: 'system-library',
+            cat: 'library',
+            strength: 'recorded',
+            verb: 'records system load reference',
+            status: 'Recorded · target not acquired',
+            evidence: 'Mach-O · LC_LOAD_DYLIB',
+            raw: '/usr/lib/libSystem.B.dylib',
+            arches: ['arm64'],
+            limits:
+              'This is a library reference, not an observed OS service connection.',
+          },
+          {
+            id: 'resource-seal-entry',
+            source: 'seal',
+            target: 'settings',
+            cat: 'seal',
+            strength: 'recorded',
+            verb: 'lists resource entry',
+            status: 'Manifest entry · hash not checked',
+            evidence: 'CodeResources · files2',
+            raw: 'Resources/Settings.plist',
+            limits:
+              'A recorded seal entry does not establish resource integrity or certificate trust.',
+          },
+          {
+            id: 'seal-nested-framework',
+            source: 'seal',
+            target: 'framework',
+            cat: 'nested',
+            strength: 'recorded',
+            verb: 'records nested code',
+            status: 'Manifest entry · requirement not evaluated',
+            evidence: 'CodeResources · files2 nested-code entry',
+            raw: 'Frameworks/Example.framework · cdhash 7a2c…e19b (illustrative)',
+            limits:
+              'A nested-code record does not establish that the nested signature is valid or that the outer seal is current.',
+          },
+          {
+            id: 'seal-nested-helper',
+            source: 'seal',
+            target: 'helper',
+            cat: 'nested',
+            strength: 'recorded',
+            verb: 'records nested code',
+            status: 'Manifest entry · requirement not evaluated',
+            evidence: 'CodeResources · files2 nested-code entry',
+            raw: 'Helpers/Render Helper.app · cdhash 3f81…a6c0 (illustrative)',
+            limits:
+              'A nested-code record does not establish that the nested signature is valid or that the outer seal is current.',
+          },
+        ];
+
+        // ---------------------------------------------------------------------------
+        // Containment helpers
+        // ---------------------------------------------------------------------------
+        const APP = 'bundle';
+        const byIdMap = new Map(artifacts.map((a) => [a.id, a]));
+        const node = (id) => byIdMap.get(id);
+        const label = (id) => node(id).label;
+        const kids = (id) =>
+          artifacts.filter((a) => a.parent === id && !a.external);
+        const lineage = (id) => {
+          const out = [];
+          for (let a = node(id); a; a = node(a.parent)) out.unshift(a);
+          return out;
+        };
+        const descendants = (id) =>
+          kids(id).flatMap((a) => [a, ...descendants(a.id)]);
+        const isContainer = (a) =>
+          a.kind === 'bundle' || a.kind === 'directory';
+        const within = (id, rootId) => lineage(id).some((a) => a.id === rootId);
+        const pathOf = (id) =>
+          node(id).external
+            ? node(id).path
+            : lineage(id)
+                .map((a) => a.label)
+                .join('/');
+        const shortPath = (id) =>
+          node(id).external
+            ? node(id).path
+            : pathOf(id)
+                .replace(/^Atlas\.app\/Contents\//, '')
+                .replace(/^Atlas\.app\/?/, '') || 'Atlas.app';
+        const archOk = (e, arch) => !e.arches || e.arches.includes(arch);
+        const nearestBundle = (id) =>
+          lineage(id)
+            .filter((a) => a.kind === 'bundle')
+            .at(-1) || node(APP);
+        const bundleLabel = (id) => {
+          const b = nearestBundle(id);
+          return b.id === APP
+            ? 'Elsewhere inside Atlas.app'
+            : `Inside ${b.label}`;
+        };
+
+        const KIND = {
+          bundle: 'Bundle',
+          binary: 'Mach-O',
+          directory: 'Folder',
+          symlink: 'Link',
+          metadata: 'Metadata',
+          resource: 'Resource',
+          seal: 'Seal data',
+          reference: 'Reference',
+          service: 'Service name',
+          capability: 'Capability',
+        };
+        const CAT = {
+          library: 'Load command',
+          staging: 'Staging candidate',
+          link: 'Link target',
+          metadata: 'Declared in metadata',
+          slot: 'Signature slot',
+          seal: 'Seal entry',
+          nested: 'Nested code',
+          path: 'Path string',
+          service: 'Service name',
+          capability: 'Entitlement',
+          symbol: 'Symbol binding',
+        };
+        const STRENGTH = {
+          recorded: 'Recorded',
+          derived: 'Derived / candidate',
+          string: 'String / inferred',
+        };
+        const STRENGTH_ORDER = { recorded: 0, derived: 1, string: 2 };
+        const SAMPLE = { recorded: '', derived: '4 3', string: '0.5 3' };
+        const DOMAIN = {
+          filesystem: 'Outside Atlas.app · external path',
+          os: 'Outside Atlas.app · system name / capability',
+          unknown: 'Containment unknown',
+        };
+
+        const icon = (kind) =>
+          `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${
+            kind === 'directory'
+              ? '<path d="M3 7V5h7l2 3h9v12H3Z"/>'
+              : kind === 'bundle'
+                ? '<path d="M12 3 20 7v10l-8 4-8-4V7Z"/><path d="m4 7 8 4 8-4M12 11v10"/>'
+                : kind === 'symlink' || kind === 'reference'
+                  ? '<path d="m9 15 6-6M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>'
+                  : kind === 'binary'
+                    ? '<path d="M6 3h8l4 4v14H6Z"/><path d="m10 10-2 3 2 3m4-6 2 3-2 3"/>'
+                    : kind === 'seal'
+                      ? '<path d="M6 3h8l4 4v14H6Z"/><circle cx="12" cy="13" r="2.5"/><path d="M12 15.5V18"/>'
+                      : kind === 'service'
+                        ? '<circle cx="12" cy="12" r="2"/><path d="M8 8a6 6 0 0 0 0 8m8-8a6 6 0 0 1 0 8M5 5a10 10 0 0 0 0 14m14-14a10 10 0 0 1 0 14"/>'
+                        : kind === 'capability'
+                          ? '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9m-3 3 2 2m-4 0 2 2"/>'
+                          : '<path d="M6 3h8l4 4v14H6Z"/><path d="M9 12h6m-6 4h6"/>'
+          }</svg>`;
+        const sample = (strength) =>
+          `<svg viewBox="0 0 22 6" aria-hidden="true"><line x1="2" y1="3" x2="20" y2="3"${SAMPLE[strength] ? ` stroke-dasharray="${SAMPLE[strength]}"` : ''}/></svg>`;
+
+        // ---------------------------------------------------------------------------
+        // Perimeter classification
+        //   Selection scope F: the selected entry, plus descendants for a bundle or folder.
+        //   Perimeter P: Atlas.app, or the nearest enclosing bundle (the selection itself
+        //   when it is a bundle). Crossing traffic is North or South; same-side traffic is
+        //   West or East; unknown containment is unplaced.
+        // ---------------------------------------------------------------------------
+        const BRIDGES = ['north', 'west', 'east', 'south', 'unplaced'];
+        const LIMIT = { north: 3, south: 3, west: 3, east: 3, unplaced: 3 };
+        const NAME = {
+          north: 'North',
+          west: 'West',
+          east: 'East',
+          south: 'South',
+          unplaced: 'Unplaced',
+        };
+        const TITLE = {
+          north: 'Ingress across the perimeter',
+          west: 'Internal ingress',
+          east: 'Internal resolution',
+          south: 'Egress across the perimeter',
+          unplaced: 'Containment unknown',
+        };
+        const perimeterFor = (id, mode) =>
+          mode === 'app' ? node(APP) : nearestBundle(id);
+        const scopeOf = (id) =>
+          new Set([
+            id,
+            ...(isContainer(node(id)) ? descendants(id).map((a) => a.id) : []),
+          ]);
+        const sideOf = (id, P) =>
+          node(id).external
+            ? node(id).domain === 'unknown'
+              ? 'unknown'
+              : 'outside'
+            : within(id, P.id)
+              ? 'inside'
+              : 'outside';
+
+        function classify(selected, mode, arch) {
+          const P = perimeterFor(selected, mode),
+            F = scopeOf(selected);
+          const c = {
+            P,
+            F,
+            inside: [],
+            hiddenArch: 0,
+            north: [],
+            west: [],
+            east: [],
+            south: [],
+            unplaced: [],
+          };
+          for (const e of relationships) {
+            const s = F.has(e.source),
+              t = F.has(e.target);
+            if (!s && !t) continue;
+            if (!archOk(e, arch)) {
+              c.hiddenArch++;
+              continue;
+            }
+            if (s && t) {
+              c.inside.push(e);
+              continue;
+            }
+            const dir = t ? 'in' : 'out',
+              other = t ? e.source : e.target,
+              side = sideOf(other, P);
+            const bridge =
+              side === 'unknown'
+                ? 'unplaced'
+                : side === 'outside'
+                  ? dir === 'in'
+                    ? 'north'
+                    : 'south'
+                  : dir === 'in'
+                    ? 'west'
+                    : 'east';
+            c[bridge].push({ e, dir, other, bridge });
+          }
+          c.notes = new Map();
+          for (const item of [...c.north, ...c.south]) {
+            const o = node(item.other);
+            if (!o.external) continue;
+            const via =
+              item.bridge === 'south'
+                ? relationships.find(
+                    (r) =>
+                      r.source === o.id &&
+                      !node(r.target).external &&
+                      within(r.target, P.id) &&
+                      archOk(r, arch),
+                  )
+                : relationships.find(
+                    (r) =>
+                      r.target === o.id &&
+                      !node(r.source).external &&
+                      within(r.source, P.id) &&
+                      archOk(r, arch),
+                  );
+            if (!via) continue;
+            const kind =
+              item.bridge === 'south'
+                ? item.e.cat === 'library'
+                  ? 'bypass'
+                  : 'roundtrip'
+                : via.cat === 'library'
+                  ? 'standin'
+                  : 'provider';
+            c.notes.set(item.e.id, { kind, via });
+          }
+          const rank = (i) =>
+            ({ bypass: 0, standin: 1, roundtrip: 2, provider: 2 })[
+              c.notes.get(i.e.id)?.kind
+            ] ?? 3;
+          for (const b of BRIDGES)
+            c[b].sort(
+              (x, y) =>
+                rank(x) - rank(y) ||
+                STRENGTH_ORDER[x.e.strength] - STRENGTH_ORDER[y.e.strength] ||
+                label(x.other).localeCompare(label(y.other)),
+            );
+          return c;
+        }
+        const findItem = (c, id) => {
+          for (const b of BRIDGES) {
+            const i = c[b].find((x) => x.e.id === id);
+            if (i) return i;
+          }
+          return null;
+        };
+        const placement = (c) => {
+          const m = new Map();
+          BRIDGES.forEach((b) => c[b].forEach((i) => m.set(i.e.id, b)));
+          return m;
+        };
+        const current = () =>
+          classify(state.selected, state.perimeter, state.arch);
+
+        // ---------------------------------------------------------------------------
+        // State
+        // ---------------------------------------------------------------------------
+        const state = {
+          selected: 'framework-code',
+          perimeter: 'app',
+          arch: 'arm64',
+          active: null,
+          follow: true,
+          expanded: new Set([
+            'bundle',
+            'contents',
+            'frameworks',
+            'framework',
+            'framework-versions',
+            'framework-a',
+          ]),
+          revealed: null,
+          more: new Set(),
+          moved: new Set(),
+          history: [],
+        };
+
+        function normalizeActive(c) {
+          if (findItem(c, state.active)) return;
+          const first = [
+            ...c.east,
+            ...c.west,
+            ...c.north,
+            ...c.south,
+            ...c.unplaced,
+          ];
+          const noted = first.find(
+            (i) => c.notes.get(i.e.id)?.kind === 'bypass',
+          );
+          state.active = (noted || first[0])?.e.id || null;
+        }
+        function treeMarks(c) {
+          const marks = new Map();
+          if (!state.follow) return marks;
+          for (const b of BRIDGES)
+            for (const i of c[b]) {
+              if (node(i.other).external || c.F.has(i.other)) continue;
+              const set = marks.get(i.other) || new Set();
+              set.add(b);
+              marks.set(i.other, set);
+            }
+          return marks;
+        }
+        const activeTreeEndpoint = (c) => {
+          const i = findItem(c, state.active);
+          return i && !node(i.other).external ? i.other : null;
+        };
+        const openAncestors = (id) =>
+          lineage(id)
+            .slice(0, -1)
+            .forEach((a) => state.expanded.add(a.id));
+        function expandRelated() {
+          openAncestors(state.selected);
+          if (state.follow)
+            for (const id of treeMarks(current()).keys()) openAncestors(id);
+        }
+        function scrollTreeRow(id) {
+          const pane = document.querySelector('.tree-scroll'),
+            row = pane.querySelector(`[data-tree-id="${id}"]`);
+          if (!row) return;
+          const outer = pane.getBoundingClientRect(),
+            inner = row.getBoundingClientRect();
+          if (inner.top < outer.top + 6)
+            pane.scrollTop += inner.top - outer.top - 6;
+          else if (inner.bottom > outer.bottom - 6)
+            pane.scrollTop += inner.bottom - outer.bottom + 6;
+        }
+
+        // ---------------------------------------------------------------------------
+        // Rendering
+        // ---------------------------------------------------------------------------
+        function treeMarkup(parent, c, marks, active) {
+          return kids(parent)
+            .map((a) => {
+              const nested = kids(a.id).length > 0 || a.pending,
+                open = state.expanded.has(a.id),
+                selected = a.id === state.selected;
+              const set = marks.get(a.id),
+                bridges = set ? BRIDGES.filter((b) => set.has(b)) : [];
+              const mixed =
+                bridges.includes('west') && bridges.includes('east');
+              const perimeter = a.id === c.P.id;
+              const hidden =
+                nested && !open
+                  ? [...marks.keys()].filter(
+                      (id) => id !== a.id && within(id, a.id),
+                    ).length
+                  : 0;
+              const badges =
+                (selected ? '<span class="tree-badge">SEL</span>' : '') +
+                bridges
+                  .map(
+                    (b) =>
+                      `<span class="tree-badge b-${b}">${b === 'unplaced' ? '?' : NAME[b][0]} · ${b === 'north' || b === 'west' ? 'IN' : 'OUT'}</span>`,
+                  )
+                  .join('') +
+                (perimeter
+                  ? '<span class="tree-badge perimeter">PERIMETER</span>'
+                  : '') +
+                (hidden
+                  ? `<span class="tree-badge hidden-count" title="${hidden} related rows inside; this branch is not an endpoint">+${hidden}</span>`
+                  : '');
+              const accessible = [
+                a.label,
+                selected ? 'Selected' : '',
+                bridges.map((b) => `${NAME[b]} bridge endpoint`).join(', '),
+                perimeter ? 'Current perimeter' : '',
+                active === a.id ? 'Active connection endpoint' : '',
+                hidden ? `${hidden} related rows inside collapsed branch` : '',
+              ]
+                .filter(Boolean)
+                .join(', ');
+              const row = `<div class="tree-row" data-tree-id="${a.id}" data-selected="${selected}" data-role="${bridges[0] || ''}" data-mixed="${mixed}" data-perimeter="${perimeter}" data-preview="${active === a.id}" data-revealed="${state.revealed === a.id}">${nested ? `<button type="button" class="disclosure" data-expand="${a.id}" aria-label="${open ? 'Collapse' : 'Expand'} ${esc(a.label)}" aria-expanded="${open}">${open ? '⌄' : '›'}</button>` : '<span class="spacer"></span>'}<button type="button" class="file-button" data-select="${a.id}" aria-label="${esc(accessible)}"${selected ? ' aria-current="true"' : ''} title="${esc(pathOf(a.id))}">${icon(a.kind)}<span>${esc(a.label)}</span></button>${badges}</div>`;
+              const inner = a.pending
+                ? '<li class="unknown-row">Inventory unavailable · contents unknown</li>'
+                : treeMarkup(a.id, c, marks, active);
+              return `<li>${row}${nested && open ? `<ul${perimeter ? ' class="inside-perimeter"' : ''}>${inner}</ul>` : ''}</li>`;
+            })
+            .join('');
+        }
+        function renderTree(c = current()) {
+          const pane = document.querySelector('.tree-scroll'),
+            scroll = pane.scrollTop,
+            marks = treeMarks(c),
+            active = state.follow ? activeTreeEndpoint(c) : null;
+          $('file-tree').innerHTML = treeMarkup(null, c, marks, active);
+          pane.scrollTop = scroll;
+          $('tree-key').hidden = !state.follow;
+          $('tree-key-note').textContent = state.follow
+            ? 'Badges name the bridge a row appears on. Outlined row = active connection. +count = related rows in a collapsed branch.'
+            : 'Separated: the tree shows containment and the perimeter only. Reveal locates an endpoint on request.';
+          const hidden = [...marks.keys()].filter(
+            (id) => !pane.querySelector(`[data-tree-id="${id}"]`),
+          ).length;
+          $('tree-note').textContent = state.follow
+            ? `${marks.size} related file${marks.size === 1 ? '' : 's'} in the tree${hidden ? ` · ${hidden} inside collapsed branches` : ''}. ${active ? `Active endpoint: ${label(active)}.` : state.active ? 'The active connection has no file endpoint.' : ''}`
+            : 'Containment only. Connections stay in the canvas.';
+        }
+        function relationCard(i, c) {
+          const { e, other, bridge } = i,
+            o = node(other),
+            note = c.notes.get(e.id);
+          const title = `${o.label}${o.kind === 'symlink' ? ' <small>· alias</small>' : ''}`;
+          const where = o.external ? DOMAIN[o.domain] : bundleLabel(other);
+          const stateClass = bridge === 'unplaced' ? 'unknown' : e.strength;
+          const multi =
+            c.F.size > 1
+              ? `<span class="record">${i.dir === 'in' ? 'into' : 'from'} ${esc(label(i.dir === 'in' ? e.target : e.source))}</span>`
+              : '';
+          const hops = e.steps
+            ? `<span class="record">${e.steps.length}-step resolution · see inspector</span>`
+            : '';
+          const noteText = {
+            bypass: 'Bypasses a contained copy',
+            standin: 'Stand-in for a reference recorded inside',
+            roundtrip: 'Returns through the OS to a bundle inside',
+            provider: 'Candidate provider for a name used inside',
+          };
+          return `<button type="button" class="relation${state.moved.has(e.id) ? ' moved' : ''}" data-relation="${e.id}" data-bridge="${bridge}" data-strength="${e.strength}" aria-pressed="${state.active === e.id}"><span class="relation-type"><span>${esc(CAT[e.cat])}</span>${sample(e.strength)}</span><strong>${title}</strong><span class="record mono">${esc(shortPath(other))}</span>${multi}${hops}<span class="state ${stateClass}">${esc(e.status)}</span><span class="record" style="padding-top:3px">${esc(where)}</span>${note ? `<span class="note-chip ${note.kind}">${noteText[note.kind]}</span>` : ''}</button>`;
+        }
+        function emptyText(b, c) {
+          const fills = c.F.has(c.P.id);
+          if (b === 'north')
+            return `No records reach this selection from outside ${c.P.label}. Consumers outside the inventory are unknown.`;
+          if (b === 'south')
+            return `No recorded reference leaves ${c.P.label} for this selection and slice.`;
+          if (fills)
+            return 'The selection fills the perimeter, so nothing can stay inside without also being inside the selection.';
+          return b === 'west'
+            ? `No internal source inside ${c.P.label} refers to this selection.`
+            : `No target inside ${c.P.label} is referenced by this selection and slice.`;
+        }
+        function renderFocus(c) {
+          const a = node(state.selected),
+            folder = isContainer(a),
+            missing = a.arches && !a.arches.includes(state.arch);
+          $('focus-card').innerHTML =
+            `<span class="eyebrow" style="color:var(--blue)">Selected ${folder ? 'location' : 'file'}</span><div class="focus-title"><span class="file-glyph">${icon(a.kind)}</span><div><h2>${esc(a.label)}</h2><p>${esc(a.role)}</p></div></div><div class="mono muted">${esc(shortPath(a.id))}</div><div class="focus-meta"><span>${esc(KIND[a.kind])}${a.arches ? ` · ${state.arch}` : ''}</span><span>Perimeter: <b>${esc(c.P.label)}</b></span></div>${folder ? `<p class="focus-note">Bridges show connections crossing this ${a.kind === 'bundle' ? 'bundle' : 'folder'}'s edge. ${c.inside.length} stay inside the selection.</p>` : ''}${missing ? `<p class="focus-warn">No ${state.arch} slice in this image · only architecture-independent records remain.</p>` : ''}`;
+        }
+        function altPlacement(e) {
+          const mode = state.perimeter === 'app' ? 'unit' : 'app',
+            c2 = classify(state.selected, mode, state.arch),
+            i = findItem(c2, e.id);
+          return i ? { mode, P: c2.P, bridge: i.bridge } : null;
+        }
+        function renderInspector(c) {
+          const i = findItem(c, state.active);
+          if (!i) {
+            $('resolution').innerHTML =
+              `<div class="inspector-header"><div><h2>Connection details</h2><p>No connections for this selection and slice.</p></div><span>Inspector · outside the graph</span></div><p class="evidence-limit" style="padding-top:14px">${c.hiddenArch ? `${c.hiddenArch} record${c.hiddenArch === 1 ? ' is' : 's are'} limited to another slice.` : 'Empty bridges do not prove that no consumers or targets exist outside the example inventory.'}</p>`;
+            return;
+          }
+          const { e, dir, other, bridge } = i,
+            o = node(other),
+            note = c.notes.get(e.id),
+            alt = altPlacement(e),
+            multi = c.F.size > 1,
+            sel = node(state.selected);
+          const why = [
+            dir === 'in'
+              ? `<b>Toward the selection.</b> ${esc(label(e.source))} is the source; ${multi ? `${esc(sel.label)} contains the target, ${esc(label(e.target))}` : 'the selection is the target'}.`
+              : `<b>Away from the selection.</b> ${multi ? `${esc(sel.label)} contains the source, ${esc(label(e.source))}` : 'The selection is the source'}; ${esc(o.label)} is the target.`,
+            bridge === 'unplaced'
+              ? `<b>Unplaced.</b> ${esc(o.label)} has no known containment, so it is neither inside nor outside ${esc(c.P.label)}.`
+              : `<b>${bridge === 'north' || bridge === 'south' ? 'Crosses the perimeter.' : 'Stays inside.'}</b> ${o.external ? `${esc(o.label)} is a reference record outside the inventory` : within(other, c.P.id) ? `${esc(o.label)} lies inside ${esc(c.P.label)}` : `${esc(o.label)} lies outside ${esc(c.P.label)}`}.`,
+            alt
+              ? alt.P.id === c.P.id
+                ? `<b>Perimeter choice.</b> Both choices are ${esc(c.P.label)} for this selection.`
+                : `<b>Perimeter choice.</b> With ${esc(alt.P.label)} as the perimeter this connection ${alt.bridge === bridge ? `stays ${NAME[bridge]}` : `moves ${NAME[alt.bridge]}`}.`
+              : '',
+          ].filter(Boolean);
+          const v = note?.via;
+          const noteBox = !note
+            ? ''
+            : note.kind === 'bypass'
+              ? `<div class="notebox bypass"><b>Perimeter bypass.</b> ${esc(label(e.source))} records a path outside ${esc(c.P.label)}, although a contained copy exists at <span class="mono">${esc(shortPath(v.target))}</span> (${esc(v.status)}). Copying or re-signing does not rewrite recorded paths; the copy stays a candidate until a supported rewrite and a resolution check succeed.</div>`
+              : note.kind === 'standin'
+                ? `<div class="notebox standin"><b>Stand-in.</b> ${esc(label(v.source))} records this original reference (${esc(v.evidence)}). The selection is a proposed staged candidate for it, not a resolved target.</div>`
+                : note.kind === 'roundtrip'
+                  ? `<div class="notebox roundtrip"><b>Returns through the OS.</b> The name leaves the perimeter; ${esc(label(v.target))} inside ${esc(c.P.label)} is a candidate provider (${esc(v.status)}). Name matching does not establish registration or IPC.</div>`
+                  : `<div class="notebox provider"><b>Candidate provider.</b> ${esc(label(v.source))} names this service (${esc(v.status)}). Matching an identifier does not establish registration or execution.</div>`;
+          const endpointRole = dir === 'in' ? 'source' : 'target';
+          const fileEndpoint = !o.external && !c.F.has(other);
+          $('resolution').innerHTML =
+            `<div class="inspector-header"><span class="bridge-tag" data-bridge="${bridge}">${NAME[bridge]} bridge · ${esc(TITLE[bridge])}</span><div><h2>${esc(label(e.source))} → ${esc(label(e.target))}</h2><p>${esc(CAT[e.cat])} · ${esc(e.status)} · ${esc(STRENGTH[e.strength])}</p></div><span>Connection details · not a graph node</span></div>
+      <div class="inspector-grid">
+        ${noteBox ? `<div>${noteBox}</div>` : ''}
+        <div><div class="step-title">Recorded evidence</div><strong>${esc(e.evidence)}</strong><p>${esc(e.verb)}${e.arches ? ` · ${esc(e.arches.join(' · '))}` : ''}</p><code>${esc(e.raw)}</code></div>
+        <div><div class="step-title">Resolution / interpretation context</div>${e.steps ? `<strong>${e.steps.length} illustrative steps</strong><ol class="steps">${e.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>` : `<p>The record names its ${endpointRole} directly; no resolution steps are represented.</p>`}</div>
+        <div><div class="step-title">Bridge placement</div><ul class="why">${why.map((t) => `<li>${t}</li>`).join('')}</ul></div>
+        <div><div class="step-title">Endpoint status</div><strong>${esc(o.external ? DOMAIN[o.domain] : bundleLabel(other))}</strong><p class="mono">${esc(pathOf(other))}</p></div>
+      </div>
+      <p class="evidence-limit">${esc(e.limits)}</p>
+      <div class="inspector-actions">${fileEndpoint ? `<button type="button" class="button" data-reveal="${other}">Reveal ${endpointRole}</button><button type="button" class="button primary" data-focus="${other}">Focus ${endpointRole} →</button>` : `<span>${o.external ? 'No acquired file endpoint to reveal or focus.' : 'Both endpoints lie inside the selection.'}</span>`}</div>`;
+        }
+        function renderBridges(c) {
+          const sub = {
+            north: `From outside ${c.P.label}`,
+            west: `Inside ${c.P.label}, referring to this selection`,
+            east: `Resolves, or is proposed to resolve, inside ${c.P.label}`,
+            south: `To targets outside ${c.P.label}`,
+          };
+          for (const b of BRIDGES) {
+            const items = c[b],
+              open = state.more.has(b),
+              shown = open ? items : items.slice(0, LIMIT[b]),
+              rest = items.length - shown.length;
+            $(`${b}-count`).textContent = `(${items.length})`;
+            if (sub[b]) $(`${b}-sub`).textContent = sub[b];
+            const toggle =
+              rest > 0
+                ? `<button type="button" class="more" data-more="${b}" data-anchor-more="${b}">+${rest} more</button>`
+                : open && items.length > LIMIT[b]
+                  ? `<button type="button" class="more" data-more="${b}">Show fewer</button>`
+                  : '';
+            if (b === 'north' || b === 'south' || b === 'unplaced')
+              $(`${b}-list`).style.gridTemplateColumns = items.length
+                ? `repeat(${shown.length}, minmax(0, 210px))${toggle ? ' 76px' : ''}`
+                : '';
+            $(`${b}-list`).innerHTML = items.length
+              ? shown.map((i) => relationCard(i, c)).join('') + toggle
+              : b === 'unplaced'
+                ? ''
+                : `<p class="empty">${esc(emptyText(b, c))}</p>`;
+          }
+          $('unplaced-section').hidden = !c.unplaced.length;
+          $('frame-label').textContent =
+            `Perimeter · ${c.P.label}${state.perimeter === 'app' ? ' · nested bundles inside' : ''}`;
+          const n = c.north.length,
+            s = c.south.length;
+          $('gate-north').textContent = n ? `▼ ${n} ingress` : 'no ingress';
+          $('gate-north').dataset.empty = String(!n);
+          $('gate-south').textContent = s ? `▼ ${s} egress` : 'no egress';
+          $('gate-south').dataset.empty = String(!s);
+        }
+        function renderControls(c) {
+          const a = node(state.selected),
+            unit = nearestBundle(state.selected);
+          $('selected-path').textContent = pathOf(a.id);
+          $('back').disabled = !state.history.length;
+          $('perimeter').innerHTML = [
+            ['app', 'Atlas.app', 'application'],
+            ['unit', unit.label, 'nearest bundle'],
+          ]
+            .map(
+              ([mode, name, hint]) =>
+                `<button type="button" data-perimeter="${mode}" aria-pressed="${state.perimeter === mode}">${esc(name)}<small>${hint}</small></button>`,
+            )
+            .join('');
+          $('architecture').value = state.arch;
+          for (const option of $('architecture').options)
+            option.disabled = !!a.arches && !a.arches.includes(option.value);
+        }
+        function render() {
+          const c = current();
+          normalizeActive(c);
+          renderControls(c);
+          renderTree(c);
+          renderBridges(c);
+          renderFocus(c);
+          renderInspector(c);
+          state.moved = new Set();
+          requestAnimationFrame(drawEdges);
+        }
+
+        // Orthogonal connectors in the bridge grid. The inspector never receives an edge.
+        function drawEdges() {
+          const grid = $('bridge-grid'),
+            bounds = grid.getBoundingClientRect();
+          const box = (el) => {
+            const r = el.getBoundingClientRect();
+            return {
+              left: r.left - bounds.left,
+              right: r.right - bounds.left,
+              top: r.top - bounds.top,
+              bottom: r.bottom - bounds.top,
+              x: (r.left + r.right) / 2 - bounds.left,
+              y: (r.top + r.bottom) / 2 - bounds.top,
+              h: r.height,
+            };
+          };
+          const center = box($('focus-card')),
+            frame = box(grid.querySelector('.perimeter-frame'));
+          const colors = {
+            north: 'amber',
+            south: 'amber',
+            west: 'incoming',
+            east: 'violet',
+          };
+          const defs = `<defs>${Object.entries(colors)
+            .map(
+              ([b, color]) =>
+                `<marker id="arrow-${b}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="m1 1 6 3-6 3" fill="none" stroke="var(--${color})" stroke-width="1.4"/></marker>`,
+            )
+            .join('')}</defs>`;
+          const paths = [];
+          for (const b of ['north', 'west', 'east', 'south']) {
+            const cards = [
+              ...grid.querySelectorAll(
+                `#${b}-list [data-relation], #${b}-list [data-anchor-more]`,
+              ),
+            ];
+            const spread = (k, gap) => (k - (cards.length - 1) / 2) * gap;
+            cards.forEach((el, k) => {
+              const card = box(el),
+                rel = el.dataset.relation,
+                more = !rel;
+              let d;
+              if (b === 'west') {
+                const y =
+                    center.y +
+                    spread(
+                      k,
+                      Math.min(
+                        9,
+                        (center.h - 24) / Math.max(1, cards.length - 1),
+                      ),
+                    ),
+                  lane = (card.right + center.left) / 2 + spread(k, 4);
+                d = `M${card.right + 2},${card.y} H${lane} V${y} H${center.left - 5}`;
+              } else if (b === 'east') {
+                const y =
+                    center.y +
+                    spread(
+                      k,
+                      Math.min(
+                        9,
+                        (center.h - 24) / Math.max(1, cards.length - 1),
+                      ),
+                    ),
+                  lane = (center.right + card.left) / 2 + spread(k, 4);
+                d = `M${center.right + 5},${y} H${lane} V${card.y} H${card.left - 3}`;
+              } else if (b === 'north') {
+                const x = center.x + spread(k, 7),
+                  lane = (card.bottom + frame.top) / 2;
+                d = `M${card.x},${card.bottom + 2} V${lane} H${x} V${center.top - 3}`;
+              } else {
+                const x = center.x + spread(k, 7),
+                  lane = box($('south-list')).top - 10;
+                d = `M${x},${center.bottom + 2} V${lane} H${card.x} V${card.top - 3}`;
+              }
+              const strength = more ? 'more' : el.dataset.strength;
+              paths.push(
+                `<path class="edge ${b}-edge ${strength}-edge${state.active === rel ? ' active-edge' : ''}" data-edge="${rel || ''}" d="${d}" marker-end="url(#arrow-${b})"/>`,
+              );
+            });
+          }
+          $('edges').setAttribute(
+            'viewBox',
+            `0 0 ${bounds.width} ${bounds.height}`,
+          );
+          $('edges').innerHTML = defs + paths.join('');
+        }
+
+        // ---------------------------------------------------------------------------
+        // Interaction
+        // ---------------------------------------------------------------------------
+        const announce = (message) => {
+          $('status').textContent = message;
+        };
+        const snapshot = () => ({
+          selected: state.selected,
+          perimeter: state.perimeter,
+          arch: state.arch,
+          active: state.active,
+          revealed: state.revealed,
+          expanded: [...state.expanded],
+          treeScroll: document.querySelector('.tree-scroll').scrollTop,
+        });
+        const tally = (c) =>
+          `North ${c.north.length} · West ${c.west.length} · East ${c.east.length} · South ${c.south.length}${c.unplaced.length ? ` · Unplaced ${c.unplaced.length}` : ''} with ${c.P.label} as the perimeter.`;
+
+        function select(id, via = null) {
+          if (id === state.selected) return;
+          state.history.push(snapshot());
+          const a = node(id);
+          state.selected = id;
+          state.active = via;
+          state.revealed = null;
+          state.more.clear();
+          if (a.arches && !a.arches.includes(state.arch))
+            state.arch = a.arches[0];
+          expandRelated();
+          render();
+          scrollTreeRow(id);
+          const c = current(),
+            item = via ? findItem(c, via) : null;
+          announce(
+            item
+              ? `Focused ${pathOf(id)}. The connection you followed stays selected and now sits on the ${NAME[item.bridge]} bridge. ${tally(c)}`
+              : `Focused ${pathOf(id)}. ${tally(c)} Back restores your previous exploration.`,
+          );
+        }
+        function reveal(id) {
+          openAncestors(id);
+          state.revealed = id;
+          renderTree();
+          scrollTreeRow(id);
+          announce(
+            `Revealed ${pathOf(id)} in the tree. ${label(state.selected)} remains selected.`,
+          );
+        }
+        function setPerimeter(mode) {
+          if (mode === state.perimeter) return;
+          const before = current(),
+            a = placement(before);
+          state.perimeter = mode;
+          const after = current(),
+            moves = new Map();
+          for (const [id, b] of placement(after)) {
+            const old = a.get(id);
+            if (old && old !== b) {
+              const key = `${NAME[old]} → ${NAME[b]}`;
+              moves.set(key, (moves.get(key) || 0) + 1);
+              state.moved.add(id);
+            }
+          }
+          expandRelated();
+          render();
+          announce(
+            before.P.id === after.P.id
+              ? `Both perimeter choices are ${after.P.label} for ${label(state.selected)}; no connection changes bridge.`
+              : `Perimeter ${mode === 'app' ? 'widened' : 'narrowed'} from ${before.P.label} to ${after.P.label}. ${moves.size ? [...moves].map(([k, n]) => `${k}: ${n}`).join(' · ') : 'No connection changes bridge.'}`,
+          );
+        }
+        function preserveFocus(callback) {
+          const el = document.activeElement,
+            key = ['relation', 'expand', 'select', 'perimeter'].find(
+              (name) => el?.dataset?.[name],
+            );
+          const selector = key ? `[data-${key}="${el.dataset[key]}"]` : null;
+          callback();
+          if (selector)
+            document.querySelector(selector)?.focus({ preventScroll: true });
+        }
+
+        const PRESETS = [
+          {
+            label: 'Example',
+            hint: 'Atlas.app perimeter',
+            selected: 'framework-code',
+            perimeter: 'app',
+            arch: 'arm64',
+          },
+          {
+            label: 'Example',
+            hint: 'nearest bundle',
+            selected: 'framework-code',
+            perimeter: 'unit',
+            arch: 'arm64',
+          },
+          {
+            label: 'Atlas',
+            hint: 'arm64 bypass',
+            selected: 'main',
+            perimeter: 'app',
+            arch: 'arm64',
+            active: 'original-library-reference',
+          },
+          {
+            label: 'Atlas',
+            hint: 'x86_64 resolves east',
+            selected: 'main',
+            perimeter: 'app',
+            arch: 'x86_64',
+            active: 'main-example-x86',
+          },
+          {
+            label: 'Render Helper',
+            hint: 'nearest bundle',
+            selected: 'helper-code',
+            perimeter: 'unit',
+            arch: 'arm64',
+            active: 'helper-library-reference',
+          },
+          {
+            label: 'Frameworks',
+            hint: 'folder scope',
+            selected: 'frameworks',
+            perimeter: 'app',
+            arch: 'arm64',
+          },
+        ];
+        $('try').innerHTML =
+          `<span>Try</span>${PRESETS.map((p, k) => `<button type="button" class="chip" data-preset="${k}">${esc(p.label)}<small>${esc(p.hint)}</small></button>`).join('')}`;
+
+        document.addEventListener('click', (event) => {
+          const button = event.target.closest('button');
+          if (!button) return;
+          const d = button.dataset;
+          if (d.expand) {
+            state.expanded.has(d.expand)
+              ? state.expanded.delete(d.expand)
+              : state.expanded.add(d.expand);
+            preserveFocus(() => renderTree());
+          } else if (d.select) preserveFocus(() => select(d.select));
+          else if (d.relation) {
+            state.active = d.relation;
+            state.revealed = null;
+            const c = current(),
+              endpoint = state.follow ? activeTreeEndpoint(c) : null;
+            if (endpoint) openAncestors(endpoint);
+            preserveFocus(render);
+            if (endpoint) scrollTreeRow(endpoint);
+            const i = findItem(c, d.relation);
+            announce(
+              `Previewing ${label(i.other)} on the ${NAME[i.bridge]} bridge. ${endpoint ? 'Its tree row is outlined.' : node(i.other).external ? 'This reference has no tree row.' : 'Tree linking is off; use Reveal to locate it.'} The selected file is unchanged.`,
+            );
+          } else if (d.reveal) reveal(d.reveal);
+          else if (d.focus) {
+            select(d.focus, state.active);
+            $('focus-card').setAttribute('tabindex', '-1');
+            $('focus-card').focus({ preventScroll: true });
+          } else if (d.perimeter)
+            preserveFocus(() => setPerimeter(d.perimeter));
+          else if (d.more) {
+            state.more.has(d.more)
+              ? state.more.delete(d.more)
+              : state.more.add(d.more);
+            render();
+          } else if (d.preset) {
+            const p = PRESETS[Number(d.preset)];
+            state.history.push(snapshot());
+            Object.assign(state, {
+              selected: p.selected,
+              perimeter: p.perimeter,
+              arch: p.arch,
+              active: p.active || null,
+              revealed: null,
+            });
+            state.more.clear();
+            expandRelated();
+            render();
+            scrollTreeRow(p.selected);
+            announce(`${p.label} · ${p.hint}. ${tally(current())}`);
+          }
+        });
+        const hot = (event, on) => {
+          const card = event.target.closest?.('.relation');
+          if (!card || (!on && card.contains(event.relatedTarget))) return;
+          card.classList.toggle('hot', on);
+          document
+            .querySelector(`#edges [data-edge="${card.dataset.relation}"]`)
+            ?.classList.toggle('hot', on);
+        };
+        $('bridge-grid').addEventListener('pointerover', (e) => hot(e, true));
+        $('bridge-grid').addEventListener('pointerout', (e) => hot(e, false));
+        $('bridge-grid').addEventListener('focusin', (e) => hot(e, true));
+        $('bridge-grid').addEventListener('focusout', (e) => hot(e, false));
+        $('architecture').addEventListener('change', (event) => {
+          const before = placement(current());
+          state.arch = event.target.value;
+          state.revealed = null;
+          const after = placement(current());
+          state.moved = new Set(
+            [...after.keys()].filter((k) => !before.has(k)),
+          );
+          expandRelated();
+          render();
+          announce(
+            `Showing fixed ${state.arch} example records: ${state.moved.size} added, ${[...before.keys()].filter((k) => !after.has(k)).length} removed. No analysis was performed.`,
+          );
+        });
+        $('follow').addEventListener('change', (event) => {
+          state.follow = event.target.checked;
+          if (state.follow) expandRelated();
+          renderTree();
+          announce(
+            state.follow
+              ? 'Tree follows connections: related rows carry bridge badges.'
+              : 'Tree separated: containment and the perimeter only. Connections stay in the canvas.',
+          );
+        });
+        $('back').addEventListener('click', () => {
+          const previous = state.history.pop();
+          if (!previous) return;
+          Object.assign(state, previous, {
+            expanded: new Set(previous.expanded),
+          });
+          state.more.clear();
+          render();
+          document.querySelector('.tree-scroll').scrollTop =
+            previous.treeScroll || 0;
+          announce(
+            `Restored ${label(state.selected)} with its perimeter, slice, preview and tree state.`,
+          );
+        });
+        $('collapse-tree').addEventListener('click', () => {
+          state.expanded.clear();
+          renderTree();
+          announce(
+            'Collapsed file navigation. Selection and bridge geometry are unchanged.',
+          );
+        });
+        $('reveal-selected').addEventListener('click', () =>
+          reveal(state.selected),
+        );
+        $('open-notes').addEventListener('click', () =>
+          $('design-notes').showModal(),
+        );
+        $('close-notes').addEventListener('click', () =>
+          $('design-notes').close(),
+        );
+        if (globalThis.ResizeObserver)
+          new ResizeObserver(() => requestAnimationFrame(drawEdges)).observe(
+            $('bridge-grid'),
+          );
+        window.addEventListener('resize', () =>
+          requestAnimationFrame(drawEdges),
+        );
+
+        expandRelated();
+        render();
+      })();
+    </script>
+  </body>
+</html>

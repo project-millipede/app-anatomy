@@ -1,0 +1,4487 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Boundary Compass Explorer</title>
+    <style>
+      /*
+        Boundary compass: a design study for the Application Explorer.
+        The physical tree answers "where". A separate layer answers "what crosses".
+        North / south carry direction (ingress / egress). West / east carry the
+        bundle boundary (leaves Atlas.app / resolves inside Atlas.app).
+        Illustrative data only. No analysis happens in this page.
+      */
+      :root {
+        --bg: #f3f4f6;
+        --canvas: #f6f7f9;
+        --dot: #e2e6ec;
+        --panel: #ffffff;
+        --panel-2: #f8f9fb;
+        --ink: #1c2330;
+        --ink-2: #384253;
+        --muted: #667085;
+        --faint: #98a2b3;
+        --line: #e3e7ed;
+        --line-2: #cdd4de;
+        --hover: #f0f2f5;
+        --spine: #2a3344;
+        --east: #2b64ad;
+        --east-ink: #1f4f8f;
+        --east-soft: #eaf1fb;
+        --east-line: #6f98d3;
+        --west: #9c5713;
+        --west-ink: #82470e;
+        --west-soft: #fbf2e6;
+        --west-territory: rgba(214, 150, 80, 0.07);
+        --west-line: #d29a5c;
+        --hazard: #b42318;
+        --hazard-soft: #fdecea;
+        --ok: #2c7a4b;
+        --ok-soft: #e7f4ec;
+        --gap: #6e5aa0;
+        --gap-soft: #f0edf8;
+        --focus: #2b64ad;
+        --shadow:
+          0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.07);
+        --shadow-lg:
+          0 10px 30px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.06);
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --sans:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #0e1217;
+          --canvas: #11161c;
+          --dot: #1d242d;
+          --panel: #161b22;
+          --panel-2: #1a2029;
+          --ink: #e7ebf1;
+          --ink-2: #c4cbd6;
+          --muted: #9aa4b4;
+          --faint: #6c7686;
+          --line: #252d38;
+          --line-2: #354152;
+          --hover: #1f2631;
+          --spine: #c6cedb;
+          --east: #79a7e8;
+          --east-ink: #a8c6f2;
+          --east-soft: #1a2940;
+          --east-line: #4e7cbb;
+          --west: #e2a663;
+          --west-ink: #f0c38f;
+          --west-soft: #2e2418;
+          --west-territory: rgba(226, 166, 99, 0.06);
+          --west-line: #a06d37;
+          --hazard: #f2796d;
+          --hazard-soft: #3a1c1a;
+          --ok: #6cc391;
+          --ok-soft: #17301f;
+          --gap: #b6a5df;
+          --gap-soft: #28223a;
+          --focus: #79a7e8;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+          --shadow-lg: 0 12px 34px rgba(0, 0, 0, 0.5);
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #0e1217;
+        --canvas: #11161c;
+        --dot: #1d242d;
+        --panel: #161b22;
+        --panel-2: #1a2029;
+        --ink: #e7ebf1;
+        --ink-2: #c4cbd6;
+        --muted: #9aa4b4;
+        --faint: #6c7686;
+        --line: #252d38;
+        --line-2: #354152;
+        --hover: #1f2631;
+        --spine: #c6cedb;
+        --east: #79a7e8;
+        --east-ink: #a8c6f2;
+        --east-soft: #1a2940;
+        --east-line: #4e7cbb;
+        --west: #e2a663;
+        --west-ink: #f0c38f;
+        --west-soft: #2e2418;
+        --west-territory: rgba(226, 166, 99, 0.06);
+        --west-line: #a06d37;
+        --hazard: #f2796d;
+        --hazard-soft: #3a1c1a;
+        --ok: #6cc391;
+        --ok-soft: #17301f;
+        --gap: #b6a5df;
+        --gap-soft: #28223a;
+        --focus: #79a7e8;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 12px 34px rgba(0, 0, 0, 0.5);
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font: 13px/1.45 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .mono {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        overflow-wrap: anywhere;
+      }
+      .ico {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      /* ---------- Chrome ---------- */
+      .chrome {
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 0 18px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+      }
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        color: var(--ink);
+      }
+      .brand-mark .ico {
+        width: 18px;
+        height: 18px;
+      }
+      .brand h1 {
+        font-size: 14px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      .brand p {
+        font-size: 11.5px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .chrome-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .study-tag {
+        font-size: 11px;
+        color: var(--muted);
+        padding: 3px 8px;
+        border: 1px dashed var(--line-2);
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--panel);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .btn:hover:not(:disabled) {
+        background: var(--hover);
+      }
+      .btn.icon-only {
+        width: 30px;
+        padding: 0;
+        justify-content: center;
+      }
+      .btn[aria-pressed='true'] {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--panel);
+      }
+
+      /* ---------- App frame ---------- */
+      .app {
+        display: grid;
+        grid-template-columns: 282px minmax(0, 1fr);
+        height: calc(100vh - 54px);
+        height: calc(100dvh - 54px);
+        transition: grid-template-columns 0.2s ease;
+      }
+      .app[data-tree='closed'] {
+        grid-template-columns: 0 minmax(0, 1fr);
+      }
+      .app[data-tree='closed'] .tree-pane {
+        visibility: hidden;
+        border-right: 0;
+      }
+
+      /* ---------- Tree (containment only) ---------- */
+      .tree-pane {
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+      }
+      .tree-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 14px 14px 8px 16px;
+      }
+      .tree-head h2 {
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .tree-head small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 400;
+      }
+      .link-btn {
+        border: 0;
+        background: none;
+        padding: 3px 4px;
+        border-radius: 5px;
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+      .link-btn:hover {
+        color: var(--ink);
+        background: var(--hover);
+      }
+      .tree-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 2px 8px 14px;
+      }
+      .tree,
+      .tree ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .tree li {
+        outline: none;
+      }
+      .trow {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        height: 28px;
+        padding: 0 6px 0 calc((var(--level) - 1) * 14px + 4px);
+        border-radius: 6px;
+        color: var(--ink-2);
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+      }
+      .trow:hover {
+        background: var(--hover);
+      }
+      .tree li:focus-visible > .trow {
+        outline: 2px solid var(--focus);
+        outline-offset: -2px;
+      }
+      .chev {
+        width: 16px;
+        height: 16px;
+        display: grid;
+        place-items: center;
+        color: var(--faint);
+        border-radius: 4px;
+        flex: none;
+      }
+      .chev .ico {
+        width: 12px;
+        height: 12px;
+        transition: transform 0.15s ease;
+      }
+      .chev:hover {
+        color: var(--ink);
+        background: var(--line);
+      }
+      .tree li[aria-expanded='true'] > .trow .chev .ico {
+        transform: rotate(90deg);
+      }
+      .chev-space {
+        width: 16px;
+        flex: none;
+      }
+      .trow .ico {
+        color: var(--muted);
+      }
+      .tlabel {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .thint {
+        flex: none;
+        max-width: 46%;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        color: var(--faint);
+        font-size: 11px;
+      }
+      .tree li[aria-selected='true'] > .trow {
+        background: var(--east-soft);
+        color: var(--east-ink);
+        font-weight: 600;
+        box-shadow: inset 3px 0 0 var(--east);
+      }
+      .tree li[aria-selected='true'] > .trow .ico {
+        color: var(--east);
+      }
+      .trow[data-contains='true']::after {
+        content: '';
+        position: absolute;
+        right: 7px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--east);
+      }
+      .trow[data-located='true'] {
+        animation: locate 2.2s ease-out;
+      }
+      @keyframes locate {
+        0%,
+        35% {
+          background: var(--west-soft);
+          box-shadow: inset 0 0 0 2px var(--west-line);
+        }
+        100% {
+          box-shadow: inset 0 0 0 2px transparent;
+        }
+      }
+      .tpending {
+        padding: 3px 0 5px calc((var(--level) - 1) * 14px + 30px);
+        color: var(--faint);
+        font-size: 11px;
+        font-style: italic;
+      }
+      .tree-foot {
+        border-top: 1px solid var(--line);
+        padding: 10px 16px 12px;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .tree-foot strong {
+        color: var(--ink-2);
+        font-weight: 600;
+      }
+
+      /* ---------- Layer pane ---------- */
+      .layer-pane {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .layer-bar {
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        padding: 8px 16px 9px;
+        display: grid;
+        gap: 7px;
+      }
+      .bar-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        min-width: 0;
+      }
+      .crumbs {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1px;
+        min-width: 0;
+        flex: 1 1 260px;
+      }
+      .crumb {
+        border: 0;
+        background: none;
+        padding: 2px 5px;
+        border-radius: 5px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .crumb:hover {
+        background: var(--hover);
+        color: var(--ink);
+      }
+      .crumb[aria-current='true'] {
+        color: var(--ink);
+        font-weight: 650;
+      }
+      .crumb-sep {
+        color: var(--faint);
+        font-size: 11px;
+      }
+      .crumb-outside {
+        font-size: 11px;
+        color: var(--west-ink);
+        background: var(--west-soft);
+        border-radius: 5px;
+        padding: 2px 6px;
+      }
+      .bar-label {
+        font-size: 10.5px;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--faint);
+        font-weight: 600;
+      }
+      .seg {
+        display: inline-flex;
+        flex-wrap: wrap;
+        max-width: 100%;
+        padding: 2px;
+        gap: 1px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-2);
+      }
+      .seg button {
+        border: 0;
+        background: transparent;
+        border-radius: 6px;
+        padding: 3px 9px;
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .seg button:hover:not(:disabled) {
+        color: var(--ink);
+      }
+      .seg button[aria-pressed='true'] {
+        background: var(--panel);
+        color: var(--ink);
+        box-shadow: var(--shadow);
+      }
+      .seg button .count {
+        margin-left: 4px;
+        color: var(--faint);
+        font-variant-numeric: tabular-nums;
+      }
+      .seg[data-tone='layout']
+        button[data-value='staged'][aria-pressed='true'] {
+        color: var(--hazard);
+      }
+      .bar-gap {
+        width: 10px;
+      }
+      .layer-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        container-type: inline-size;
+        container-name: layer;
+        background-color: var(--canvas);
+        background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
+        background-size: 18px 18px;
+        padding: 0 24px 28px;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 16px;
+        padding: 8px 16px;
+        border-top: 1px solid var(--line);
+        background: var(--panel);
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .legend .sample {
+        display: inline-block;
+        width: 26px;
+        vertical-align: middle;
+        margin-right: 6px;
+        border-top: 2px solid var(--ink-2);
+      }
+      .legend .sample[data-s='candidate'] {
+        border-top-style: dashed;
+      }
+      .legend .sample[data-s='string'] {
+        border-top-style: dotted;
+      }
+      .legend .sample[data-s='hazard'] {
+        border-top: 2px dashed var(--hazard);
+      }
+      .legend .tick-sample {
+        display: inline-block;
+        width: 3px;
+        height: 12px;
+        border-radius: 2px;
+        background: var(--ink-2);
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+      .legend .terr {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+
+      /* ---------- Compass field ---------- */
+      .field {
+        --mid: 272px;
+        --gate: 48px;
+        position: relative;
+        max-width: 1360px;
+        margin: 0 auto;
+        padding-bottom: 18px;
+        background: linear-gradient(
+          to right,
+          var(--west-territory) 0,
+          var(--west-territory) calc((100% - var(--mid)) / 2 - var(--gate)),
+          transparent 0
+        );
+      }
+      .field::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc((100% - var(--mid)) / 2 - var(--gate));
+        border-left: 2px dashed var(--west-line);
+        pointer-events: none;
+      }
+      @container layer (min-width: 1180px) {
+        .field {
+          --mid: 300px;
+        }
+      }
+      @container layer (max-width: 940px) {
+        .field {
+          --mid: 236px;
+        }
+      }
+
+      .heads,
+      .row,
+      .deck,
+      .anchor-row,
+      .cap {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--mid) minmax(0, 1fr);
+      }
+      .heads {
+        position: sticky;
+        top: 0;
+        z-index: 6;
+        padding: 10px 0 8px;
+        margin-bottom: 4px;
+        background: color-mix(in srgb, var(--canvas) 90%, transparent);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border-bottom: 1px solid var(--line);
+      }
+      .h {
+        font-size: 11px;
+        color: var(--muted);
+        min-width: 0;
+      }
+      .h b {
+        display: inline-grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        font-size: 10.5px;
+        margin-right: 6px;
+        color: var(--panel);
+        background: var(--ink-2);
+      }
+      .h strong {
+        color: var(--ink);
+        font-weight: 650;
+        font-size: 12px;
+      }
+      .h small {
+        display: block;
+        margin-top: 2px;
+        font-size: 10.5px;
+        color: var(--faint);
+      }
+      .h.w {
+        text-align: right;
+        padding-right: calc(var(--gate) + 14px);
+      }
+      .h.w b {
+        background: var(--west);
+      }
+      .h.m {
+        text-align: center;
+      }
+      .h.e {
+        padding-left: 14px;
+      }
+      .h.e b {
+        background: var(--east);
+      }
+      .boundary-tag {
+        position: absolute;
+        top: 54px;
+        left: calc((100% - var(--mid)) / 2 - var(--gate));
+        transform: translateX(-50%);
+        z-index: 7;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--west-ink);
+        background: var(--canvas);
+        border: 1px dashed var(--west-line);
+        border-radius: 999px;
+        padding: 1px 7px;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      /* spine: every row draws its own segment in the middle column */
+      .row::before,
+      .deck::before,
+      .cap::before,
+      .anchor-row .port-line {
+        content: '';
+        grid-column: 2;
+        grid-row: 1 / -1;
+        justify-self: center;
+        width: 2px;
+        background: var(--spine);
+        opacity: 0.85;
+      }
+
+      /* bridge decks */
+      .deck {
+        grid-template-rows: auto;
+        padding: 14px 0 8px;
+      }
+      .deck-mid {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: center;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 4px 11px 4px 5px;
+        border-radius: 999px;
+        background: var(--ink);
+        color: var(--panel);
+        font-size: 11.5px;
+        font-weight: 600;
+        white-space: nowrap;
+        box-shadow: var(--shadow);
+      }
+      .deck-mid .compass-letter {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--panel);
+        color: var(--ink);
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .deck-mid .count {
+        font-weight: 400;
+        opacity: 0.7;
+      }
+      .deck-note {
+        grid-row: 1;
+        align-self: center;
+        font-size: 11px;
+        color: var(--muted);
+        min-width: 0;
+      }
+      .deck-note.w {
+        grid-column: 1;
+        text-align: right;
+        padding-right: calc(var(--gate) + 14px);
+        color: var(--west-ink);
+      }
+      .deck-note.e {
+        grid-column: 3;
+        padding-left: 18px;
+        color: var(--east-ink);
+      }
+
+      /* lanes */
+      .row {
+        grid-template-rows: auto auto;
+      }
+      .field[data-animate='true'] .row {
+        animation: rise 0.28s ease both;
+        animation-delay: calc(var(--i, 0) * 18ms);
+      }
+      .field[data-animate='true'] .row[data-dir='out'] {
+        animation-name: drop;
+      }
+      .cell {
+        grid-row: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        padding: 4px 0;
+      }
+      .cell.w {
+        grid-column: 1;
+        justify-content: flex-end;
+      }
+      .cell.m {
+        grid-column: 2;
+        z-index: 1;
+      }
+      .cell.e {
+        grid-column: 3;
+      }
+      .lane {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        width: 100%;
+      }
+      .cell.w .lane {
+        justify-content: flex-end;
+      }
+
+      .plank {
+        width: 100%;
+        text-align: left;
+        display: grid;
+        gap: 2px;
+        padding: 7px 10px 7px 11px;
+        border: 1px solid var(--line-2);
+        border-radius: 9px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        position: relative;
+      }
+      .plank:hover {
+        border-color: var(--faint);
+      }
+      .plank[aria-pressed='true'] {
+        border-color: var(--ink);
+        box-shadow:
+          0 0 0 1px var(--ink),
+          var(--shadow-lg);
+      }
+      .row[data-side='east'] .plank {
+        border-right: 3px solid var(--east-line);
+      }
+      .row[data-side='west'] .plank {
+        border-left: 3px solid var(--west-line);
+      }
+      .row[data-cls='hazard'] .plank {
+        border-style: dashed;
+        border-color: var(--hazard);
+        background: var(--hazard-soft);
+      }
+      .pk {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        font-size: 10.5px;
+        color: var(--muted);
+      }
+      .pk-kind {
+        font-weight: 650;
+        color: var(--ink-2);
+        letter-spacing: 0.01em;
+      }
+      .pk-form {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .pk-dir {
+        margin-left: auto;
+        font-size: 10px;
+        color: var(--faint);
+      }
+      .pk-raw {
+        color: var(--ink);
+        line-height: 1.35;
+      }
+      .pk-status {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .row[data-cls='hazard'] .pk-status {
+        color: var(--hazard);
+        font-weight: 600;
+      }
+      .row[data-cls='unresolved'] .pk-status {
+        color: var(--gap);
+      }
+
+      .rib {
+        --rib: var(--east-line);
+        flex: none;
+        width: calc(40px + var(--ticks, 0) * 13px);
+        height: 22px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        padding: 0 12px;
+      }
+      .rib::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 2px solid var(--rib);
+        transform: translateY(-1px);
+      }
+      .rib[data-flow='rtl'] {
+        flex-direction: row-reverse;
+      }
+      .rib[data-side='west'] {
+        --rib: var(--west-line);
+        width: calc(var(--gate) + 34px);
+        justify-content: flex-start;
+        padding: 0 12px 0 0;
+      }
+      .rib[data-cls='candidate']::before,
+      .rib[data-cls='unresolved']::before {
+        border-top-style: dashed;
+      }
+      .rib[data-cls='string']::before {
+        border-top-style: dotted;
+        border-top-width: 3px;
+      }
+      .rib[data-cls='hazard'] {
+        --rib: var(--hazard);
+      }
+      .rib[data-cls='hazard']::before {
+        border-top-style: dashed;
+      }
+      .row[data-active='true'] .rib:not([data-cls='hazard']) {
+        --rib: var(--ink);
+      }
+      .rib::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 5px solid transparent;
+      }
+      .rib[data-arrow='right']::after {
+        right: -2px;
+        border-right: 0;
+        border-left: 7px solid var(--rib);
+      }
+      .rib[data-arrow='left']::after {
+        left: -2px;
+        border-left: 0;
+        border-right: 7px solid var(--rib);
+      }
+      .rib[data-arrow='none']::after {
+        display: none;
+      }
+      .rib .tick {
+        position: relative;
+        width: 3px;
+        height: 15px;
+        border-radius: 2px;
+        background: var(--rib);
+        flex: none;
+      }
+      .rib .tick[data-kind='enter'] {
+        box-shadow: 0 0 0 2px var(--canvas);
+      }
+      .rib .tick[data-kind='exit'] {
+        height: 11px;
+        box-shadow: 0 0 0 2px var(--canvas);
+      }
+      .rib .stop {
+        position: relative;
+        font-size: 12px;
+        line-height: 1;
+        color: var(--rib);
+        font-weight: 700;
+        background: var(--canvas);
+        padding: 0 1px;
+      }
+
+      .endpoint {
+        flex: 0 1 380px;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 1px 8px;
+        align-items: start;
+        padding: 6px 7px 6px 9px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .cell.e .endpoint {
+        border-left: 3px solid var(--east-line);
+      }
+      .cell.w .endpoint {
+        border-right: 3px solid var(--west-line);
+        background: color-mix(in srgb, var(--west-soft) 55%, var(--panel));
+      }
+      .row[data-cls='hazard'] .endpoint {
+        border-style: dashed;
+        border-color: var(--hazard);
+        opacity: 0.92;
+      }
+      .ep-ic {
+        padding-top: 1px;
+        color: var(--muted);
+      }
+      .ep-main {
+        min-width: 0;
+      }
+      .ep-title {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        min-width: 0;
+      }
+      .ep-title strong {
+        font-weight: 620;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .ep-kind {
+        font-size: 10.5px;
+        color: var(--faint);
+        white-space: nowrap;
+      }
+      .ep-path {
+        color: var(--muted);
+        font-size: 10.5px;
+        line-height: 1.35;
+      }
+      .ep-cross {
+        margin-top: 2px;
+        font-size: 10.5px;
+        color: var(--east-ink);
+      }
+      .cell.w .ep-cross {
+        color: var(--west-ink);
+      }
+      .row[data-cls='hazard'] .ep-cross {
+        color: var(--hazard);
+      }
+      .side-tag {
+        display: none;
+      }
+      .ep-act {
+        display: flex;
+        gap: 2px;
+      }
+      .mini {
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+      }
+      .mini:hover:not(:disabled) {
+        background: var(--hover);
+        color: var(--ink);
+      }
+      .mini .ico {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ghost rows (not inventoried / empty) */
+      .ghost-card {
+        flex: 0 1 300px;
+        border: 1px dashed var(--west-line);
+        border-radius: 9px;
+        padding: 6px 9px;
+        font-size: 11px;
+        color: var(--west-ink);
+        background: transparent;
+      }
+      .ghost-plank {
+        width: 100%;
+        border: 1px dashed var(--line-2);
+        border-radius: 9px;
+        padding: 7px 10px;
+        font-size: 11px;
+        color: var(--faint);
+        text-align: center;
+        background: var(--canvas);
+      }
+      .empty-row .ghost-plank {
+        color: var(--muted);
+      }
+
+      /* route strip */
+      .route {
+        grid-row: 2;
+        z-index: 2;
+        margin: 2px 0 10px;
+        border: 1px solid var(--line-2);
+        border-radius: 10px;
+        background: var(--panel);
+        box-shadow: var(--shadow-lg);
+        padding: 10px 12px 10px;
+        position: relative;
+        animation: unfold 0.22s ease both;
+      }
+      .route[data-half='east'] {
+        grid-column: 2 / 4;
+        margin-left: calc(var(--mid) / 2 + 14px);
+        border-top: 3px solid var(--east-line);
+      }
+      .route[data-half='west'] {
+        grid-column: 1 / 3;
+        margin-right: calc(var(--mid) / 2 + 14px);
+        border-top: 3px solid var(--west-line);
+      }
+      .route[data-cls='hazard'] {
+        border-top-color: var(--hazard);
+      }
+      .route::before {
+        content: '';
+        position: absolute;
+        top: 16px;
+        width: 14px;
+        border-top: 2px solid var(--spine);
+      }
+      .route[data-half='east']::before {
+        left: -15px;
+      }
+      .route[data-half='west']::before {
+        right: -15px;
+      }
+      .route-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 10px;
+        margin-bottom: 8px;
+      }
+      .route-head h3 {
+        font-size: 12.5px;
+        font-weight: 650;
+      }
+      .route-head .ctx {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .route-head .dir {
+        margin-left: auto;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--east-ink);
+      }
+      .route[data-half='west'] .route-head .dir {
+        color: var(--west-ink);
+      }
+      .route[data-cls='hazard'] .route-head .dir {
+        color: var(--hazard);
+      }
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0;
+      }
+      .step {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 8px;
+        position: relative;
+        padding-bottom: 7px;
+      }
+      .step:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 20px;
+        bottom: 0;
+        width: 2px;
+        background: var(--line);
+      }
+      .sn {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 10.5px;
+        font-weight: 700;
+        border: 1.5px solid var(--line-2);
+        background: var(--panel);
+        color: var(--muted);
+      }
+      .step[data-r='hit'] .sn {
+        border-color: var(--ok);
+        color: var(--ok);
+        background: var(--ok-soft);
+      }
+      .step[data-r='miss'] .sn {
+        border-style: dashed;
+        color: var(--faint);
+      }
+      .step[data-r='hop'] .sn,
+      .step[data-r='cand'] .sn {
+        border-color: var(--east-line);
+        color: var(--east);
+        background: var(--east-soft);
+      }
+      .step[data-r='cand'] .sn {
+        border-style: dashed;
+      }
+      .step[data-r='exit'] .sn {
+        border-color: var(--west-line);
+        color: var(--west);
+        background: var(--west-soft);
+      }
+      .step[data-r='warn'] .sn {
+        border-color: var(--hazard);
+        color: var(--hazard);
+        background: var(--hazard-soft);
+      }
+      .step[data-r='gap'] .sn {
+        border-color: var(--gap);
+        color: var(--gap);
+        background: var(--gap-soft);
+        border-style: dashed;
+      }
+      .sk {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ink-2);
+        padding-top: 2px;
+      }
+      .step[data-r='miss'] .sv {
+        text-decoration: line-through;
+        text-decoration-color: var(--faint);
+        color: var(--faint);
+      }
+      .sv {
+        display: block;
+        color: var(--ink);
+      }
+      .limits {
+        margin-top: 4px;
+        padding: 7px 9px;
+        border-radius: 7px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .limits strong {
+        color: var(--ink-2);
+        font-weight: 600;
+      }
+      .route-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 9px;
+      }
+
+      /* anchor */
+      .anchor-row {
+        grid-template-rows: 26px auto 26px;
+      }
+      .anchor-row .port-line {
+        grid-row: 1;
+      }
+      .anchor-row .port-line.s {
+        grid-row: 3;
+      }
+      .port-arrow {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: center;
+        align-self: end;
+        width: 0;
+        height: 0;
+        border: 6px solid transparent;
+        border-bottom: 0;
+        border-top: 8px solid var(--spine);
+        margin-bottom: -1px;
+        z-index: 1;
+      }
+      .port-arrow.s {
+        grid-row: 3;
+        align-self: end;
+      }
+      .anchor {
+        grid-column: 2 / 4;
+        grid-row: 2;
+        justify-self: start;
+        width: min(100%, 640px);
+        position: relative;
+        z-index: 1;
+      }
+      .field[data-animate='true'] .anchor {
+        animation: lift 0.3s ease both;
+      }
+      .anchor[data-outside='true'] {
+        grid-column: 1 / 3;
+        justify-self: end;
+      }
+      .membrane {
+        border: 1.5px solid var(--line-2);
+        border-radius: 14px;
+        padding: 6px 6px 6px;
+        background: color-mix(in srgb, var(--panel) 55%, transparent);
+      }
+      .membrane + .membrane,
+      .membrane .membrane {
+        margin-top: 2px;
+      }
+      .m-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 0;
+        background: none;
+        padding: 1px 6px 5px;
+        font-size: 11px;
+        color: var(--muted);
+        border-radius: 6px;
+        text-align: left;
+      }
+      .m-label strong {
+        color: var(--ink-2);
+        font-weight: 650;
+      }
+      .m-label:hover {
+        color: var(--ink);
+      }
+      .m-label:hover strong {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .m-label .ico {
+        width: 13px;
+        height: 13px;
+      }
+      .core {
+        border-radius: 11px;
+        padding: 12px 14px 12px;
+        background: var(--panel);
+        border: 1.5px solid var(--ink);
+        box-shadow: var(--shadow-lg);
+      }
+      .anchor[data-outside='true'] .core {
+        border-color: var(--west);
+        background: color-mix(in srgb, var(--west-soft) 50%, var(--panel));
+      }
+      .core-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .core-ic {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: var(--east-soft);
+        color: var(--east);
+        flex: none;
+      }
+      .anchor[data-outside='true'] .core-ic {
+        background: var(--west-soft);
+        color: var(--west);
+      }
+      .core-ic .ico {
+        width: 18px;
+        height: 18px;
+      }
+      .core-kicker {
+        font-size: 10.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .core h2 {
+        font-size: 17px;
+        letter-spacing: -0.015em;
+        font-weight: 680;
+        line-height: 1.25;
+      }
+      .core-head .spacer {
+        flex: 1;
+      }
+      .core-path {
+        margin: 8px 0 8px;
+        padding: 5px 8px;
+        border-radius: 6px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: var(--ink-2);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .chip {
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        color: var(--ink-2);
+        white-space: nowrap;
+      }
+      .chip.off {
+        color: var(--faint);
+        text-decoration: line-through;
+      }
+      .chip.warn {
+        border-color: var(--hazard);
+        color: var(--hazard);
+        background: var(--hazard-soft);
+      }
+      .tally {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin-top: 10px;
+        padding-top: 9px;
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+        color: var(--ink-2);
+      }
+      .tally b {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+      .tally .e {
+        color: var(--east-ink);
+      }
+      .tally .w {
+        color: var(--west-ink);
+      }
+      .tally .i {
+        color: var(--muted);
+      }
+      .note {
+        margin-top: 8px;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .note.warn {
+        color: var(--hazard);
+      }
+      details.internal {
+        margin-top: 8px;
+        font-size: 11.5px;
+      }
+      details.internal summary {
+        cursor: pointer;
+        color: var(--muted);
+      }
+      details.internal ul {
+        margin: 6px 0 0;
+        padding-left: 16px;
+        color: var(--ink-2);
+      }
+      details.internal li {
+        margin: 2px 0;
+      }
+      .cap {
+        height: 22px;
+      }
+      .cap .cap-dot {
+        grid-column: 2;
+        justify-self: center;
+        align-self: end;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid var(--spine);
+        background: var(--canvas);
+        z-index: 1;
+      }
+      .cap.top .cap-dot {
+        align-self: start;
+      }
+      .cap.top::before {
+        grid-row: 1;
+        margin-top: 4px;
+      }
+
+      /* motion */
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+      }
+      @keyframes drop {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+      }
+      @keyframes lift {
+        from {
+          opacity: 0;
+          transform: scale(0.985);
+        }
+      }
+      @keyframes unfold {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+
+      /* ---------- Narrow layer: stack lanes beside a left spine ---------- */
+      @container layer (max-width: 820px) {
+        .field {
+          --mid: 0px;
+          --gate: 0px;
+          background: none;
+        }
+        .field::before,
+        .boundary-tag,
+        .heads {
+          display: none;
+        }
+        .row,
+        .deck,
+        .anchor-row,
+        .cap {
+          grid-template-columns: 18px minmax(0, 1fr);
+        }
+        .row {
+          grid-template-rows: auto auto auto;
+        }
+        .row::before,
+        .deck::before,
+        .cap::before,
+        .anchor-row .port-line {
+          grid-column: 1;
+        }
+        .cell.m {
+          grid-column: 2;
+          grid-row: 1;
+          padding-left: 6px;
+        }
+        .cell.w,
+        .cell.e {
+          grid-column: 2;
+          grid-row: 2;
+          justify-content: flex-start;
+          padding: 0 0 4px 22px;
+        }
+        .cell:empty {
+          display: none;
+        }
+        .cell.w .lane {
+          flex-direction: row-reverse;
+          justify-content: flex-end;
+        }
+        .rib,
+        .rib[data-side='west'] {
+          width: auto;
+          min-width: 34px;
+          padding: 0 8px;
+          gap: 6px;
+          justify-content: center;
+          flex-direction: row;
+        }
+        .rib[data-arrow]::after {
+          display: none;
+        }
+        .endpoint {
+          flex: 1 1 auto;
+        }
+        .side-tag {
+          display: inline-block;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 0 5px;
+          border-radius: 4px;
+          margin-right: 4px;
+        }
+        .cell.e .side-tag {
+          background: var(--east-soft);
+          color: var(--east-ink);
+        }
+        .cell.w .side-tag {
+          background: var(--west-soft);
+          color: var(--west-ink);
+        }
+        .route[data-half='east'],
+        .route[data-half='west'] {
+          grid-column: 2;
+          grid-row: 3;
+          margin: 2px 0 10px 6px;
+        }
+        .route::before {
+          display: none;
+        }
+        .deck-mid {
+          grid-column: 2;
+          justify-self: start;
+          margin-left: 6px;
+        }
+        .deck-note.w,
+        .deck-note.e {
+          display: none;
+        }
+        .port-arrow {
+          grid-column: 1;
+        }
+        .anchor,
+        .anchor[data-outside='true'] {
+          grid-column: 1 / -1;
+          justify-self: stretch;
+          width: auto;
+        }
+        .cap .cap-dot {
+          grid-column: 1;
+        }
+      }
+
+      /* ---------- Small screens: tree becomes a drawer ---------- */
+      .scrim {
+        display: none;
+      }
+      @media (max-width: 760px) {
+        .chrome {
+          padding: 0 16px;
+        }
+        .study-tag,
+        .brand p {
+          display: none;
+        }
+        .app,
+        .app[data-tree='closed'] {
+          display: block;
+          height: auto;
+        }
+        .tree-pane {
+          position: fixed;
+          z-index: 40;
+          inset: 0 auto 0 0;
+          width: min(86vw, 340px);
+          transform: translateX(-104%);
+          transition: transform 0.2s ease;
+          box-shadow: var(--shadow-lg);
+        }
+        .app[data-tree='open'] .tree-pane {
+          transform: none;
+          visibility: visible;
+        }
+        .app[data-tree='closed'] .tree-pane {
+          visibility: hidden;
+        }
+        .app[data-tree='open'] .scrim {
+          display: block;
+          position: fixed;
+          inset: 0;
+          z-index: 39;
+          background: rgba(10, 14, 20, 0.35);
+        }
+        .layer-pane {
+          overflow: visible;
+        }
+        .layer-bar {
+          padding: 8px 16px;
+        }
+        .layer-scroll {
+          overflow: visible;
+          padding: 0 16px 24px;
+        }
+        .legend {
+          padding: 8px 16px;
+        }
+      }
+
+      /* ---------- Notes dialog ---------- */
+      dialog {
+        width: min(760px, calc(100vw - 32px));
+        max-height: calc(100vh - 48px);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 0;
+        background: var(--panel);
+        color: var(--ink);
+        box-shadow: var(--shadow-lg);
+      }
+      dialog::backdrop {
+        background: rgba(10, 14, 20, 0.45);
+      }
+      .dlg-head {
+        position: sticky;
+        top: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+      .dlg-head h2 {
+        font-size: 15px;
+      }
+      .dlg-body {
+        padding: 6px 18px 20px;
+        font-size: 13px;
+        color: var(--ink-2);
+      }
+      .dlg-body h3 {
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 18px 0 6px;
+      }
+      .dlg-body p,
+      .dlg-body li {
+        margin: 0 0 6px;
+      }
+      .dlg-body ul,
+      .dlg-body ol {
+        margin: 0;
+        padding-left: 20px;
+      }
+      .dlg-body strong {
+        color: var(--ink);
+      }
+      .compass-diagram {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 6px;
+        align-items: center;
+        text-align: center;
+        font-size: 11.5px;
+        margin: 6px 0 4px;
+        padding: 12px;
+        border-radius: 10px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+      }
+      .compass-diagram div {
+        padding: 6px 8px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+      }
+      .compass-diagram .cd-n {
+        grid-column: 2;
+        grid-row: 1;
+      }
+      .compass-diagram .cd-w {
+        grid-column: 1;
+        grid-row: 2;
+        border-color: var(--west-line);
+        color: var(--west-ink);
+      }
+      .compass-diagram .cd-c {
+        grid-column: 2;
+        grid-row: 2;
+        border: 1.5px solid var(--ink);
+        font-weight: 650;
+      }
+      .compass-diagram .cd-e {
+        grid-column: 3;
+        grid-row: 2;
+        border-color: var(--east-line);
+        color: var(--east-ink);
+      }
+      .compass-diagram .cd-s {
+        grid-column: 2;
+        grid-row: 3;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="chrome">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg class="ico" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path
+              d="M12 3v3M12 18v3M3 12h3M18 12h3M14.5 9.5 10 10l-.5 4.5L14 14z"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1>Boundary compass</h1>
+          <p>
+            Tree for location · a separate layer for what crosses the bundle
+          </p>
+        </div>
+      </div>
+      <div class="chrome-actions">
+        <span class="study-tag"
+          >Application Explorer study · illustrative data</span
+        >
+        <button class="btn" type="button" data-action="notes">
+          <svg class="ico" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v6M12 7.5h.01" />
+          </svg>
+          Design notes
+        </button>
+        <button
+          class="btn icon-only"
+          type="button"
+          data-action="theme"
+          aria-label="Toggle colour theme"
+        >
+          <svg class="ico" viewBox="0 0 24 24">
+            <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="app" id="app" data-tree="open">
+      <aside class="tree-pane" id="tree-pane" aria-label="Application files">
+        <div class="tree-head">
+          <h2>Atlas.app<small>Physical containment</small></h2>
+          <button class="link-btn" type="button" data-action="collapse-all">
+            Collapse all
+          </button>
+        </div>
+        <div class="tree-scroll" id="tree-scroll"></div>
+        <div class="tree-foot">
+          <strong>Location only.</strong> This pane never draws relationships.
+          Selecting an item raises its bridge layer. <kbd>T</kbd> hides the
+          tree.
+        </div>
+      </aside>
+      <div class="scrim" data-action="tree-toggle"></div>
+
+      <main class="layer-pane" aria-label="Bridge layer">
+        <div class="layer-bar">
+          <div class="bar-line">
+            <button
+              class="btn icon-only"
+              type="button"
+              data-action="tree-toggle"
+              id="tree-toggle"
+              aria-label="Show or hide file tree"
+            >
+              <svg class="ico" viewBox="0 0 24 24">
+                <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+                <path d="M9 4.5v15" />
+              </svg>
+            </button>
+            <button
+              class="btn icon-only"
+              type="button"
+              data-action="back"
+              id="back"
+              aria-label="Back"
+            >
+              <svg class="ico" viewBox="0 0 24 24">
+                <path d="m15 6-6 6 6 6" />
+              </svg>
+            </button>
+            <button
+              class="btn icon-only"
+              type="button"
+              data-action="forward"
+              id="forward"
+              aria-label="Forward"
+            >
+              <svg class="ico" viewBox="0 0 24 24">
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+            </button>
+            <nav
+              class="crumbs"
+              id="crumbs"
+              aria-label="Selected item location"
+            ></nav>
+          </div>
+          <div class="bar-line">
+            <span class="bar-label">Layout</span>
+            <div
+              class="seg"
+              data-tone="layout"
+              role="group"
+              aria-label="Bundle layout"
+            >
+              <button
+                type="button"
+                data-action="layout"
+                data-value="original"
+                title="Bundle root /Original/Atlas.app"
+              >
+                Original
+              </button>
+              <button
+                type="button"
+                data-action="layout"
+                data-value="staged"
+                title="Bundle root /Staged/Atlas.app"
+              >
+                Staged copy
+              </button>
+            </div>
+            <span class="bar-gap"></span>
+            <span class="bar-label">Slice</span>
+            <div class="seg" role="group" aria-label="Architecture slice">
+              <button type="button" data-action="slice" data-value="arm64">
+                arm64
+              </button>
+              <button type="button" data-action="slice" data-value="x86_64">
+                x86_64
+              </button>
+            </div>
+            <span class="bar-gap"></span>
+            <span class="bar-label">Lanes</span>
+            <div
+              class="seg"
+              id="filters"
+              role="group"
+              aria-label="Relation kinds"
+            ></div>
+          </div>
+        </div>
+        <div class="layer-scroll" id="layer-scroll">
+          <div class="field" id="field"></div>
+        </div>
+        <div class="legend" aria-label="Legend">
+          <span
+            ><span
+              class="terr"
+              style="
+                background: var(--west-soft);
+                border: 1px dashed var(--west-line);
+              "
+            ></span
+            >W · outside Atlas.app</span
+          >
+          <span
+            ><span
+              class="terr"
+              style="
+                background: var(--east-soft);
+                border: 1px solid var(--east-line);
+              "
+            ></span
+            >E · inside Atlas.app</span
+          >
+          <span><span class="sample"></span>Recorded / declared / link</span>
+          <span
+            ><span class="sample" data-s="candidate"></span>Candidate or
+            unresolved</span
+          >
+          <span
+            ><span class="sample" data-s="string"></span>String evidence</span
+          >
+          <span
+            ><span class="sample" data-s="hazard"></span>Leaves the staged
+            copy</span
+          >
+          <span
+            ><span class="tick-sample"></span>Nested bundle boundary
+            crossed</span
+          >
+        </div>
+        <p class="sr-only" aria-live="polite" id="live"></p>
+      </main>
+    </div>
+
+    <dialog id="notes" aria-labelledby="notes-title">
+      <div class="dlg-head">
+        <h2 id="notes-title">Boundary compass · design notes</h2>
+        <button
+          class="btn icon-only"
+          type="button"
+          data-action="notes-close"
+          aria-label="Close notes"
+        >
+          <svg class="ico" viewBox="0 0 24 24">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+      <div class="dlg-body">
+        <p>
+          <strong>Complete separation.</strong> The physical tree answers
+          <em>where</em> an item lives and nothing else: no relation lines, no
+          counts, no external pseudo-folders. Selecting an item raises a
+          separate bridge layer that answers
+          <em
+            >what reaches it, what it asks for, and which side of the bundle
+            boundary each answer lands on</em
+          >. The two surfaces only meet through explicit commands:
+          <strong>Locate</strong> (show me where this is) and
+          <strong>Re-center</strong> (make this the selection).
+        </p>
+        <h3>Two axes, not four panels</h3>
+        <div class="compass-diagram" aria-hidden="true">
+          <div class="cd-n">
+            N · ingress<br /><small>what reaches the selection</small>
+          </div>
+          <div class="cd-w">
+            W · leaves Atlas.app<br /><small
+              >system, user data, capabilities, unresolved</small
+            >
+          </div>
+          <div class="cd-c">
+            selection<br /><small>inside its nested bundles</small>
+          </div>
+          <div class="cd-e">
+            E · resolves inside<br /><small
+              >bundle-internal targets and candidates</small
+            >
+          </div>
+          <div class="cd-s">
+            S · egress<br /><small>what the selection asks for</small>
+          </div>
+        </div>
+        <ul>
+          <li>
+            <strong>North/south is direction.</strong> The spine runs through
+            the selection. Ingress lanes join it from the north, egress lanes
+            leave it to the south.
+          </li>
+          <li>
+            <strong>West/east is the bundle boundary.</strong> Every lane's
+            endpoint sits on the side where its resolution lands. Internal
+            bundle resolution therefore reads as <em>south, then east</em>;
+            anything leaving the app reads as <em>south, then west</em> and
+            visibly crosses the dashed Atlas.app boundary.
+          </li>
+          <li>
+            <strong>The bridge carries the request, not the target.</strong> The
+            plank on the spine is the recorded reference (load name, string,
+            key, seal entry). The endpoint is what it resolves to in the current
+            context. Ticks on a lane count nested bundle (code-unit) boundaries
+            it crosses.
+          </li>
+          <li>
+            <strong>Routes unfold toward their side.</strong> Opening a lane
+            shows the step-by-step resolution route (runpath probes, link hops,
+            base assumptions) in the half of the layer where it ends.
+          </li>
+          <li>
+            <strong>Context is first-class.</strong> Layout (original vs staged
+            copy) and slice change which side a lane lands on. The relocation
+            failure from the rebuilding design becomes visible: an absolute load
+            name that lands east in the original flips west in the staged copy,
+            and the bypassed staged framework shows a dashed ghost lane.
+          </li>
+          <li>
+            <strong>Bundles are boundaries too.</strong> Selecting a bundle or
+            folder aggregates its traffic: only lanes that cross its edge are
+            drawn; internal relations collapse into a count.
+          </li>
+        </ul>
+        <h3>Walkthrough</h3>
+        <ol>
+          <li>
+            Example (framework executable) is selected. Open Render Helper's
+            lane: two runpath probes, two boundary ticks.
+          </li>
+          <li>
+            Switch <strong>Layout</strong> to <em>Staged copy</em>. Atlas's lane
+            becomes a bypass ghost.
+          </li>
+          <li>
+            Re-center on Atlas from that lane. The same request now sits on the
+            south bridge and exits west.
+          </li>
+          <li>
+            Re-center on <em>libSystem.B.dylib</em> to see every requester
+            inside the app.
+          </li>
+          <li>
+            Select <em>Example.framework</em>, <em>Render Helper.app</em> or
+            <em>_CodeSignature/CodeResources</em> to compare aggregate scope and
+            a seal's fan-out.
+          </li>
+          <li>
+            Switch <strong>Slice</strong> to x86_64: the arm64-only helper lanes
+            disappear.
+          </li>
+          <li>
+            Hide the tree (<kbd>T</kbd>) and navigate using breadcrumbs,
+            membrane labels and Re-center only.
+          </li>
+        </ol>
+        <h3>Compared with the other studies</h3>
+        <ul>
+          <li>
+            <strong>Mixed relation overlay</strong> draws numbered lines in a
+            gutter beside the tree. Here the tree stays clean, external
+            references leave the tree entirely, and lanes never cross each other
+            because each relation is one row.
+          </li>
+          <li>
+            <strong>Card-based bridge layouts</strong> place incoming and
+            outgoing cards around the selection with a resolution panel to the
+            side. Here east and west encode the boundary itself, so "does this
+            stay inside the copy?" is answered by position before reading any
+            text.
+          </li>
+          <li>
+            The row layout grows linearly and can be virtualized; a fan-out such
+            as a resource seal stays readable.
+          </li>
+        </ul>
+        <h3>What to evaluate</h3>
+        <ul>
+          <li>
+            Does reading position (W/E) before text speed up staging questions?
+          </li>
+          <li>
+            Are boundary ticks understandable without hovering, or is the
+            endpoint's text doing the work?
+          </li>
+          <li>
+            Is the separation comfortable, or do Locate and Re-center feel like
+            too many hops?
+          </li>
+          <li>
+            Should a second hop (ingress of ingress, egress of egress) fold out
+            north and south?
+          </li>
+        </ul>
+        <h3>Limits</h3>
+        <p>
+          The tree, relations, routes and status labels are fixed illustrative
+          data written for this design conversation. Routes are authored, not
+          computed: nothing here resolves runpaths, parses Mach-O, reads seals
+          or inspects a filesystem. "Present" means represented in the example
+          inventory. A candidate is not a loaded library, a seal entry is not an
+          integrity check, a declared entitlement is not observed access, and
+          crossing a bundle boundary says nothing about signature validity. Any
+          product version must receive these facts and relationships from their
+          ordinary Rust owners.
+        </p>
+      </div>
+    </dialog>
+
+    <script>
+      (() => {
+        'use strict';
+
+        // ---------- Illustrative inventory (not acquired from any application) ----------
+        const nodes = [
+          {
+            id: 'bundle',
+            parent: null,
+            label: 'Atlas.app',
+            kind: 'bundle',
+            role: 'Application bundle',
+          },
+          {
+            id: 'contents',
+            parent: 'bundle',
+            label: 'Contents',
+            kind: 'directory',
+            role: 'Bundle contents',
+          },
+          {
+            id: 'info',
+            parent: 'contents',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Bundle metadata',
+          },
+          {
+            id: 'macos',
+            parent: 'contents',
+            label: 'MacOS',
+            kind: 'directory',
+            role: 'Executable directory',
+          },
+          {
+            id: 'main',
+            parent: 'macos',
+            label: 'Atlas',
+            kind: 'binary',
+            role: 'Main executable',
+            arches: ['arm64', 'x86_64'],
+            signature: 'present',
+          },
+          {
+            id: 'frameworks',
+            parent: 'contents',
+            label: 'Frameworks',
+            kind: 'directory',
+            role: 'Embedded frameworks',
+          },
+          {
+            id: 'telemetry-code',
+            parent: 'frameworks',
+            label: 'libTelemetry.dylib',
+            kind: 'binary',
+            role: 'Dynamic library',
+            arches: ['arm64', 'x86_64'],
+            signature: 'uninspected',
+          },
+          {
+            id: 'framework',
+            parent: 'frameworks',
+            label: 'Example.framework',
+            kind: 'bundle',
+            role: 'Framework bundle',
+          },
+          {
+            id: 'framework-alias',
+            parent: 'framework',
+            label: 'Example',
+            kind: 'symlink',
+            role: 'Executable alias',
+            target: 'Versions/Current/Example',
+          },
+          {
+            id: 'framework-resources-link',
+            parent: 'framework',
+            label: 'Resources',
+            kind: 'symlink',
+            role: 'Resource alias',
+            target: 'Versions/Current/Resources',
+          },
+          {
+            id: 'framework-versions',
+            parent: 'framework',
+            label: 'Versions',
+            kind: 'directory',
+            role: 'Framework versions',
+          },
+          {
+            id: 'framework-current',
+            parent: 'framework-versions',
+            label: 'Current',
+            kind: 'symlink',
+            role: 'Current version alias',
+            target: 'A',
+          },
+          {
+            id: 'framework-a',
+            parent: 'framework-versions',
+            label: 'A',
+            kind: 'directory',
+            role: 'Framework version',
+          },
+          {
+            id: 'framework-code',
+            parent: 'framework-a',
+            label: 'Example',
+            kind: 'binary',
+            role: 'Framework executable',
+            arches: ['arm64', 'x86_64'],
+            signature: 'present',
+          },
+          {
+            id: 'framework-resources',
+            parent: 'framework-a',
+            label: 'Resources',
+            kind: 'directory',
+            role: 'Framework resources',
+          },
+          {
+            id: 'framework-info',
+            parent: 'framework-resources',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Framework metadata',
+          },
+          {
+            id: 'framework-signatures',
+            parent: 'framework-a',
+            label: '_CodeSignature',
+            kind: 'directory',
+            role: 'Signing artifacts',
+          },
+          {
+            id: 'framework-seal',
+            parent: 'framework-signatures',
+            label: 'CodeResources',
+            kind: 'seal',
+            role: 'Framework resource seal',
+          },
+          {
+            id: 'helpers',
+            parent: 'contents',
+            label: 'Helpers',
+            kind: 'directory',
+            role: 'Helper applications',
+          },
+          {
+            id: 'helper',
+            parent: 'helpers',
+            label: 'Render Helper.app',
+            kind: 'bundle',
+            role: 'Helper application',
+          },
+          {
+            id: 'helper-contents',
+            parent: 'helper',
+            label: 'Contents',
+            kind: 'directory',
+            role: 'Helper contents',
+          },
+          {
+            id: 'helper-info',
+            parent: 'helper-contents',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Helper metadata',
+          },
+          {
+            id: 'helper-macos',
+            parent: 'helper-contents',
+            label: 'MacOS',
+            kind: 'directory',
+            role: 'Executable directory',
+          },
+          {
+            id: 'helper-code',
+            parent: 'helper-macos',
+            label: 'Render Helper',
+            kind: 'binary',
+            role: 'Helper executable',
+            arches: ['arm64'],
+            signature: 'present',
+          },
+          {
+            id: 'helper-frameworks',
+            parent: 'helper-contents',
+            label: 'Frameworks',
+            kind: 'directory',
+            role: 'Helper frameworks',
+          },
+          {
+            id: 'renderkit',
+            parent: 'helper-frameworks',
+            label: 'RenderKit.framework',
+            kind: 'bundle',
+            role: 'Nested framework (shallow example layout)',
+          },
+          {
+            id: 'renderkit-code',
+            parent: 'renderkit',
+            label: 'RenderKit',
+            kind: 'binary',
+            role: 'Framework executable',
+            arches: ['arm64'],
+            signature: 'uninspected',
+          },
+          {
+            id: 'renderkit-resources',
+            parent: 'renderkit',
+            label: 'Resources',
+            kind: 'directory',
+            role: 'Framework resources',
+          },
+          {
+            id: 'renderkit-info',
+            parent: 'renderkit-resources',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Framework metadata',
+          },
+          {
+            id: 'helper-signatures',
+            parent: 'helper-contents',
+            label: '_CodeSignature',
+            kind: 'directory',
+            role: 'Signing artifacts',
+          },
+          {
+            id: 'helper-seal',
+            parent: 'helper-signatures',
+            label: 'CodeResources',
+            kind: 'seal',
+            role: 'Helper resource seal',
+          },
+          {
+            id: 'xpcs',
+            parent: 'contents',
+            label: 'XPCServices',
+            kind: 'directory',
+            role: 'XPC services',
+          },
+          {
+            id: 'xpc',
+            parent: 'xpcs',
+            label: 'Indexer.xpc',
+            kind: 'bundle',
+            role: 'XPC service bundle',
+          },
+          {
+            id: 'xpc-contents',
+            parent: 'xpc',
+            label: 'Contents',
+            kind: 'directory',
+            role: 'Service contents',
+          },
+          {
+            id: 'xpc-info',
+            parent: 'xpc-contents',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Service metadata',
+          },
+          {
+            id: 'xpc-macos',
+            parent: 'xpc-contents',
+            label: 'MacOS',
+            kind: 'directory',
+            role: 'Executable directory',
+          },
+          {
+            id: 'xpc-code',
+            parent: 'xpc-macos',
+            label: 'Indexer',
+            kind: 'binary',
+            role: 'Service executable',
+            arches: ['arm64'],
+            signature: 'absent',
+          },
+          {
+            id: 'plugins',
+            parent: 'contents',
+            label: 'PlugIns',
+            kind: 'directory',
+            role: 'Plug-ins',
+          },
+          {
+            id: 'plugin',
+            parent: 'plugins',
+            label: 'Preview.bundle',
+            kind: 'bundle',
+            role: 'Plug-in bundle',
+          },
+          {
+            id: 'plugin-contents',
+            parent: 'plugin',
+            label: 'Contents',
+            kind: 'directory',
+            role: 'Plug-in contents',
+          },
+          {
+            id: 'plugin-info',
+            parent: 'plugin-contents',
+            label: 'Info.plist',
+            kind: 'metadata',
+            role: 'Plug-in metadata',
+          },
+          {
+            id: 'plugin-macos',
+            parent: 'plugin-contents',
+            label: 'MacOS',
+            kind: 'directory',
+            role: 'Executable directory',
+          },
+          {
+            id: 'plugin-code',
+            parent: 'plugin-macos',
+            label: 'Preview',
+            kind: 'binary',
+            role: 'Loadable module',
+            arches: ['arm64', 'x86_64'],
+            signature: 'present',
+          },
+          {
+            id: 'resources',
+            parent: 'contents',
+            label: 'Resources',
+            kind: 'directory',
+            role: 'Application resources',
+          },
+          {
+            id: 'icon',
+            parent: 'resources',
+            label: 'AppIcon.icns',
+            kind: 'resource',
+            role: 'Icon resource',
+          },
+          {
+            id: 'settings',
+            parent: 'resources',
+            label: 'Settings.plist',
+            kind: 'metadata',
+            role: 'Application settings',
+          },
+          {
+            id: 'localization',
+            parent: 'resources',
+            label: 'en.lproj',
+            kind: 'directory',
+            role: 'Localization',
+          },
+          {
+            id: 'strings',
+            parent: 'localization',
+            label: 'Localizable.strings',
+            kind: 'resource',
+            role: 'Localized strings',
+          },
+          {
+            id: 'templates',
+            parent: 'resources',
+            label: 'Templates',
+            kind: 'directory',
+            role: 'Application templates',
+          },
+          {
+            id: 'template',
+            parent: 'templates',
+            label: 'Default.json',
+            kind: 'resource',
+            role: 'Template resource',
+          },
+          {
+            id: 'assets',
+            parent: 'resources',
+            label: 'Additional Assets',
+            kind: 'directory',
+            role: 'Inventory not available',
+            pending: true,
+          },
+          {
+            id: 'signatures',
+            parent: 'contents',
+            label: '_CodeSignature',
+            kind: 'directory',
+            role: 'Signing artifacts',
+          },
+          {
+            id: 'seal',
+            parent: 'signatures',
+            label: 'CodeResources',
+            kind: 'seal',
+            role: 'Application resource seal',
+          },
+
+          // Reference records outside Atlas.app. They are never tree items.
+          {
+            id: 'system-library',
+            parent: null,
+            external: true,
+            domain: 'system',
+            label: 'libSystem.B.dylib',
+            kind: 'reference',
+            role: 'System library reference',
+            path: '/usr/lib/libSystem.B.dylib',
+          },
+          {
+            id: 'optional-library',
+            parent: null,
+            external: true,
+            domain: 'unknown',
+            label: 'Optional.dylib',
+            kind: 'unknown',
+            role: 'Unresolved weak dependency',
+            path: '@rpath/Optional.dylib',
+          },
+          {
+            id: 'user-cache',
+            parent: null,
+            external: true,
+            domain: 'userdata',
+            label: 'cache.db',
+            kind: 'reference',
+            role: 'Possible user-data path',
+            path: '~/Library/Application Support/Atlas/cache.db',
+          },
+          {
+            id: 'file-capability',
+            parent: null,
+            external: true,
+            domain: 'capability',
+            label: 'User-selected file access',
+            kind: 'capability',
+            role: 'Declared entitlement',
+            path: 'com.apple.security.files.user-selected.read-write',
+          },
+          {
+            id: 'original-install',
+            parent: null,
+            external: true,
+            domain: 'original',
+            label: 'Example (original install)',
+            kind: 'reference',
+            role: 'Original installation path',
+            path: '/Original/Atlas.app/Contents/Frameworks/Example.framework/Versions/A/Example',
+          },
+        ];
+
+        const ORIGINAL_EXAMPLE =
+          '/Original/Atlas.app/Contents/Frameworks/Example.framework/Versions/A/Example';
+        const BOTH = ['arm64', 'x86_64'];
+        const ARM = ['arm64'];
+        const sealSteps = (entry, base, path, nested) => [
+          [
+            'rec',
+            'Seal entry',
+            `files2 › ${entry}${nested ? ' (nested code)' : ''}`,
+          ],
+          ['ctx', 'Seal base', base],
+          ['hit', 'Example inventory', `${path} · present`],
+          nested
+            ? [
+                'gap',
+                'Requirement',
+                'Designated requirement and code hash not evaluated',
+              ]
+            : ['gap', 'Integrity', 'Hash not compared'],
+        ];
+        const execSteps = (key, rule, path) => [
+          ['rec', 'Declared key', key],
+          ['ctx', 'Bundle rule', rule],
+          ['hit', 'Example inventory', `${path} · present`],
+        ];
+        const systemSteps = (raw) => [
+          ['rec', 'Recorded load name', raw],
+          ['ctx', 'Absolute path', 'Not under the bundle root'],
+          [
+            'exit',
+            'Outside the bundle',
+            'System location · intentionally left out of staging',
+          ],
+          ['gap', 'Target', 'Not acquired or inspected'],
+        ];
+        const systemLimits =
+          'A library reference is not an observed load or OS service connection.';
+        const candidateLimits =
+          'A candidate in the example inventory says nothing about compatibility, signing or what a launch would load.';
+        const sealLimits =
+          'A seal entry is not an integrity, trust or execution check. A nested bundle remains its own signing unit.';
+
+        // Each relation is a recorded request made by its source. "to" is where the
+        // authored example route lands in the current context; "by" varies by layout.
+        const relations = [
+          // Declarations and links
+          {
+            id: 'info-exec',
+            group: 'meta',
+            source: 'info',
+            kind: 'Info.plist',
+            form: 'CFBundleExecutable',
+            raw: 'Atlas',
+            cls: 'recorded',
+            status: 'Declared metadata · launch not observed',
+            to: 'main',
+            steps: execSteps(
+              'CFBundleExecutable = Atlas',
+              'App executables live in Contents/MacOS',
+              'Contents/MacOS/Atlas',
+            ),
+            limits:
+              'A declared executable is not evidence of a process launch.',
+          },
+          {
+            id: 'fwinfo-exec',
+            group: 'meta',
+            source: 'framework-info',
+            kind: 'Info.plist',
+            form: 'CFBundleExecutable',
+            raw: 'Example',
+            cls: 'recorded',
+            status: 'Declared metadata',
+            to: 'framework-code',
+            steps: [
+              ['rec', 'Declared key', 'CFBundleExecutable = Example'],
+              [
+                'ctx',
+                'Bundle rule',
+                'A framework executable is named at the bundle root',
+              ],
+              [
+                'hop',
+                'Stored link',
+                'Example.framework/Example → Versions/Current/Example',
+              ],
+              ['hop', 'Stored link', 'Versions/Current → A'],
+              ['hit', 'Example inventory', 'Versions/A/Example · present'],
+            ],
+            limits:
+              'Following stored links here does not open or validate their targets.',
+          },
+          {
+            id: 'helperinfo-exec',
+            group: 'meta',
+            source: 'helper-info',
+            kind: 'Info.plist',
+            form: 'CFBundleExecutable',
+            raw: 'Render Helper',
+            cls: 'recorded',
+            status: 'Declared metadata',
+            to: 'helper-code',
+            steps: execSteps(
+              'CFBundleExecutable = Render Helper',
+              'App executables live in Contents/MacOS',
+              'Render Helper.app/Contents/MacOS/Render Helper',
+            ),
+            limits:
+              'A declared executable is not evidence of a process launch.',
+          },
+          {
+            id: 'xpcinfo-exec',
+            group: 'meta',
+            source: 'xpc-info',
+            kind: 'Info.plist',
+            form: 'CFBundleExecutable',
+            raw: 'Indexer',
+            cls: 'recorded',
+            status: 'Declared metadata',
+            to: 'xpc-code',
+            steps: execSteps(
+              'CFBundleExecutable = Indexer',
+              'Service executables live in Contents/MacOS',
+              'Indexer.xpc/Contents/MacOS/Indexer',
+            ),
+            limits:
+              'A declared service executable is not evidence of registration or launch.',
+          },
+          {
+            id: 'plugininfo-exec',
+            group: 'meta',
+            source: 'plugin-info',
+            kind: 'Info.plist',
+            form: 'CFBundleExecutable',
+            raw: 'Preview',
+            cls: 'recorded',
+            status: 'Declared metadata',
+            to: 'plugin-code',
+            steps: execSteps(
+              'CFBundleExecutable = Preview',
+              'Bundle executables live in Contents/MacOS',
+              'Preview.bundle/Contents/MacOS/Preview',
+            ),
+            limits: 'A declared module is not evidence that a host loads it.',
+          },
+          {
+            id: 'alias-link',
+            group: 'meta',
+            source: 'framework-alias',
+            kind: 'Symbolic link',
+            form: 'stored target',
+            raw: 'Versions/Current/Example',
+            cls: 'recorded',
+            status: 'Stored link target · not opened',
+            to: 'framework-code',
+            steps: [
+              ['rec', 'Stored target', 'Versions/Current/Example'],
+              ['hop', 'Stored link', 'Versions/Current → A'],
+              ['hit', 'Example inventory', 'Versions/A/Example · present'],
+            ],
+            limits:
+              'The link remains its own filesystem entry; the target subtree is not duplicated.',
+          },
+          {
+            id: 'current-link',
+            group: 'meta',
+            source: 'framework-current',
+            kind: 'Symbolic link',
+            form: 'stored target',
+            raw: 'A',
+            cls: 'recorded',
+            status: 'Stored link target',
+            to: 'framework-a',
+            steps: [
+              ['rec', 'Stored target', 'A'],
+              ['hit', 'Example inventory', 'Versions/A · directory present'],
+            ],
+            limits:
+              'Target identity and access need their own filesystem checks.',
+          },
+          {
+            id: 'resources-link',
+            group: 'meta',
+            source: 'framework-resources-link',
+            kind: 'Symbolic link',
+            form: 'stored target',
+            raw: 'Versions/Current/Resources',
+            cls: 'recorded',
+            status: 'Stored link target · not opened',
+            to: 'framework-resources',
+            steps: [
+              ['rec', 'Stored target', 'Versions/Current/Resources'],
+              ['hop', 'Stored link', 'Versions/Current → A'],
+              ['hit', 'Example inventory', 'Versions/A/Resources · present'],
+            ],
+            limits: 'The link remains its own filesystem entry.',
+          },
+          {
+            id: 'entitlement',
+            group: 'meta',
+            source: 'main',
+            arches: BOTH,
+            kind: 'Entitlement',
+            form: 'declared key',
+            raw: 'com.apple.security.files.user-selected.read-write',
+            cls: 'recorded',
+            status: 'Declared capability · not exercised',
+            to: 'file-capability',
+            steps: [
+              [
+                'rec',
+                'Entitlements blob',
+                'files.user-selected.read-write = true',
+              ],
+              [
+                'exit',
+                'Not a filesystem target',
+                'Names a sandbox capability, not a path',
+              ],
+              ['gap', 'Runtime', 'Grant and file access not observed'],
+            ],
+            limits:
+              'A declaration is not proof that permission was granted or a file was accessed.',
+          },
+          {
+            id: 'settings-template',
+            group: 'meta',
+            source: 'settings',
+            kind: 'Property list',
+            form: 'TemplatePath value',
+            raw: 'Templates/Default.json',
+            cls: 'string',
+            status: 'Value read as a path · use not observed',
+            to: 'template',
+            steps: [
+              ['rec', 'Plist value', 'TemplatePath = Templates/Default.json'],
+              ['ctx', 'Interpreted base', 'Contents/Resources (assumed)'],
+              [
+                'hit',
+                'Example inventory',
+                'Contents/Resources/Templates/Default.json · present',
+              ],
+              ['gap', 'Use', 'No reader of this key has been identified'],
+            ],
+            limits:
+              'A value that looks like a path is not evidence that anything opens it.',
+          },
+
+          // Load commands
+          {
+            id: 'atlas-example',
+            group: 'code',
+            source: 'main',
+            arches: BOTH,
+            kind: 'LC_LOAD_DYLIB',
+            form: 'absolute path',
+            raw: ORIGINAL_EXAMPLE,
+            limits:
+              'Copying a bundle does not rewrite absolute load names. Whether a rewrite is supported, and what a launch would use, is not established.',
+            by: {
+              original: {
+                to: 'framework-code',
+                cls: 'recorded',
+                status: 'Absolute path · inside this copy',
+                steps: [
+                  ['rec', 'Recorded load name', ORIGINAL_EXAMPLE],
+                  [
+                    'ctx',
+                    'Bundle root · original layout',
+                    '/Original/Atlas.app',
+                  ],
+                  [
+                    'hit',
+                    'Root prefix matches',
+                    'Contents/Frameworks/Example.framework/Versions/A/Example · present',
+                  ],
+                ],
+              },
+              staged: {
+                to: 'original-install',
+                cls: 'hazard',
+                bypass: 'framework-code',
+                status: 'Absolute path · leaves the staged copy',
+                steps: [
+                  ['rec', 'Recorded load name', ORIGINAL_EXAMPLE],
+                  ['ctx', 'Bundle root · staged layout', '/Staged/Atlas.app'],
+                  [
+                    'warn',
+                    'Root prefix differs',
+                    'The name still points into /Original/Atlas.app',
+                  ],
+                  [
+                    'exit',
+                    'Leaves the staged copy',
+                    'The staged Example.framework is bypassed by this request',
+                  ],
+                ],
+              },
+            },
+          },
+          {
+            id: 'atlas-system',
+            group: 'code',
+            source: 'main',
+            arches: BOTH,
+            kind: 'LC_LOAD_DYLIB',
+            form: 'absolute path',
+            raw: '/usr/lib/libSystem.B.dylib',
+            cls: 'recorded',
+            status: 'System reference · not acquired',
+            to: 'system-library',
+            steps: systemSteps('/usr/lib/libSystem.B.dylib'),
+            limits: systemLimits,
+          },
+          {
+            id: 'atlas-optional',
+            group: 'code',
+            source: 'main',
+            arches: ARM,
+            kind: 'LC_LOAD_WEAK_DYLIB',
+            form: '@rpath',
+            raw: '@rpath/Optional.dylib',
+            cls: 'unresolved',
+            status: 'Weak reference · no candidate',
+            to: 'optional-library',
+            steps: [
+              ['rec', 'Recorded weak load name', '@rpath/Optional.dylib'],
+              [
+                'ctx',
+                'Runpath 1 · Atlas LC_RPATH',
+                '@executable_path/../Frameworks → Contents/Frameworks',
+              ],
+              [
+                'miss',
+                'Probe',
+                'Contents/Frameworks/Optional.dylib · not in inventory',
+              ],
+              ['gap', 'No further runpaths', 'Target and containment unknown'],
+            ],
+            limits:
+              'An unresolved weak reference may be intentionally optional. Its target, if any, is unknown.',
+          },
+          {
+            id: 'example-telemetry',
+            group: 'code',
+            source: 'framework-code',
+            arches: BOTH,
+            kind: 'LC_LOAD_DYLIB',
+            form: '@rpath',
+            raw: '@rpath/libTelemetry.dylib',
+            cls: 'candidate',
+            status: 'Candidate · not loaded',
+            to: 'telemetry-code',
+            steps: [
+              ['rec', 'Recorded load name', '@rpath/libTelemetry.dylib'],
+              [
+                'ctx',
+                'Runpath 1 · Example LC_RPATH',
+                '@loader_path/../../.. → Contents/Frameworks',
+              ],
+              [
+                'hit',
+                'Probe',
+                'Contents/Frameworks/libTelemetry.dylib · present',
+              ],
+              ['cand', 'Candidate', 'Compatibility and loading unverified'],
+            ],
+            limits: candidateLimits,
+          },
+          {
+            id: 'example-system',
+            group: 'code',
+            source: 'framework-code',
+            arches: BOTH,
+            kind: 'LC_LOAD_DYLIB',
+            form: 'absolute path',
+            raw: '/usr/lib/libSystem.B.dylib',
+            cls: 'recorded',
+            status: 'System reference · not acquired',
+            to: 'system-library',
+            steps: systemSteps('/usr/lib/libSystem.B.dylib'),
+            limits: systemLimits,
+          },
+          {
+            id: 'telemetry-system',
+            group: 'code',
+            source: 'telemetry-code',
+            arches: BOTH,
+            kind: 'LC_LOAD_DYLIB',
+            form: 'absolute path',
+            raw: '/usr/lib/libSystem.B.dylib',
+            cls: 'recorded',
+            status: 'System reference · not acquired',
+            to: 'system-library',
+            steps: systemSteps('/usr/lib/libSystem.B.dylib'),
+            limits: systemLimits,
+          },
+          {
+            id: 'helper-example',
+            group: 'code',
+            source: 'helper-code',
+            arches: ARM,
+            kind: 'LC_LOAD_DYLIB',
+            form: '@rpath',
+            raw: '@rpath/Example.framework/Versions/A/Example',
+            cls: 'candidate',
+            status: 'Candidate · not loaded',
+            to: 'framework-code',
+            steps: [
+              [
+                'rec',
+                'Recorded load name',
+                '@rpath/Example.framework/Versions/A/Example',
+              ],
+              [
+                'ctx',
+                'Runpath 1 · Render Helper LC_RPATH',
+                '@executable_path/../Frameworks → Render Helper.app/Contents/Frameworks',
+              ],
+              [
+                'miss',
+                'Probe',
+                'Render Helper.app/Contents/Frameworks/Example.framework/Versions/A/Example · not in inventory',
+              ],
+              [
+                'ctx',
+                'Runpath 2 · Render Helper LC_RPATH',
+                '@executable_path/../../../../Frameworks → Atlas.app/Contents/Frameworks',
+              ],
+              [
+                'hit',
+                'Probe',
+                'Contents/Frameworks/Example.framework/Versions/A/Example · present',
+              ],
+              [
+                'cand',
+                'Candidate',
+                'Context: a Render Helper launch (illustrative)',
+              ],
+            ],
+            limits: candidateLimits,
+          },
+          {
+            id: 'helper-renderkit',
+            group: 'code',
+            source: 'helper-code',
+            arches: ARM,
+            kind: 'LC_LOAD_DYLIB',
+            form: '@rpath',
+            raw: '@rpath/RenderKit.framework/RenderKit',
+            cls: 'candidate',
+            status: 'Candidate · not loaded',
+            to: 'renderkit-code',
+            steps: [
+              [
+                'rec',
+                'Recorded load name',
+                '@rpath/RenderKit.framework/RenderKit',
+              ],
+              [
+                'ctx',
+                'Runpath 1 · Render Helper LC_RPATH',
+                '@executable_path/../Frameworks → Render Helper.app/Contents/Frameworks',
+              ],
+              [
+                'hit',
+                'Probe',
+                'Render Helper.app/Contents/Frameworks/RenderKit.framework/RenderKit · present',
+              ],
+              ['cand', 'Candidate', 'Compatibility and loading unverified'],
+            ],
+            limits: candidateLimits,
+          },
+          {
+            id: 'helper-system',
+            group: 'code',
+            source: 'helper-code',
+            arches: ARM,
+            kind: 'LC_LOAD_DYLIB',
+            form: 'absolute path',
+            raw: '/usr/lib/libSystem.B.dylib',
+            cls: 'recorded',
+            status: 'System reference · not acquired',
+            to: 'system-library',
+            steps: systemSteps('/usr/lib/libSystem.B.dylib'),
+            limits: systemLimits,
+          },
+          {
+            id: 'renderkit-system',
+            group: 'code',
+            source: 'renderkit-code',
+            arches: ARM,
+            kind: 'LC_LOAD_DYLIB',
+            form: 'absolute path',
+            raw: '/usr/lib/libSystem.B.dylib',
+            cls: 'recorded',
+            status: 'System reference · not acquired',
+            to: 'system-library',
+            steps: systemSteps('/usr/lib/libSystem.B.dylib'),
+            limits: systemLimits,
+          },
+          {
+            id: 'plugin-example',
+            group: 'code',
+            source: 'plugin-code',
+            arches: BOTH,
+            kind: 'LC_LOAD_DYLIB',
+            form: '@rpath',
+            raw: '@rpath/Example.framework/Versions/A/Example',
+            cls: 'candidate',
+            status: 'Candidate · not loaded',
+            to: 'framework-code',
+            steps: [
+              [
+                'rec',
+                'Recorded load name',
+                '@rpath/Example.framework/Versions/A/Example',
+              ],
+              [
+                'ctx',
+                'Runpath 1 · Preview LC_RPATH',
+                '@loader_path/../../../../Frameworks → Atlas.app/Contents/Frameworks',
+              ],
+              [
+                'hit',
+                'Probe',
+                'Contents/Frameworks/Example.framework/Versions/A/Example · present',
+              ],
+              ['cand', 'Candidate', 'Compatibility and loading unverified'],
+            ],
+            limits: candidateLimits,
+          },
+          {
+            id: 'plugin-telemetry',
+            group: 'code',
+            source: 'plugin-code',
+            arches: BOTH,
+            kind: 'LC_LOAD_DYLIB',
+            form: '@executable_path',
+            raw: '@executable_path/../Frameworks/libTelemetry.dylib',
+            cls: 'candidate',
+            status: 'Candidate · depends on host process',
+            to: 'telemetry-code',
+            steps: [
+              [
+                'rec',
+                'Recorded load name',
+                '@executable_path/../Frameworks/libTelemetry.dylib',
+              ],
+              [
+                'ctx',
+                'Host process (assumed)',
+                'Atlas · @executable_path → Contents/MacOS',
+              ],
+              [
+                'hit',
+                'Probe',
+                'Contents/Frameworks/libTelemetry.dylib · present',
+              ],
+              [
+                'cand',
+                'Candidate',
+                'A different host process would change this result',
+              ],
+            ],
+            limits:
+              'Which process hosts a plug-in is a launch-context assumption, not a recorded fact.',
+          },
+          {
+            id: 'xpc-system',
+            group: 'code',
+            source: 'xpc-code',
+            arches: ARM,
+            kind: 'LC_LOAD_DYLIB',
+            form: 'absolute path',
+            raw: '/usr/lib/libSystem.B.dylib',
+            cls: 'recorded',
+            status: 'System reference · not acquired',
+            to: 'system-library',
+            steps: systemSteps('/usr/lib/libSystem.B.dylib'),
+            limits: systemLimits,
+          },
+
+          // Strings
+          {
+            id: 'atlas-settings',
+            group: 'string',
+            source: 'main',
+            arches: BOTH,
+            kind: 'String',
+            form: 'bundle-relative path',
+            raw: 'Contents/Resources/Settings.plist',
+            cls: 'string',
+            status: 'String evidence · access not observed',
+            to: 'settings',
+            steps: [
+              [
+                'rec',
+                'String (illustrative)',
+                'Contents/Resources/Settings.plist',
+              ],
+              ['ctx', 'Interpreted base', 'Main bundle root (assumed)'],
+              [
+                'hit',
+                'Example inventory',
+                'Contents/Resources/Settings.plist · present',
+              ],
+              ['gap', 'Access', 'Read or write not observed'],
+            ],
+            limits:
+              'A path string does not establish that the executable reads or writes the resource.',
+          },
+          {
+            id: 'example-settings',
+            group: 'string',
+            source: 'framework-code',
+            arches: BOTH,
+            kind: 'String',
+            form: 'bundle-relative path',
+            raw: 'Contents/Resources/Settings.plist',
+            cls: 'string',
+            status: 'String evidence · base ambiguous',
+            to: 'settings',
+            steps: [
+              [
+                'rec',
+                'String (illustrative)',
+                'Contents/Resources/Settings.plist',
+              ],
+              [
+                'miss',
+                'Base: framework bundle',
+                'Example.framework/Versions/A/Contents/Resources/Settings.plist · not in inventory',
+              ],
+              ['ctx', 'Base: main bundle (assumed)', 'Atlas.app'],
+              [
+                'hit',
+                'Example inventory',
+                'Contents/Resources/Settings.plist · present',
+              ],
+              ['gap', 'Access', 'Read or write not observed'],
+            ],
+            limits:
+              'The base a framework would use for this string is an assumption. Access is not established.',
+          },
+          {
+            id: 'atlas-cache',
+            group: 'string',
+            source: 'main',
+            arches: BOTH,
+            kind: 'String',
+            form: 'home-relative path',
+            raw: '~/Library/Application Support/Atlas/cache.db',
+            cls: 'string',
+            status: 'Inferred path · not inspected',
+            to: 'user-cache',
+            steps: [
+              [
+                'rec',
+                'String (illustrative)',
+                '~/Library/Application Support/Atlas/cache.db',
+              ],
+              [
+                'exit',
+                'Outside the bundle',
+                'User data location · not part of staging',
+              ],
+              ['gap', 'Target', 'Existence and access not established'],
+            ],
+            limits:
+              'Neither file existence nor a read/write operation has been established.',
+          },
+          {
+            id: 'atlas-indexer',
+            group: 'string',
+            source: 'main',
+            arches: BOTH,
+            kind: 'String',
+            form: 'service name',
+            raw: 'com.example.atlas.indexer',
+            cls: 'candidate',
+            status: 'Candidate provider · binding not verified',
+            to: 'xpc',
+            steps: [
+              ['rec', 'String (illustrative)', 'com.example.atlas.indexer'],
+              [
+                'ctx',
+                'Match rule',
+                'CFBundleIdentifier in Contents/XPCServices/*/Info.plist',
+              ],
+              [
+                'hit',
+                'Identifier match',
+                'Indexer.xpc · Info.plist identifier matches',
+              ],
+              [
+                'cand',
+                'Candidate provider',
+                'Registration and IPC not observed',
+              ],
+            ],
+            limits:
+              'Matching an identifier does not establish service registration, lookup or an IPC exchange.',
+          },
+          {
+            id: 'atlas-assets',
+            group: 'string',
+            source: 'main',
+            arches: BOTH,
+            kind: 'String',
+            form: 'bundle-relative folder',
+            raw: 'Contents/Resources/Additional Assets/',
+            cls: 'string',
+            status: 'Inside the bundle · inventory not available',
+            to: 'assets',
+            steps: [
+              [
+                'rec',
+                'String (illustrative)',
+                'Contents/Resources/Additional Assets/',
+              ],
+              ['ctx', 'Interpreted base', 'Main bundle root (assumed)'],
+              ['hit', 'Example inventory', 'Folder present'],
+              [
+                'gap',
+                'Contents',
+                'Folder inventory not available · individual targets unknown',
+              ],
+            ],
+            limits:
+              'The folder is inside the bundle, but what it contains has not been inventoried.',
+          },
+
+          // Seal entries
+          {
+            id: 'seal-settings',
+            group: 'seal',
+            source: 'seal',
+            kind: 'CodeResources',
+            form: 'resource entry',
+            raw: 'Resources/Settings.plist',
+            cls: 'recorded',
+            status: 'Manifest entry · hash not checked',
+            to: 'settings',
+            steps: sealSteps(
+              'Resources/Settings.plist',
+              'Atlas.app/Contents',
+              'Contents/Resources/Settings.plist',
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'seal-icon',
+            group: 'seal',
+            source: 'seal',
+            kind: 'CodeResources',
+            form: 'resource entry',
+            raw: 'Resources/AppIcon.icns',
+            cls: 'recorded',
+            status: 'Manifest entry · hash not checked',
+            to: 'icon',
+            steps: sealSteps(
+              'Resources/AppIcon.icns',
+              'Atlas.app/Contents',
+              'Contents/Resources/AppIcon.icns',
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'seal-strings',
+            group: 'seal',
+            source: 'seal',
+            kind: 'CodeResources',
+            form: 'resource entry',
+            raw: 'Resources/en.lproj/Localizable.strings',
+            cls: 'recorded',
+            status: 'Manifest entry · hash not checked',
+            to: 'strings',
+            steps: sealSteps(
+              'Resources/en.lproj/Localizable.strings',
+              'Atlas.app/Contents',
+              'Contents/Resources/en.lproj/Localizable.strings',
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'seal-template',
+            group: 'seal',
+            source: 'seal',
+            kind: 'CodeResources',
+            form: 'resource entry',
+            raw: 'Resources/Templates/Default.json',
+            cls: 'recorded',
+            status: 'Manifest entry · hash not checked',
+            to: 'template',
+            steps: sealSteps(
+              'Resources/Templates/Default.json',
+              'Atlas.app/Contents',
+              'Contents/Resources/Templates/Default.json',
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'seal-example',
+            group: 'seal',
+            source: 'seal',
+            kind: 'CodeResources',
+            form: 'nested code entry',
+            raw: 'Frameworks/Example.framework',
+            cls: 'recorded',
+            status: 'Nested code entry · requirement not evaluated',
+            to: 'framework',
+            steps: sealSteps(
+              'Frameworks/Example.framework',
+              'Atlas.app/Contents',
+              'Contents/Frameworks/Example.framework',
+              true,
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'seal-telemetry',
+            group: 'seal',
+            source: 'seal',
+            kind: 'CodeResources',
+            form: 'nested code entry',
+            raw: 'Frameworks/libTelemetry.dylib',
+            cls: 'recorded',
+            status: 'Nested code entry · requirement not evaluated',
+            to: 'telemetry-code',
+            steps: sealSteps(
+              'Frameworks/libTelemetry.dylib',
+              'Atlas.app/Contents',
+              'Contents/Frameworks/libTelemetry.dylib',
+              true,
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'seal-helper',
+            group: 'seal',
+            source: 'seal',
+            kind: 'CodeResources',
+            form: 'nested code entry',
+            raw: 'Helpers/Render Helper.app',
+            cls: 'recorded',
+            status: 'Nested code entry · requirement not evaluated',
+            to: 'helper',
+            steps: sealSteps(
+              'Helpers/Render Helper.app',
+              'Atlas.app/Contents',
+              'Contents/Helpers/Render Helper.app',
+              true,
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'seal-xpc',
+            group: 'seal',
+            source: 'seal',
+            kind: 'CodeResources',
+            form: 'nested code entry',
+            raw: 'XPCServices/Indexer.xpc',
+            cls: 'recorded',
+            status: 'Nested code entry · requirement not evaluated',
+            to: 'xpc',
+            steps: sealSteps(
+              'XPCServices/Indexer.xpc',
+              'Atlas.app/Contents',
+              'Contents/XPCServices/Indexer.xpc',
+              true,
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'seal-plugin',
+            group: 'seal',
+            source: 'seal',
+            kind: 'CodeResources',
+            form: 'nested code entry',
+            raw: 'PlugIns/Preview.bundle',
+            cls: 'recorded',
+            status: 'Nested code entry · requirement not evaluated',
+            to: 'plugin',
+            steps: sealSteps(
+              'PlugIns/Preview.bundle',
+              'Atlas.app/Contents',
+              'Contents/PlugIns/Preview.bundle',
+              true,
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'fwseal-info',
+            group: 'seal',
+            source: 'framework-seal',
+            kind: 'CodeResources',
+            form: 'resource entry',
+            raw: 'Resources/Info.plist',
+            cls: 'recorded',
+            status: 'Manifest entry · hash not checked',
+            to: 'framework-info',
+            steps: sealSteps(
+              'Resources/Info.plist',
+              'Example.framework/Versions/A',
+              'Versions/A/Resources/Info.plist',
+            ),
+            limits: sealLimits,
+          },
+          {
+            id: 'helperseal-renderkit',
+            group: 'seal',
+            source: 'helper-seal',
+            kind: 'CodeResources',
+            form: 'nested code entry',
+            raw: 'Frameworks/RenderKit.framework',
+            cls: 'recorded',
+            status: 'Nested code entry · requirement not evaluated',
+            to: 'renderkit',
+            steps: sealSteps(
+              'Frameworks/RenderKit.framework',
+              'Render Helper.app/Contents',
+              'Render Helper.app/Contents/Frameworks/RenderKit.framework',
+              true,
+            ),
+            limits: sealLimits,
+          },
+        ];
+
+        const groups = [
+          { id: 'all', label: 'All' },
+          { id: 'code', label: 'Load commands' },
+          { id: 'string', label: 'Strings' },
+          { id: 'meta', label: 'Declarations & links' },
+          { id: 'seal', label: 'Seal entries' },
+        ];
+        const domainLabel = {
+          system: 'System location · left outside staging',
+          userdata: 'User data path · outside the bundle',
+          capability: 'Capability · not a filesystem target',
+          unknown: 'Unresolved · containment unknown',
+          original: 'Original installation · outside the staged copy',
+        };
+        const kindLabel = {
+          bundle: 'Bundle',
+          binary: 'Mach-O',
+          directory: 'Folder',
+          symlink: 'Link',
+          metadata: 'Property list',
+          resource: 'Resource',
+          seal: 'Seal',
+          reference: 'Reference',
+          capability: 'Capability',
+          unknown: 'Unresolved',
+        };
+        const roots = {
+          original: '/Original/Atlas.app',
+          staged: '/Staged/Atlas.app',
+        };
+
+        // ---------- Icons ----------
+        const paths = {
+          bundle: 'M12 3l8 4.5v9L12 21l-8-4.5v-9z M4 7.5l8 4.5 8-4.5 M12 12v9',
+          directory:
+            'M3.5 7.5a2 2 0 0 1 2-2h3.8l2 2h7.2a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z',
+          binary:
+            'M7 3.5h7l4 4v13H7z M14 3.5v4h4 M10.5 12.5l-2 2 2 2 M14.5 12.5l2 2-2 2',
+          resource: 'M7 3.5h7l4 4v13H7z M14 3.5v4h4',
+          metadata: 'M7 3.5h7l4 4v13H7z M14 3.5v4h4 M9.5 12.5h6 M9.5 16h6',
+          symlink:
+            'M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1 M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1',
+          seal: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z M9 12l2 2 4-4',
+          reference:
+            'M14 4h6v6 M20 4l-9 9 M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
+          capability:
+            'M8.5 15.5a3.5 3.5 0 1 1 0-.01 M11 13l8-8 M16 6l2 2 M14 8l2 2',
+          unknown:
+            'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .9-1 1.6 M12 17h.01',
+          chevron: 'm9 6 6 6-6 6',
+          locate:
+            'M12 2.5v3.5 M12 18v3.5 M2.5 12H6 M18 12h3.5 M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+          recenter: 'M4 12h13 M12.5 7l5 5-5 5 M20.5 5v14',
+        };
+        const icon = (name, cls = 'ico') =>
+          `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name] || paths.resource}"/></svg>`;
+        const iconFor = (n) => icon(n.pending ? 'directory' : n.kind);
+
+        // ---------- Helpers over the static inventory ----------
+        const byId = new Map(nodes.map((n) => [n.id, n]));
+        const node = (id) => (id == null ? undefined : byId.get(id));
+        const kids = (id) =>
+          nodes.filter((n) => n.parent === id && !n.external);
+        const ancestors = (id) => {
+          const out = [];
+          for (let n = node(node(id)?.parent); n; n = node(n.parent))
+            out.unshift(n);
+          return out;
+        };
+        const lineage = (id) => [...ancestors(id), node(id)];
+        const descendants = (id) =>
+          kids(id).flatMap((k) => [k, ...descendants(k.id)]);
+        const isBranch = (n) => n.kind === 'bundle' || n.kind === 'directory';
+        const units = (id) =>
+          node(id).external
+            ? []
+            : lineage(id).filter((a) => a.kind === 'bundle');
+        const fullPath = (id) =>
+          node(id).external
+            ? node(id).path
+            : lineage(id)
+                .map((a) => a.label)
+                .join('/');
+        const shortPath = (id) => {
+          const n = node(id);
+          if (n.external) return n.path;
+          const parts = lineage(id).map((a) => a.label);
+          return parts.length > 1 ? parts.slice(1).join('/') : parts[0];
+        };
+        const esc = (value) =>
+          String(value).replace(
+            /[&<>"']/g,
+            (c) =>
+              ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+              })[c],
+          );
+        const plural = (n, one, many = one + 's') =>
+          `${n} ${n === 1 ? one : many}`;
+
+        // ---------- State ----------
+        const STORE = 'acw-boundary-compass-v1';
+        const defaults = {
+          anchor: 'framework-code',
+          active: 'helper-example',
+          layout: 'original',
+          slice: 'arm64',
+          filter: 'all',
+          expanded: [
+            'bundle',
+            'contents',
+            'frameworks',
+            'framework',
+            'framework-versions',
+            'framework-a',
+            'helpers',
+            'helper',
+            'helper-contents',
+            'helper-macos',
+          ],
+        };
+        const state = {
+          ...defaults,
+          expanded: new Set(defaults.expanded),
+          history: [],
+          future: [],
+          located: null,
+          focus: null,
+        };
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
+          if (saved && node(saved.anchor)) {
+            state.anchor = saved.anchor;
+            state.active = relations.some((r) => r.id === saved.active)
+              ? saved.active
+              : null;
+            if (roots[saved.layout]) state.layout = saved.layout;
+            if (BOTH.includes(saved.slice)) state.slice = saved.slice;
+            if (groups.some((g) => g.id === saved.filter))
+              state.filter = saved.filter;
+            if (Array.isArray(saved.expanded))
+              state.expanded = new Set(saved.expanded.filter((id) => node(id)));
+          }
+        } catch {
+          /* storage unavailable: defaults are fine */
+        }
+        const save = () => {
+          try {
+            localStorage.setItem(
+              STORE,
+              JSON.stringify({
+                anchor: state.anchor,
+                active: state.active,
+                layout: state.layout,
+                slice: state.slice,
+                filter: state.filter,
+                expanded: [...state.expanded],
+              }),
+            );
+          } catch {
+            /* ignore */
+          }
+        };
+
+        // ---------- Relation semantics (presentation over authored example data) ----------
+        const view = (rel) => {
+          const v = rel.by ? rel.by[state.layout] : rel;
+          return {
+            to: v.to,
+            cls: v.cls,
+            status: v.status,
+            steps: v.steps,
+            bypass: v.bypass,
+            limits: v.limits || rel.limits,
+          };
+        };
+        const inSlice = (rel) =>
+          !rel.arches || rel.arches.includes(state.slice);
+        const inFilter = (rel) =>
+          state.filter === 'all' || rel.group === state.filter;
+        const scopeOf = (id) => {
+          const n = node(id);
+          const ids = new Set([id]);
+          if (!n.external && isBranch(n))
+            descendants(id).forEach((d) => ids.add(d.id));
+          return ids;
+        };
+        function lanesFor(anchor) {
+          const ids = scopeOf(anchor);
+          const result = {
+            ids,
+            ingress: [],
+            egress: [],
+            internal: [],
+            bypass: [],
+          };
+          for (const rel of relations) {
+            if (!inSlice(rel)) continue;
+            const v = view(rel);
+            const fromInside = ids.has(rel.source);
+            const toInside = ids.has(v.to);
+            if (fromInside && toInside) result.internal.push(rel);
+            else if (toInside) result.ingress.push(rel);
+            else if (fromInside) result.egress.push(rel);
+            if (v.bypass && ids.has(v.bypass) && !fromInside)
+              result.bypass.push(rel);
+          }
+          return result;
+        }
+        // Bundle (code-unit) boundaries crossed from source to target. Atlas.app itself is
+        // drawn as the dashed field boundary, so only nested bundles become ticks.
+        function crossing(from, to) {
+          const a = units(from);
+          const b = units(to);
+          if (node(to).external)
+            return { exits: a.slice(1).reverse(), enters: [], leaves: true };
+          let i = 0;
+          while (i < a.length && i < b.length && a[i].id === b[i].id) i++;
+          return {
+            exits: a.slice(i).reverse(),
+            enters: b.slice(i),
+            leaves: false,
+            common: a[i - 1],
+          };
+        }
+        function crossingText(x) {
+          const parts = [
+            ...x.exits.map((u) => `exits ${u.label}`),
+            ...x.enters.map((u) => `enters ${u.label}`),
+          ];
+          if (x.leaves) parts.push('leaves Atlas.app');
+          if (!parts.length)
+            return `same code unit · ${x.common ? x.common.label : 'Atlas.app'}`;
+          return parts.join(' · ');
+        }
+        const groupOrder = { code: 0, string: 1, meta: 2, seal: 3 };
+        function sortLanes(list, dir) {
+          return [...list].sort((a, b) => {
+            const ga = groupOrder[a.group] - groupOrder[b.group];
+            if (ga) return ga;
+            const ea = dir === 'in' ? a.source : view(a).to;
+            const eb = dir === 'in' ? b.source : view(b).to;
+            const sa = node(ea).external ? 1 : 0;
+            const sb = node(eb).external ? 1 : 0;
+            if (sa !== sb) return sa - sb;
+            return node(ea).label.localeCompare(node(eb).label);
+          });
+        }
+
+        // ---------- DOM ----------
+        const $ = (sel) => document.querySelector(sel);
+        const app = $('#app');
+        const treeScroll = $('#tree-scroll');
+        const field = $('#field');
+        const live = $('#live');
+        const narrowScreen = window.matchMedia('(max-width: 760px)');
+        app.dataset.tree = narrowScreen.matches ? 'closed' : 'open';
+
+        // ---------- Tree ----------
+        function containsAnchor(id) {
+          return (
+            !state.expanded.has(id) &&
+            ancestors(state.anchor).some((a) => a.id === id)
+          );
+        }
+        function treeItem(id, level) {
+          const n = node(id);
+          const children = kids(id);
+          const branch = children.length > 0 || n.pending;
+          const open = state.expanded.has(id);
+          const hint =
+            n.kind === 'symlink'
+              ? `→ ${n.target}`
+              : n.pending
+                ? 'not inventoried'
+                : n.kind === 'binary'
+                  ? 'Mach-O'
+                  : n.kind === 'bundle'
+                    ? 'bundle'
+                    : '';
+          const focusId = state.focus || state.anchor;
+          return `<li role="treeitem" data-id="${id}" aria-level="${level}" aria-selected="${state.anchor === id}"${branch ? ` aria-expanded="${open}"` : ''} tabindex="${focusId === id ? 0 : -1}" aria-label="${esc(n.label)}${n.kind === 'binary' ? ', Mach-O' : ''}">
+            <div class="trow" data-action="select" data-id="${id}" style="--level:${level}"${state.located === id ? ' data-located="true"' : ''}${containsAnchor(id) ? ' data-contains="true"' : ''}>
+              ${branch ? `<span class="chev" data-action="toggle" data-id="${id}" aria-hidden="true">${icon('chevron')}</span>` : '<span class="chev-space"></span>'}
+              ${iconFor(n)}<span class="tlabel">${esc(n.label)}</span>${hint ? `<span class="thint">${esc(hint)}</span>` : ''}
+            </div>
+            ${branch && open ? `<ul role="group">${children.map((c) => treeItem(c.id, level + 1)).join('')}${n.pending ? `<li class="tpending" style="--level:${level + 1}" role="none">Folder inventory not available</li>` : ''}</ul>` : ''}
+          </li>`;
+        }
+        function renderTree() {
+          const hadFocus = treeScroll.contains(document.activeElement);
+          treeScroll.innerHTML = `<ul class="tree" role="tree" aria-label="Atlas.app physical containment">${treeItem('bundle', 1)}</ul>`;
+          if (hadFocus)
+            treeScroll
+              .querySelector(
+                `[role="treeitem"][data-id="${state.focus || state.anchor}"]`,
+              )
+              ?.focus();
+        }
+        function revealInTree(id, { flash = true } = {}) {
+          const n = node(id);
+          if (!n || n.external) return;
+          ancestors(id).forEach((a) => state.expanded.add(a.id));
+          if (app.dataset.tree !== 'open') setTree('open');
+          state.located = flash ? id : null;
+          renderTree();
+          const row = treeScroll.querySelector(`[data-id="${id}"] > .trow`);
+          row?.scrollIntoView({
+            block: 'center',
+            behavior: matchMedia('(prefers-reduced-motion: reduce)').matches
+              ? 'auto'
+              : 'smooth',
+          });
+          clearTimeout(revealInTree.timer);
+          revealInTree.timer = setTimeout(() => {
+            state.located = null;
+            treeScroll
+              .querySelector('[data-located]')
+              ?.removeAttribute('data-located');
+          }, 2300);
+          save();
+        }
+        function setTree(mode) {
+          app.dataset.tree = mode;
+          $('#tree-toggle').setAttribute(
+            'aria-pressed',
+            String(mode === 'open'),
+          );
+        }
+
+        // ---------- Layer: bar ----------
+        function renderBar(lanes) {
+          const n = node(state.anchor);
+          let crumbs;
+          if (n.external) {
+            crumbs = `<span class="crumb-outside">Outside Atlas.app</span><span class="crumb-sep">›</span><span class="crumb" aria-current="true">${esc(n.label)}</span>`;
+          } else {
+            crumbs = lineage(state.anchor)
+              .map((a, i, all) => {
+                const last = i === all.length - 1;
+                return `${i ? '<span class="crumb-sep" aria-hidden="true">›</span>' : ''}<button class="crumb" type="button" data-action="recenter" data-id="${a.id}"${last ? ' aria-current="true"' : ''} title="${last ? 'Locate in tree' : `Re-center on ${esc(a.label)}`}">${esc(a.label)}</button>`;
+              })
+              .join('');
+          }
+          $('#crumbs').innerHTML = crumbs;
+          $('#back').disabled = !state.history.length;
+          $('#forward').disabled = !state.future.length;
+          document
+            .querySelectorAll('[data-action="layout"]')
+            .forEach((b) =>
+              b.setAttribute(
+                'aria-pressed',
+                String(b.dataset.value === state.layout),
+              ),
+            );
+          document
+            .querySelectorAll('[data-action="slice"]')
+            .forEach((b) =>
+              b.setAttribute(
+                'aria-pressed',
+                String(b.dataset.value === state.slice),
+              ),
+            );
+          const counted = [...lanes.ingress, ...lanes.egress, ...lanes.bypass];
+          $('#filters').innerHTML = groups
+            .map((g) => {
+              const count =
+                g.id === 'all'
+                  ? counted.length
+                  : counted.filter((r) => r.group === g.id).length;
+              return `<button type="button" data-action="filter" data-value="${g.id}" aria-pressed="${state.filter === g.id}"${count || g.id === 'all' || state.filter === g.id ? '' : ' disabled'}>${g.label}<span class="count">${count}</span></button>`;
+            })
+            .join('');
+        }
+
+        // ---------- Layer: lanes ----------
+        function endpointCard(endId, side, x, rel, dir, ghost) {
+          const end = node(endId);
+          const sideTag = side === 'west' ? 'W' : 'E';
+          const cross = ghost
+            ? 'would reach this copy · bypassed in the staged layout'
+            : end.external
+              ? [crossingText(x), domainLabel[end.domain]]
+                  .filter(Boolean)
+                  .join(' · ')
+              : crossingText(x);
+          const locate = end.external
+            ? `<button class="mini" type="button" disabled aria-label="Reference record, not a tree item" title="Reference record · not part of the physical tree">${icon('locate')}</button>`
+            : `<button class="mini" type="button" data-action="locate" data-id="${endId}" aria-label="Locate ${esc(end.label)} in tree" title="Locate in tree">${icon('locate')}</button>`;
+          return `<div class="endpoint">
+            <span class="ep-ic">${iconFor(end)}</span>
+            <div class="ep-main">
+              <div class="ep-title"><span class="side-tag">${sideTag}</span><strong>${esc(end.label)}</strong><span class="ep-kind">${esc(kindLabel[end.kind] || '')}</span></div>
+              <div class="ep-path mono">${esc(shortPath(endId))}</div>
+              <div class="ep-cross">${esc(cross)}</div>
+            </div>
+            <div class="ep-act">${locate}<button class="mini" type="button" data-action="recenter" data-id="${endId}" data-rel="${rel.id}" aria-label="Re-center on ${esc(end.label)}" title="Re-center on this endpoint">${icon('recenter')}</button></div>
+          </div>`;
+        }
+        function rib(side, dir, cls, x, ghost) {
+          // Ticks in flow order (source → target); the rib direction places them spatially.
+          const ticks = ghost
+            ? []
+            : [
+                ...x.exits.map((u) => ({ u, k: 'exit' })),
+                ...x.enters.map((u) => ({ u, k: 'enter' })),
+              ];
+          const leftward =
+            (side === 'east' && dir === 'in') ||
+            (side === 'west' && dir === 'out');
+          const arrow = ghost
+            ? 'none'
+            : dir === 'out'
+              ? side === 'east'
+                ? 'right'
+                : 'left'
+              : side === 'east'
+                ? 'left'
+                : 'right';
+          const marks = ticks
+            .map(
+              (t) =>
+                `<i class="tick" data-kind="${t.k}" title="${t.k === 'exit' ? 'exits' : 'enters'} ${esc(t.u.label)}"></i>`,
+            )
+            .join('');
+          return `<span class="rib" data-side="${side}" data-cls="${cls}" data-flow="${leftward ? 'rtl' : 'ltr'}" data-arrow="${arrow}" style="--ticks:${ticks.length}" aria-hidden="true">${ghost ? '<span class="stop">✕</span>' : ''}${marks}</span>`;
+        }
+        function routeBlock(rel, dir, side, ghost) {
+          const v = view(rel);
+          const cls = ghost ? 'hazard' : v.cls;
+          const endId = dir === 'in' ? rel.source : v.to;
+          const end = node(endId);
+          const flowText = ghost
+            ? '↯ never arrives here'
+            : dir === 'out'
+              ? side === 'east'
+                ? 'S → E · resolves inside'
+                : 'S → W · leaves Atlas.app'
+              : side === 'east'
+                ? 'E → N · arrives from inside'
+                : 'W → N · arrives from outside';
+          const ctx = `${state.layout === 'staged' ? 'Staged copy' : 'Original'} · ${roots[state.layout]} · ${state.slice}`;
+          const steps = v.steps
+            .map(
+              ([r, k, val], i) =>
+                `<li class="step" data-r="${r}"><span class="sn">${i + 1}</span><div><span class="sk">${esc(k)}</span><span class="sv mono">${esc(val)}</span></div></li>`,
+            )
+            .join('');
+          const src = node(rel.source);
+          const actions = [
+            !end.external
+              ? `<button class="btn" type="button" data-action="locate" data-id="${endId}">${icon('locate')}Locate ${esc(end.label)}</button>`
+              : '',
+            `<button class="btn" type="button" data-action="recenter" data-id="${endId}" data-rel="${rel.id}">${icon('recenter')}Re-center on ${esc(end.label)}</button>`,
+            v.bypass
+              ? `<button class="btn" type="button" data-action="locate" data-id="${v.bypass}">${icon('locate')}Locate bypassed copy</button>`
+              : '',
+          ].join('');
+          return `<section class="route" data-half="${side}" data-cls="${cls}" aria-label="Resolution route">
+            <div class="route-head"><h3>${dir === 'in' ? `How ${esc(src.label)}'s request ${ghost ? 'misses' : 'lands'} here` : 'Resolution route'}</h3><span class="ctx">${esc(ctx)}</span><span class="dir">${flowText}</span></div>
+            <ol class="steps">${steps}</ol>
+            <p class="limits"><strong>${esc(v.status)}.</strong> ${esc(v.limits || '')}</p>
+            <div class="route-actions">${actions}</div>
+          </section>`;
+        }
+        function laneRow(rel, dir, index, ghost = false) {
+          const v = view(rel);
+          const endId = dir === 'in' ? rel.source : v.to;
+          const end = node(endId);
+          const side = ghost ? 'east' : end.external ? 'west' : 'east';
+          const cls = ghost ? 'hazard' : v.cls;
+          const x = crossing(rel.source, v.to);
+          const active = state.active === rel.id;
+          const status = ghost
+            ? 'Bypasses this copy in the staged layout'
+            : v.status;
+          const card = endpointCard(endId, side, x, rel, dir, ghost);
+          const lane =
+            side === 'east'
+              ? `<div class="lane">${rib(side, dir, cls, x, ghost)}${card}</div>`
+              : `<div class="lane">${card}${rib(side, dir, cls, x, ghost)}</div>`;
+          const raw =
+            rel.raw.length > 64
+              ? `${rel.raw.slice(0, 30)}…${rel.raw.slice(-30)}`
+              : rel.raw;
+          return `<div class="row" data-dir="${dir}" data-side="${side}" data-cls="${cls}" data-active="${active}" style="--i:${index}">
+            <div class="cell w">${side === 'west' ? lane : ''}</div>
+            <div class="cell m">
+              <button class="plank" type="button" data-action="activate" data-rel="${rel.id}" aria-pressed="${active}" aria-expanded="${active}" title="${esc(rel.raw)}">
+                <span class="pk"><span class="pk-kind">${esc(rel.kind)}</span><span class="pk-form">${esc(rel.form)}</span><span class="pk-dir">${dir === 'in' ? `by ${esc(node(rel.source).label)}` : rel.source !== state.anchor ? `from ${esc(node(rel.source).label)}` : ''}</span></span>
+                <span class="pk-raw mono">${esc(raw)}</span>
+                <span class="pk-status">${esc(status)}</span>
+              </button>
+            </div>
+            <div class="cell e">${side === 'east' ? lane : ''}</div>
+            ${active ? routeBlock(rel, dir, side, ghost) : ''}
+          </div>`;
+        }
+        function emptyRow(text) {
+          return `<div class="row empty-row"><div class="cell w"></div><div class="cell m"><div class="ghost-plank">${esc(text)}</div></div><div class="cell e"></div></div>`;
+        }
+        function outsideConsumersRow() {
+          return `<div class="row" data-dir="in" data-side="west">
+            <div class="cell w"><div class="lane"><div class="ghost-card">Consumers outside Atlas.app are not inventoried. Other applications or the system may reference this item.</div><span class="rib" data-side="west" data-cls="unresolved" data-arrow="none" aria-hidden="true"></span></div></div>
+            <div class="cell m"><div class="ghost-plank">No recorded requests from outside</div></div>
+            <div class="cell e"></div>
+          </div>`;
+        }
+
+        // ---------- Layer: anchor ----------
+        function signatureText(n) {
+          if (n.external) return 'Not inspected · reference only';
+          if (n.kind === 'binary')
+            return {
+              present: 'Signature range found · validity not checked',
+              absent: 'No signature command in the example image',
+              uninspected: 'Signature metadata not inspected',
+            }[n.signature];
+          if (n.kind === 'bundle')
+            return 'Separate code unit · coverage not checked';
+          if (n.kind === 'directory')
+            return 'Descendants have their own signing states';
+          return 'Seal coverage not evaluated';
+        }
+        function anchorBlock(lanes) {
+          const n = node(state.anchor);
+          const aggregate = !n.external && isBranch(n);
+          const inner = n.external
+            ? []
+            : units(state.anchor)
+                .slice(1)
+                .filter((u) => u.id !== state.anchor);
+          const egressFiltered = lanes.egress.filter(inSlice);
+          const east = egressFiltered.filter(
+            (r) => !node(view(r).to).external,
+          ).length;
+          const west = egressFiltered.length - east;
+          const missingSlice =
+            n.kind === 'binary' && !n.arches.includes(state.slice);
+          const kicker = n.external
+            ? `Outside Atlas.app · ${domainLabel[n.domain]}`
+            : aggregate
+              ? `${n.role} · aggregate scope`
+              : `Selected · ${n.role}`;
+          const sliceChips =
+            n.kind === 'binary'
+              ? BOTH.map(
+                  (a) =>
+                    `<span class="chip${n.arches.includes(a) ? '' : ' off'}">${a}</span>`,
+                ).join('')
+              : '';
+          const unitChip = n.external
+            ? ''
+            : `<span class="chip">Code unit · ${esc((units(state.anchor).at(-1) || node('bundle')).label)}</span>`;
+          const internalList =
+            aggregate && lanes.internal.length
+              ? `<details class="internal"><summary>${plural(lanes.internal.length, 'relation')} stay inside ${esc(n.label)} · not drawn as lanes</summary><ul>${lanes.internal
+                  .map(
+                    (r) =>
+                      `<li>${esc(node(r.source).label)} → ${esc(node(view(r).to).label)} <span style="color:var(--faint)">· ${esc(r.kind)} · ${esc(r.form)}</span></li>`,
+                  )
+                  .join('')}</ul></details>`
+              : '';
+          const descCount = aggregate ? descendants(state.anchor).length : 0;
+          const notes = [
+            missingSlice
+              ? `<p class="note warn">This image has no ${state.slice} slice in the example. Slice-specific lanes are absent.</p>`
+              : '',
+            n.pending
+              ? '<p class="note">Folder inventory is not available, so lanes into its contents cannot be listed.</p>'
+              : '',
+            lanes.bypass.length
+              ? `<p class="note warn">${lanes.bypass.length === 1 ? 'A request that would reach this copy in the original layout leaves' : `${lanes.bypass.length} requests that would reach this copy in the original layout leave`} the staged copy instead.</p>`
+              : '',
+            n.external
+              ? '<p class="note">A reference record, not a filesystem item in the tree. Only requests recorded inside Atlas.app are listed.</p>'
+              : '',
+          ].join('');
+          let core = `<div class="core">
+            <div class="core-head">
+              <div class="core-ic">${iconFor(n)}</div>
+              <div><div class="core-kicker">${esc(kicker)}</div><h2>${esc(n.label)}</h2></div>
+              <span class="spacer"></span>
+              ${n.external ? '' : `<button class="mini" type="button" data-action="locate" data-id="${n.id}" aria-label="Locate in tree" title="Locate in tree">${icon('locate')}</button>`}
+            </div>
+            <div class="core-path mono">${esc(n.external ? n.path : fullPath(state.anchor))}</div>
+            <div class="chips">${sliceChips}<span class="chip">${esc(signatureText(n))}</span>${unitChip}${aggregate ? `<span class="chip">${plural(descCount, 'entry', 'entries')}</span>` : ''}</div>
+            <div class="tally" aria-label="Lane summary">
+              <span>▲ <b>${lanes.ingress.length}</b> ingress</span>
+              <span>▼ <b>${egressFiltered.length}</b> egress</span>
+              <span class="e">→ E <b>${east}</b> resolve inside</span>
+              <span class="w">← W <b>${west}</b> leave Atlas.app</span>
+              ${aggregate ? `<span class="i">◦ <b>${lanes.internal.length}</b> internal</span>` : ''}
+            </div>
+            ${internalList}${notes}
+          </div>`;
+          for (let i = inner.length - 1; i >= 0; i--) {
+            const u = inner[i];
+            core = `<div class="membrane"><button class="m-label" type="button" data-action="recenter" data-id="${u.id}" title="Re-center on the ${esc(u.label)} boundary">${icon('bundle')}<strong>${esc(u.label)}</strong> ${esc(u.role.toLowerCase())} · code unit</button>${core}</div>`;
+          }
+          return `<div class="anchor-row">
+            <span class="port-line"></span><span class="port-arrow"></span>
+            <article class="anchor" data-outside="${!!n.external}" aria-label="Selected item">${core}</article>
+            <span class="port-line s"></span><span class="port-arrow s"></span>
+          </div>`;
+        }
+
+        // ---------- Layer: compose ----------
+        function renderLayer() {
+          const lanes = lanesFor(state.anchor);
+          if (
+            state.active &&
+            ![...lanes.ingress, ...lanes.egress, ...lanes.bypass].some(
+              (r) => r.id === state.active,
+            )
+          )
+            state.active = null;
+          const n = node(state.anchor);
+          const ingress = sortLanes(lanes.ingress.filter(inFilter), 'in');
+          const bypass = lanes.bypass.filter(inFilter);
+          const egress = sortLanes(lanes.egress.filter(inFilter), 'out');
+          const filtered = state.filter !== 'all';
+          let i = 0;
+
+          const northRows = [
+            ...ingress.map((r) => laneRow(r, 'in', i++)),
+            ...bypass.map((r) => laneRow(r, 'in', i++, true)),
+          ];
+          if (!northRows.length)
+            northRows.push(
+              emptyRow(
+                filtered
+                  ? 'No ingress of this kind'
+                  : n.external
+                    ? 'No recorded requests'
+                    : state.anchor === 'bundle'
+                      ? 'Nothing outside Atlas.app is inventoried'
+                      : 'No ingress recorded inside Atlas.app',
+              ),
+            );
+          if (!n.external) northRows.push(outsideConsumersRow());
+          const southRows = egress.map((r) => laneRow(r, 'out', i++));
+          if (!southRows.length)
+            southRows.push(
+              emptyRow(
+                filtered
+                  ? 'No egress of this kind'
+                  : 'No egress recorded for this selection',
+              ),
+            );
+
+          const eastIn = ingress.length;
+          const eastOut = egress.filter(
+            (r) => !node(view(r).to).external,
+          ).length;
+          const westOut = egress.length - eastOut;
+
+          field.innerHTML = `
+            <div class="heads">
+              <div class="h w"><b>W</b><strong>Leaves Atlas.app</strong><small>system · user data · capabilities · unresolved</small></div>
+              <div class="h m"><strong>Bridge</strong><small>recorded request on the spine</small></div>
+              <div class="h e"><b>E</b><strong>Resolves inside Atlas.app</strong><small>bundle-internal targets and candidates</small></div>
+            </div>
+            <span class="boundary-tag">${state.layout === 'staged' ? 'Staged Atlas.app boundary' : 'Atlas.app boundary'}</span>
+            <div class="cap top"><span class="cap-dot"></span></div>
+            <div class="deck" data-bridge="north">
+              <span class="deck-note w">${n.external ? '' : 'outside requesters: not inventoried'}</span>
+              <span class="deck-mid"><span class="compass-letter">N</span>Ingress bridge<span class="count">· ${plural(ingress.length + bypass.length, 'lane')}</span></span>
+              <span class="deck-note e">${eastIn ? `${plural(eastIn, 'lane')} from inside the app` : ''}</span>
+            </div>
+            ${northRows.join('')}
+            ${anchorBlock(lanes)}
+            <div class="deck" data-bridge="south">
+              <span class="deck-note w">${westOut ? `${westOut === 1 ? '1 lane crosses' : `${westOut} lanes cross`} the boundary` : ''}</span>
+              <span class="deck-mid"><span class="compass-letter">S</span>Egress bridge<span class="count">· ${plural(egress.length, 'lane')}</span></span>
+              <span class="deck-note e">${eastOut ? `${eastOut === 1 ? '1 lane resolves' : `${eastOut} lanes resolve`} inside` : ''}</span>
+            </div>
+            ${southRows.join('')}
+            <div class="cap"><span class="cap-dot"></span></div>`;
+          renderBar(lanes);
+          live.textContent = `${n.label}: ${plural(ingress.length, 'ingress lane')}, ${plural(egress.length, 'egress lane')}; ${eastOut} resolve inside, ${westOut} leave Atlas.app.`;
+        }
+
+        function render({ tree = true, animate = false } = {}) {
+          if (animate) {
+            field.dataset.animate = 'true';
+            clearTimeout(render.timer);
+            render.timer = setTimeout(() => delete field.dataset.animate, 1000);
+          }
+          if (tree) renderTree();
+          renderLayer();
+          save();
+        }
+
+        // ---------- Navigation ----------
+        function snapshot() {
+          return { anchor: state.anchor, active: state.active };
+        }
+        function setAnchor(id, active = null, { push = true } = {}) {
+          if (!node(id)) return;
+          if (id === state.anchor && active === state.active) return;
+          if (push && id !== state.anchor) {
+            state.history.push(snapshot());
+            if (state.history.length > 30) state.history.shift();
+            state.future = [];
+          }
+          state.anchor = id;
+          state.active = active;
+          state.focus = node(id).external ? state.focus : id;
+          if (!node(id).external)
+            ancestors(id).forEach((a) => state.expanded.add(a.id));
+          render({ animate: true });
+          $('#layer-scroll').scrollTo({ top: 0 });
+          if (narrowScreen.matches) window.scrollTo({ top: 0 });
+          if (active) {
+            requestAnimationFrame(() =>
+              field
+                .querySelector('.row[data-active="true"]')
+                ?.scrollIntoView({ block: 'nearest' }),
+            );
+          }
+        }
+        function go(stackFrom, stackTo) {
+          const target = stackFrom.pop();
+          if (!target) return;
+          stackTo.push(snapshot());
+          state.anchor = target.anchor;
+          state.active = target.active;
+          state.focus = target.anchor;
+          render({ animate: true });
+        }
+
+        // ---------- Events ----------
+        document.addEventListener('click', (event) => {
+          const el = event.target.closest('[data-action]');
+          if (!el || el.disabled) return;
+          const { action, id, value } = el.dataset;
+          switch (action) {
+            case 'toggle':
+              event.stopPropagation();
+              state.expanded.has(id)
+                ? state.expanded.delete(id)
+                : state.expanded.add(id);
+              state.focus = id;
+              renderTree();
+              save();
+              break;
+            case 'select': {
+              const n = node(id);
+              state.focus = id;
+              if (isBranch(n) && !state.expanded.has(id))
+                state.expanded.add(id);
+              if (id === state.anchor) renderTree();
+              else setAnchor(id);
+              if (narrowScreen.matches) setTree('closed');
+              break;
+            }
+            case 'activate': {
+              const rel = el.dataset.rel;
+              state.active = state.active === rel ? null : rel;
+              renderLayer();
+              save();
+              requestAnimationFrame(() => {
+                const plank = field.querySelector(`.plank[data-rel="${rel}"]`);
+                plank?.focus({ preventScroll: true });
+                plank
+                  ?.closest('.row')
+                  ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              });
+              break;
+            }
+            case 'recenter':
+              if (id === state.anchor) revealInTree(id);
+              else setAnchor(id, el.dataset.rel || null);
+              break;
+            case 'locate':
+              revealInTree(id);
+              break;
+            case 'back':
+              go(state.history, state.future);
+              break;
+            case 'forward':
+              go(state.future, state.history);
+              break;
+            case 'layout':
+            case 'slice':
+              state[action] = value;
+              renderLayer();
+              save();
+              break;
+            case 'filter':
+              state.filter = value;
+              renderLayer();
+              save();
+              break;
+            case 'tree-toggle':
+              setTree(app.dataset.tree === 'open' ? 'closed' : 'open');
+              break;
+            case 'collapse-all':
+              state.expanded = new Set(['bundle']);
+              renderTree();
+              save();
+              break;
+            case 'notes':
+              $('#notes').showModal();
+              break;
+            case 'notes-close':
+              $('#notes').close();
+              break;
+            case 'theme': {
+              const root = document.documentElement;
+              const dark = root.dataset.theme
+                ? root.dataset.theme === 'dark'
+                : matchMedia('(prefers-color-scheme: dark)').matches;
+              root.dataset.theme = dark ? 'light' : 'dark';
+              try {
+                localStorage.setItem(`${STORE}-theme`, root.dataset.theme);
+              } catch {
+                /* ignore */
+              }
+              break;
+            }
+          }
+        });
+        $('#notes').addEventListener('click', (event) => {
+          if (event.target === event.currentTarget) event.currentTarget.close();
+        });
+
+        // Tree keyboard: roving focus over rendered (visible) items.
+        treeScroll.addEventListener('keydown', (event) => {
+          const current = event.target.closest('[role="treeitem"]');
+          if (!current) return;
+          const items = [...treeScroll.querySelectorAll('[role="treeitem"]')];
+          const index = items.indexOf(current);
+          const id = current.dataset.id;
+          const n = node(id);
+          const branch = kids(id).length > 0 || n.pending;
+          const move = (target) => {
+            if (!target) return;
+            items.forEach((item) => item.setAttribute('tabindex', '-1'));
+            target.setAttribute('tabindex', '0');
+            target.focus();
+            state.focus = target.dataset.id;
+          };
+          switch (event.key) {
+            case 'ArrowDown':
+              move(items[index + 1]);
+              break;
+            case 'ArrowUp':
+              move(items[index - 1]);
+              break;
+            case 'Home':
+              move(items[0]);
+              break;
+            case 'End':
+              move(items.at(-1));
+              break;
+            case 'ArrowRight':
+              if (branch && !state.expanded.has(id)) {
+                state.expanded.add(id);
+                state.focus = id;
+                renderTree();
+                treeScroll
+                  .querySelector(`[role="treeitem"][data-id="${id}"]`)
+                  ?.focus();
+              } else if (branch) move(items[index + 1]);
+              break;
+            case 'ArrowLeft':
+              if (branch && state.expanded.has(id)) {
+                state.expanded.delete(id);
+                state.focus = id;
+                renderTree();
+                treeScroll
+                  .querySelector(`[role="treeitem"][data-id="${id}"]`)
+                  ?.focus();
+              } else if (n.parent)
+                move(
+                  treeScroll.querySelector(
+                    `[role="treeitem"][data-id="${n.parent}"]`,
+                  ),
+                );
+              break;
+            case 'Enter':
+            case ' ':
+              state.focus = id;
+              if (id !== state.anchor) setAnchor(id);
+              if (narrowScreen.matches) setTree('closed');
+              break;
+            default:
+              return;
+          }
+          event.preventDefault();
+        });
+
+        document.addEventListener('keydown', (event) => {
+          if (
+            event.defaultPrevented ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.altKey
+          )
+            return;
+          if ($('#notes').open) return;
+          if (event.key === 't' || event.key === 'T') {
+            setTree(app.dataset.tree === 'open' ? 'closed' : 'open');
+          } else if (
+            event.key === 'Escape' &&
+            narrowScreen.matches &&
+            app.dataset.tree === 'open'
+          ) {
+            setTree('closed');
+          }
+        });
+
+        try {
+          const theme = localStorage.getItem(`${STORE}-theme`);
+          if (theme === 'light' || theme === 'dark')
+            document.documentElement.dataset.theme = theme;
+        } catch {
+          /* ignore */
+        }
+        narrowScreen.addEventListener('change', (event) =>
+          setTree(event.matches ? 'closed' : 'open'),
+        );
+        setTree(app.dataset.tree);
+        render({ animate: true });
+      })();
+    </script>
+  </body>
+</html>

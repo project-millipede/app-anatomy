@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>Application Explorer — Perimeter Bridges</title>
+<!--
+  Illustrative interaction prototype. Plain HTML, CSS and JavaScript over fixed example data:
+  no React, Rust, WIT component, Wasm runtime, native service or network dependency.
+  See "About this concept" inside the page for the design question and evidence limits.
+-->
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: light-dark(#f6f7f9, #14171d);
+    --surface: light-dark(#ffffff, #1a1e26);
+    --inside: light-dark(#fcfdfe, #181c24);
+    --ink: light-dark(#202736, #e3e8f0);
+    --muted: light-dark(#616b7b, #a5afbf);
+    --line: light-dark(#dde2e9, #343c49);
+    --soft: light-dark(#eef1f6, #252d39);
+    --selected: light-dark(#e7edf9, #283956);
+    --in: light-dark(#365b99, #adc8f4);
+    --in-soft: light-dark(#e9effa, #213049);
+    --out: light-dark(#93601e, #edc184);
+    --out-soft: light-dark(#f8efe2, #33291c);
+    --warn: light-dark(#9b4317, #f0a37c);
+    --warn-soft: light-dark(#fbebe2, #3a2419);
+    --ref: light-dark(#75578b, #c8aedd);
+    --ref-soft: light-dark(#f3edf8, #2b2433);
+    --perimeter: light-dark(#8a94a4, #6f7a8c);
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 400 13px/1.5 var(--sans); text-align: left; }
+  *, *::before, *::after { box-sizing: border-box; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--in); outline-offset: 2px; }
+  h2, h3, strong { font-weight: 500; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .ico { width: 15px; height: 15px; flex: 0 0 15px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+  .stroke { width: 24px; height: 6px; flex: 0 0 24px; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; fill: none; }
+
+  /* Frame */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .chrome { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 18px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .brand { font-size: 12px; font-weight: 600; letter-spacing: .09em; }
+  .product { color: var(--muted); font-size: 12px; }
+  .concept { font-size: 11.5px; font-weight: 500; padding: 2px 9px; border-radius: 99px; background: var(--soft); }
+  .chrome .grow { flex: 1; }
+  .chrome small { color: var(--muted); font-size: 11px; }
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 9px 18px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .group { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+  .group-label { font-size: 11px; color: var(--muted); margin-right: 3px; }
+  .cmd { border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 4px 9px; font-size: 12px; text-align: center; }
+  .cmd small { color: inherit; opacity: .72; margin-left: 3px; font-size: 11px; }
+  .cmd[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+  .cmd.check { display: inline-flex; align-items: center; gap: 6px; }
+  .cmd.check[aria-pressed="true"] { background: var(--selected); border-color: var(--in); color: var(--ink); }
+  .cmd.check[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--muted); }
+  .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; min-width: 0; }
+  .crumb { border: 0; background: transparent; padding: 2px 3px; font-size: 12px; color: var(--muted); border-radius: 3px; overflow-wrap: anywhere; }
+  button.crumb:hover { background: var(--soft); color: var(--ink); }
+  .crumb.current { color: var(--ink); font-weight: 500; }
+  .crumbs .sep { color: var(--line); }
+  .footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 9px 18px; font-size: 11px; color: var(--muted); background: var(--surface); border-top: 1px solid var(--line); }
+
+  .workspace { flex: 1; display: grid; grid-template-columns: 288px minmax(0, 1fr) 340px; min-height: 0; }
+  .pane { min-width: 0; }
+
+  /* Physical tree: containment only */
+  .tree-pane { background: var(--surface); border-right: 1px solid var(--line); }
+  .pane-head { position: sticky; top: 0; z-index: 4; padding: 13px 16px 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .pane-head strong { display: block; font-size: 12px; font-weight: 600; }
+  .pane-head span { display: block; font-size: 11px; color: var(--muted); }
+  .tree-body { padding: 10px 10px 18px; }
+  .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+  .tree ul { margin-left: 8px; padding-left: 3px; border-left: 1px solid var(--line); }
+  .row { display: flex; align-items: center; border-radius: 4px; }
+  .row[data-focus="true"] { background: var(--selected); }
+  .row.flash { animation: flash 1.8s ease-out; }
+  @keyframes flash { 0%, 35% { background: var(--out-soft); box-shadow: inset 0 0 0 2px var(--out); } 100% { box-shadow: inset 0 0 0 2px transparent; } }
+  .caret, .caret-spacer { flex: 0 0 20px; width: 20px; }
+  .caret { align-self: stretch; border: 0; background: transparent; color: var(--muted); padding: 0; font-size: 11px; }
+  .item { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 5px 4px; text-align: left; border-radius: 4px; }
+  .item:hover { background: var(--soft); }
+  .row[data-focus="true"] .item:hover { background: transparent; }
+  .item .label { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 12px; }
+  .item .kind { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+  .item.group .label { color: var(--muted); }
+  .row[data-focus="true"] .label { font-weight: 500; }
+  .row[data-focus="true"] .ico { color: var(--ink); }
+  .tag-perimeter { font-size: 10px; color: var(--muted); border: 1px dashed var(--perimeter); border-radius: 3px; padding: 0 4px; white-space: nowrap; }
+  .refs { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .refs-label { display: block; margin: 0 4px 6px; font-size: 11px; color: var(--ref); }
+  .unknown { font-size: 11px; color: var(--muted); padding: 5px 8px; }
+
+  /* Visualization layer */
+  .stage-pane { background: var(--bg); display: flex; flex-direction: column; }
+  .lens { position: sticky; top: 0; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 10px 18px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 18px 0; }
+  .preset { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 3px 10px; font-size: 11.5px; }
+  .preset small { color: var(--muted); margin-left: 5px; font-size: 11px; }
+  .preset:hover { border-color: var(--muted); }
+  .compass-wrap { container: compass / inline-size; padding: 14px 18px 4px; }
+  .compass { position: relative; isolation: isolate; display: flex; flex-direction: column; }
+  .wire { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; overflow: visible; }
+  .wire-line { fill: none; stroke-width: 1.6; stroke-linecap: round; opacity: .72; transition: opacity .15s, stroke-width .15s; }
+  .wire-line[data-dir="in"], .wire-dot[data-dir="in"] { stroke: var(--in); fill: var(--in); }
+  .wire-line[data-dir="out"], .wire-dot[data-dir="out"] { stroke: var(--out); fill: var(--out); }
+  .wire-line[data-dir] { fill: none; }
+  .wire[data-active="true"] .wire-line, .wire[data-active="true"] .wire-dot { opacity: .22; }
+  .wire .wire-line[data-state="active"], .wire .wire-dot[data-state="active"] { opacity: 1; stroke-width: 2.6; }
+  .wire .wire-line.hot, .wire .wire-dot.hot { opacity: 1; stroke-width: 2.4; }
+  .arrow-in { fill: var(--in); }
+  .arrow-out { fill: var(--out); }
+  .across { text-align: center; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 2px 0 10px; }
+  .across.bottom { margin: 10px 0 2px; }
+
+  .bridge { position: relative; min-width: 0; }
+  .bridge-head { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin-bottom: 8px; }
+  .bridge-name { font-size: 10.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
+  .bridge[data-dir="in"] .bridge-name { color: var(--in); }
+  .bridge[data-dir="out"] .bridge-name { color: var(--out); }
+  .bridge.unplaced .bridge-name { color: var(--ref); }
+  .bridge-title { font-size: 12.5px; font-weight: 500; }
+  .count { font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 99px; background: var(--soft); }
+  .bridge-sub { flex-basis: 100%; font-size: 11px; color: var(--muted); }
+  .cats { flex-basis: 100%; font-size: 10.5px; color: var(--muted); }
+  .bridge.north, .bridge.south, .bridge.unplaced { text-align: center; }
+  .bridge.north .bridge-head, .bridge.south .bridge-head, .bridge.unplaced .bridge-head { justify-content: center; }
+  .bridge.north { padding-bottom: 50px; }
+  .bridge.south { padding-top: 50px; }
+  .bridge.south .bridge-head { margin: 10px 0 0; }
+  .lane { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 10px; }
+  .bridge.west .lane, .bridge.east .lane { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+
+  .perimeter { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, 248px) minmax(0, 1fr); align-items: center; gap: 0 52px; padding: 36px 16px 22px; border: 1.5px dashed var(--perimeter); border-radius: 14px; background: var(--inside); }
+  .compass[data-side="outside"] .perimeter { border-color: var(--ref); background: var(--ref-soft); }
+  .compass[data-side="unknown"] .perimeter { border-color: var(--ref); border-style: dotted; }
+  .perimeter-tab { position: absolute; top: 0; left: 16px; z-index: 3; transform: translateY(-50%); max-width: calc(50% - 76px); padding: 1px 8px; border-radius: 4px; background: var(--bg); font-size: 10.5px; font-weight: 600; letter-spacing: .06em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .perimeter-tab b { font-weight: 600; text-transform: uppercase; }
+  .gate { position: absolute; left: 50%; z-index: 3; transform: translate(-50%, -50%); white-space: nowrap; padding: 2px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); font-size: 10.5px; font-weight: 600; }
+  .gate.north { top: 0; color: var(--in); border-color: color-mix(in srgb, var(--in) 45%, var(--line)); }
+  .gate.south { top: 100%; color: var(--out); border-color: color-mix(in srgb, var(--out) 45%, var(--line)); }
+  .gate[data-empty="true"] { color: var(--muted); border-color: var(--line); font-weight: 400; }
+
+  .bcard { position: relative; z-index: 2; display: flex; align-items: stretch; min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); text-align: left; transition: box-shadow .15s, border-color .15s; }
+  .bridge.north .bcard, .bridge.south .bcard, .bridge.unplaced .bcard { flex: 1 1 172px; max-width: 238px; }
+  .bcard[data-dir="in"] { border-left: 3px solid var(--in); }
+  .bcard[data-dir="out"] { border-left: 3px solid var(--out); }
+  .bcard[data-bridge="unplaced"] { border-left: 3px dashed var(--ref); }
+  .bcard.hot { border-color: var(--muted); }
+  .bcard[data-active="true"][data-dir="in"] { box-shadow: 0 0 0 2px var(--in); }
+  .bcard[data-active="true"][data-dir="out"] { box-shadow: 0 0 0 2px var(--out); }
+  .bcard[data-active="true"][data-bridge="unplaced"] { box-shadow: 0 0 0 2px var(--ref); }
+  .bcard.moved { animation: moved 1.6s ease-out; }
+  @keyframes moved { 0%, 40% { box-shadow: 0 0 0 3px var(--ref); } 100% { box-shadow: 0 0 0 3px transparent; } }
+  .bcard-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; border: 0; background: transparent; padding: 8px 6px 9px 10px; text-align: left; border-radius: 7px 0 0 7px; }
+  .bcard-go { flex: 0 0 28px; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 13px; border-radius: 0 7px 7px 0; }
+  .bcard-go:hover { background: var(--soft); color: var(--ink); }
+  .bcard-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--muted); }
+  .bcard[data-dir="in"] .bcard-top .stroke { color: var(--in); }
+  .bcard[data-dir="out"] .bcard-top .stroke { color: var(--out); }
+  .chip { font-size: 10px; padding: 0 5px; border-radius: 3px; background: var(--soft); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bcard-title { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; overflow-wrap: anywhere; margin-top: 2px; }
+  .bcard-title .ico { color: var(--ink); }
+  .bcard-title small { font-size: 10.5px; color: var(--muted); font-weight: 400; }
+  .bcard-verb { font-size: 11.5px; }
+  .bcard-via { font-size: 10.5px; color: var(--muted); }
+  .bcard-path { font: 10.5px/1.45 var(--mono); color: var(--muted); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .bcard-status { font-size: 10.5px; color: var(--muted); }
+  .bcard-hops { font-size: 10.5px; color: var(--muted); }
+  .piers { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; margin: 4px 0 2px; font: 10px/1.45 var(--mono); }
+  .pier-sep { padding-left: 6px; line-height: 1.1; }
+  .pier { padding: 1px 5px; border-radius: 3px; background: var(--soft); overflow-wrap: anywhere; }
+  .pier-sep { color: var(--muted); }
+  .bcard-note { margin-top: 4px; padding: 2px 6px; border-radius: 3px; font-size: 10.5px; }
+  .bcard-note.bypass { background: var(--warn-soft); color: var(--warn); }
+  .bcard-note.roundtrip, .bcard-note.standin, .bcard-note.provider { background: var(--ref-soft); color: var(--ref); }
+  .more { position: relative; z-index: 2; align-self: center; border: 1px dashed var(--line); background: var(--surface); border-radius: 8px; padding: 8px 12px; font-size: 11.5px; color: var(--muted); }
+  .bridge.west .more, .bridge.east .more { align-self: stretch; }
+  .empty { position: relative; z-index: 2; max-width: 360px; margin: 0 auto; padding: 8px 11px; border: 1px dashed var(--line); border-radius: 8px; background: var(--surface); font-size: 11px; color: var(--muted); text-align: center; }
+  .bridge.west .empty, .bridge.east .empty { margin: 0; text-align: left; }
+
+  .focus-card { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 12px 14px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--surface); box-shadow: 0 10px 24px -16px rgb(0 0 0 / .5); }
+  .focus-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .focus-title { display: flex; align-items: center; gap: 7px; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+  .focus-title .ico { width: 17px; height: 17px; flex-basis: 17px; color: var(--ink); }
+  .focus-role { font-size: 12px; color: var(--muted); }
+  .focus-path { font: 10.5px/1.5 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+  .focus-meta { display: flex; flex-wrap: wrap; gap: 4px; font-size: 11px; color: var(--muted); }
+  .arch { padding: 0 5px; border-radius: 3px; background: var(--soft); font: 10.5px/1.6 var(--mono); }
+  .arch[data-on="true"] { background: var(--ink); color: var(--surface); }
+  .focus-warn { margin-top: 3px; padding: 3px 6px; border-radius: 3px; background: var(--warn-soft); color: var(--warn); font-size: 10.5px; }
+  .focus-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+  .mini { border: 1px solid var(--line); background: var(--surface); border-radius: 4px; padding: 2px 7px; font-size: 11px; }
+  .mini[aria-pressed="true"] { background: var(--selected); border-color: var(--in); }
+
+  .feedback { margin: 10px 18px 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); min-height: 2.6em; }
+  .about { margin: 6px 18px 22px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  .about summary { padding: 9px 12px; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .about-body { padding: 0 14px 14px; font-size: 12px; }
+  .about-body h3 { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 16px 0 6px; }
+  .about-body p { margin: 0 0 8px; }
+  .about-body ul { margin: 0 0 8px; padding-left: 18px; }
+  .about-body li { margin-bottom: 4px; }
+  .about-grid { display: grid; grid-template-columns: minmax(110px, max-content) minmax(0, 1fr); gap: 5px 14px; margin: 0 0 8px; }
+  .about-grid dt { font-weight: 500; }
+  .about-grid dd { margin: 0; color: var(--muted); }
+  .about a { color: var(--in); }
+
+  /* Inspector */
+  .inspector { background: var(--surface); border-left: 1px solid var(--line); }
+  .insp-body { padding: 14px 16px 26px; }
+  .insp-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .insp-eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .insp-eyebrow[data-dir="in"] { color: var(--in); }
+  .insp-eyebrow[data-dir="out"] { color: var(--out); }
+  .insp-eyebrow[data-bridge="unplaced"] { color: var(--ref); }
+  .link { border: 0; background: transparent; padding: 0; color: var(--in); font-size: 11.5px; }
+  .inspector h2 { font-size: 16px; margin: 8px 0 3px; letter-spacing: -.01em; overflow-wrap: anywhere; }
+  .inspector h2 .arrow { color: var(--muted); }
+  .insp-verb { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
+  .state { display: inline-block; margin: 0 4px 4px 0; padding: 2px 6px; border-radius: 4px; background: var(--soft); color: var(--muted); font-size: 11px; }
+  .why { margin: 12px 0; padding: 10px 12px; border-radius: 6px; background: var(--soft); font-size: 12px; }
+  .h { margin: 16px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+  .why .h { margin-top: 0; }
+  .why ul { margin: 0; padding-left: 16px; }
+  .why li { margin-bottom: 5px; }
+  .why li:last-child { margin-bottom: 0; }
+  .steps { list-style: none; counter-reset: step; margin: 0; padding: 0; }
+  .steps li { position: relative; padding: 4px 0 4px 24px; font: 11px/1.5 var(--mono); overflow-wrap: anywhere; }
+  .steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 4px; width: 17px; height: 17px; border-radius: 50%; background: var(--soft); color: var(--muted); font: 600 10px/17px var(--sans); text-align: center; }
+  .steps li + li::after { content: ""; position: absolute; left: 8px; top: -5px; height: 8px; border-left: 1px solid var(--line); }
+  .facts { margin: 12px 0 0; }
+  .fact { padding: 8px 0; border-top: 1px solid var(--line); }
+  .fact dt { font-size: 11px; color: var(--muted); }
+  .fact dd { margin: 2px 0 0; font-size: 12px; overflow-wrap: anywhere; }
+  .mono { font: 11px/1.55 var(--mono); }
+  .code { margin: 10px 0; padding: 8px 9px; border-radius: 4px; background: var(--soft); font: 11px/1.6 var(--mono); overflow-wrap: anywhere; }
+  .limit { margin: 10px 0 0; font-size: 11px; color: var(--muted); }
+  .notebox { margin: 10px 0; padding: 9px 11px; border-radius: 6px; font-size: 12px; overflow-wrap: anywhere; }
+  .notebox.bypass { background: var(--warn-soft); color: var(--warn); }
+  .notebox.roundtrip, .notebox.standin, .notebox.provider { background: var(--ref-soft); color: var(--ref); }
+  .notebox strong { font-weight: 600; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .tally { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin: 12px 0 6px; }
+  .tally > * { min-height: 46px; padding: 5px 4px; border-radius: 6px; text-align: center; font-size: 10.5px; color: var(--muted); }
+  .tally button { border: 1px solid var(--line); background: var(--surface); }
+  .tally button:hover { border-color: var(--muted); }
+  .tally strong { display: block; font-size: 16px; font-weight: 600; color: var(--ink); }
+  .tally [data-dir="in"] strong { color: var(--in); }
+  .tally [data-dir="out"] strong { color: var(--out); }
+  .tally [data-bridge="unplaced"] strong { color: var(--ref); }
+  .tally .tf { display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); font-weight: 500; font-size: 11px; }
+  .hidden-line { font-size: 11px; color: var(--muted); margin: 6px 0 0; }
+  .inside { list-style: none; margin: 0; padding: 0; }
+  .inside li { padding: 7px 0; border-top: 1px solid var(--line); font-size: 12px; }
+  .inside small { display: block; color: var(--muted); font-size: 11px; }
+
+  /* Wide desktop: three independently scrolling panes */
+  @media (min-width: 1180px) {
+    .app { height: 100vh; }
+    .workspace { overflow: hidden; }
+    .pane { overflow: auto; }
+  }
+  @media (max-width: 1179px) {
+    .workspace { grid-template-columns: 252px minmax(0, 1fr); grid-template-areas: "tree stage" "tree insp"; }
+    .tree-pane { grid-area: tree; }
+    .stage-pane { grid-area: stage; }
+    .inspector { grid-area: insp; border-left: 0; border-top: 1px solid var(--line); }
+    .lens { position: static; }
+    .item .kind { display: none; }
+  }
+  @media (max-width: 860px) {
+    .workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "tree" "stage" "insp"; }
+    .tree-pane { border-right: 0; border-bottom: 1px solid var(--line); max-height: 340px; overflow: auto; }
+    .chrome, .toolbar, .lens, .footer { padding-left: 16px; padding-right: 16px; }
+    .presets { padding-left: 16px; padding-right: 16px; }
+    .compass-wrap { padding-left: 16px; padding-right: 16px; }
+    .feedback, .about { margin-left: 16px; margin-right: 16px; }
+  }
+  /* Narrow visualization layer: the compass becomes a reading-order stack without drawn wires */
+  @container compass (max-width: 640px) {
+    .wire { display: none; }
+    .perimeter { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 30px 12px 16px; }
+    .perimeter-tab { max-width: calc(100% - 32px); }
+    .gate { position: static; transform: none; justify-self: center; }
+    .bridge.north { padding-bottom: 16px; }
+    .bridge.south { padding-top: 16px; }
+    .bridge.north .bcard, .bridge.south .bcard, .bridge.unplaced .bcard { flex-basis: 100%; max-width: none; }
+    .bridge.west, .bridge.east { text-align: left; }
+  }
+  @media (pointer: coarse) {
+    .cmd, .preset, .mini, .item, .crumb { min-height: 40px; }
+    .caret, .caret-spacer { flex-basis: 40px; width: 40px; }
+    .bcard-go { flex-basis: 40px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .row.flash, .bcard.moved { animation: none; }
+    .wire-line, .bcard { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="chrome">
+    <span class="brand">CODE WORKBENCH</span>
+    <span class="product">Application Explorer</span>
+    <span class="concept">Perimeter bridges</span>
+    <span class="grow"></span>
+    <small>Concept · illustrative data · no analyzer connected</small>
+    <button type="button" class="cmd" id="theme" data-action="theme">Theme · Auto</button>
+  </header>
+  <nav class="toolbar" id="toolbar" aria-label="Focus navigation"></nav>
+  <div class="workspace">
+    <section class="pane tree-pane" aria-label="Physical file tree">
+      <div class="pane-head"><strong>Files and reference records</strong><span>Physical containment only · selecting an entry sets the focus</span></div>
+      <div class="tree-body" id="tree"></div>
+    </section>
+    <main class="pane stage-pane" aria-label="Relationship bridges">
+      <div class="lens" id="lens" aria-label="Visualization lens"></div>
+      <div class="presets" id="presets"></div>
+      <div class="compass-wrap" id="compass-wrap"><div id="stage"></div></div>
+      <p class="feedback" id="feedback" aria-live="polite"></p>
+      <details class="about">
+        <summary>About this concept</summary>
+        <div class="about-body">
+          <h3>Design question</h3>
+          <p>Can a separate visualization layer explain a selected object's relationships better than lines drawn into the tree? The tree keeps physical containment only. Selecting an entry makes it the focus of a compass whose bridges sort the same relationship records by direction and by whether they cross a perimeter.</p>
+          <h3>Reading the compass</h3>
+          <dl class="about-grid">
+            <dt>Perimeter</dt><dd>The dashed frame around the focus. <em>Nearest bundle</em> uses the closest enclosing bundle, or the focus itself when it is a bundle. <em>Application</em> uses Atlas.app. Reference records lie outside the inspected tree.</dd>
+            <dt>North · ingress</dt><dd>Relationships that reach the focus from the other side of the perimeter. They enter through the north gate.</dd>
+            <dt>West · internal ingress</dt><dd>References to the focus from the same side of the perimeter.</dd>
+            <dt>East · internal resolution</dt><dd>References from the focus that resolve, or are proposed to resolve, without leaving the perimeter. Runpaths and version links appear as resolution steps.</dd>
+            <dt>South · egress</dt><dd>References from the focus to targets on the other side. They leave through the south gate.</dd>
+            <dt>Unplaced</dt><dd>Endpoints with unknown containment. They are neither inside nor outside, so they are not routed through a gate.</dd>
+            <dt>Lines</dt><dd>Traffic reads top to bottom and left to right. Blue reaches the focus; amber leaves it. Solid: recorded. Dashed: derived or candidate. Dotted: string or inferred evidence.</dd>
+          </dl>
+          <p>Changing the perimeter reclassifies the same records; it never adds, removes or upgrades evidence. A directory or bundle focus bridges only relationships that cross its own boundary. Relationships wholly inside it are counted in the focus details.</p>
+          <h3>Compared with the mixed relation overlay</h3>
+          <ul>
+            <li>The tree carries no overlay, so expansion, scrolling and collapsed ancestors never hide or approximate an endpoint. Each bridge card names its exact endpoint.</li>
+            <li>The perimeter makes relocation hazards visible: an absolute reference that leaves a staged bundle while a contained copy exists is marked as a bypass.</li>
+            <li>Trade-off: an endpoint's position in the tree is not visible at a glance. <em>Locate in tree</em> reveals it on request without changing the focus.</li>
+            <li>Open questions: how a bridge summarizes hundreds of system references, whether a perimeter should follow signing units instead of bundles, and whether relationships inside a container need their own view.</li>
+          </ul>
+          <h3>Evidence and scope limits</h3>
+          <ul>
+            <li>Files, relationships and statuses are fixed illustrative data created for the design conversation, not inspection results. The tree represents a staged copy of Atlas.app.</li>
+            <li>A recorded load name is not a loaded library; a candidate is not a resolved target; a seal entry or bound hash is not integrity or trust; an entitlement is not observed activity.</li>
+            <li>Incoming coverage is limited to the example's records. Consumers elsewhere on the system are not inventoried.</li>
+            <li>Bridge classification and the bypass, stand-in and provider notes are computed by this page's JavaScript for discussion only. In a product they would be relationship semantics composed by their ordinary Rust owners and only presented by the UI. No Rust analyzer, WIT component, filesystem protocol, native selection, resolver, signer or tracing backend is involved.</li>
+          </ul>
+          <p>Related: <a href="../mixed-relation-overlay/index.html">mixed relation overlay</a> · <a href="../../../../rebuilding/application-relocation-and-signing.md">relocation and signing design</a> · <a href="../../../../filesystem/requirements.md">filesystem requirements</a></p>
+        </div>
+      </details>
+    </main>
+    <aside class="pane inspector" id="inspector" aria-label="Inspector"></aside>
+  </div>
+  <footer class="footer"><span>Physical tree and relationship bridges are separate layers</span><span>Illustrative evidence · runtime activity not collected</span></footer>
+</div>
+<script>
+(() => {
+  'use strict';
+  const $ = selector => document.querySelector(selector);
+  const esc = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+  // ---------------------------------------------------------------------------
+  // Illustrative data. A staged copy of Atlas.app plus reference records whose
+  // targets were not acquired. Nothing here was produced by inspecting files.
+  // ---------------------------------------------------------------------------
+  const artifacts = [
+    { id: 'bundle', parent: null, label: 'Atlas.app', kind: 'bundle', role: 'Application bundle · staged copy' },
+    { id: 'contents', parent: 'bundle', label: 'Contents', kind: 'directory', role: 'Bundle contents' },
+    { id: 'info', parent: 'contents', label: 'Info.plist', kind: 'metadata', role: 'Bundle metadata' },
+    { id: 'macos', parent: 'contents', label: 'MacOS', kind: 'directory', role: 'Executable directory' },
+    { id: 'main', parent: 'macos', label: 'Atlas', kind: 'binary', role: 'Main executable', arches: ['arm64', 'x86_64'], signature: 'present' },
+    { id: 'frameworks', parent: 'contents', label: 'Frameworks', kind: 'directory', role: 'Embedded frameworks' },
+    { id: 'telemetry-code', parent: 'frameworks', label: 'libTelemetry.dylib', kind: 'binary', role: 'Shared dynamic library', arches: ['arm64', 'x86_64'], signature: 'uninspected' },
+    { id: 'framework', parent: 'frameworks', label: 'Example.framework', kind: 'bundle', role: 'Framework bundle' },
+    { id: 'framework-alias', parent: 'framework', label: 'Example', kind: 'symlink', role: 'Executable alias', target: 'Versions/Current/Example' },
+    { id: 'framework-resources-link', parent: 'framework', label: 'Resources', kind: 'symlink', role: 'Resource alias', target: 'Versions/Current/Resources' },
+    { id: 'framework-versions', parent: 'framework', label: 'Versions', kind: 'directory', role: 'Framework versions' },
+    { id: 'framework-current', parent: 'framework-versions', label: 'Current', kind: 'symlink', role: 'Current version alias', target: 'A' },
+    { id: 'framework-a', parent: 'framework-versions', label: 'A', kind: 'directory', role: 'Framework version' },
+    { id: 'framework-code', parent: 'framework-a', label: 'Example', kind: 'binary', role: 'Framework dynamic library', arches: ['arm64', 'x86_64'], signature: 'present' },
+    { id: 'framework-resources', parent: 'framework-a', label: 'Resources', kind: 'directory', role: 'Framework resources' },
+    { id: 'framework-info', parent: 'framework-resources', label: 'Info.plist', kind: 'metadata', role: 'Framework metadata' },
+    { id: 'framework-signatures', parent: 'framework-a', label: '_CodeSignature', kind: 'directory', role: 'Signing artifacts' },
+    { id: 'framework-seal', parent: 'framework-signatures', label: 'CodeResources', kind: 'seal', role: 'Framework resource-seal manifest' },
+    { id: 'helpers', parent: 'contents', label: 'Helpers', kind: 'directory', role: 'Helper applications' },
+    { id: 'helper', parent: 'helpers', label: 'Render Helper.app', kind: 'bundle', role: 'Helper application' },
+    { id: 'helper-contents', parent: 'helper', label: 'Contents', kind: 'directory', role: 'Helper contents' },
+    { id: 'helper-info', parent: 'helper-contents', label: 'Info.plist', kind: 'metadata', role: 'Helper metadata' },
+    { id: 'helper-macos', parent: 'helper-contents', label: 'MacOS', kind: 'directory', role: 'Executable directory' },
+    { id: 'helper-code', parent: 'helper-macos', label: 'Render Helper', kind: 'binary', role: 'Helper executable', arches: ['arm64'], signature: 'present' },
+    { id: 'helper-frameworks', parent: 'helper-contents', label: 'Frameworks', kind: 'directory', role: 'Helper frameworks' },
+    { id: 'renderkit', parent: 'helper-frameworks', label: 'RenderKit.framework', kind: 'bundle', role: 'Nested framework bundle' },
+    { id: 'renderkit-code', parent: 'renderkit', label: 'RenderKit', kind: 'binary', role: 'Framework dynamic library', arches: ['arm64'], signature: 'uninspected' },
+    { id: 'renderkit-resources', parent: 'renderkit', label: 'Resources', kind: 'directory', role: 'Framework resources' },
+    { id: 'renderkit-info', parent: 'renderkit-resources', label: 'Info.plist', kind: 'metadata', role: 'Framework metadata' },
+    { id: 'helper-signatures', parent: 'helper-contents', label: '_CodeSignature', kind: 'directory', role: 'Signing artifacts' },
+    { id: 'helper-seal', parent: 'helper-signatures', label: 'CodeResources', kind: 'seal', role: 'Helper resource-seal manifest' },
+    { id: 'xpcs', parent: 'contents', label: 'XPCServices', kind: 'directory', role: 'XPC services' },
+    { id: 'xpc', parent: 'xpcs', label: 'Indexer.xpc', kind: 'bundle', role: 'XPC service bundle' },
+    { id: 'xpc-contents', parent: 'xpc', label: 'Contents', kind: 'directory', role: 'Service contents' },
+    { id: 'xpc-info', parent: 'xpc-contents', label: 'Info.plist', kind: 'metadata', role: 'Service metadata' },
+    { id: 'xpc-macos', parent: 'xpc-contents', label: 'MacOS', kind: 'directory', role: 'Executable directory' },
+    { id: 'xpc-code', parent: 'xpc-macos', label: 'Indexer', kind: 'binary', role: 'Service executable', arches: ['arm64'], signature: 'absent' },
+    { id: 'plugins', parent: 'contents', label: 'PlugIns', kind: 'directory', role: 'Plug-ins' },
+    { id: 'plugin', parent: 'plugins', label: 'Preview.bundle', kind: 'bundle', role: 'Plug-in bundle' },
+    { id: 'plugin-contents', parent: 'plugin', label: 'Contents', kind: 'directory', role: 'Plug-in contents' },
+    { id: 'plugin-info', parent: 'plugin-contents', label: 'Info.plist', kind: 'metadata', role: 'Plug-in metadata' },
+    { id: 'plugin-macos', parent: 'plugin-contents', label: 'MacOS', kind: 'directory', role: 'Executable directory' },
+    { id: 'plugin-code', parent: 'plugin-macos', label: 'Preview', kind: 'binary', role: 'Loadable bundle image', arches: ['arm64', 'x86_64'], signature: 'present' },
+    { id: 'plugin-signatures', parent: 'plugin-contents', label: '_CodeSignature', kind: 'directory', role: 'Signing artifacts' },
+    { id: 'plugin-seal', parent: 'plugin-signatures', label: 'CodeResources', kind: 'seal', role: 'Plug-in resource-seal manifest' },
+    { id: 'resources', parent: 'contents', label: 'Resources', kind: 'directory', role: 'Application resources' },
+    { id: 'icon', parent: 'resources', label: 'AppIcon.icns', kind: 'resource', role: 'Icon resource' },
+    { id: 'settings', parent: 'resources', label: 'Settings.plist', kind: 'metadata', role: 'Application settings' },
+    { id: 'localization', parent: 'resources', label: 'en.lproj', kind: 'directory', role: 'Localization' },
+    { id: 'strings', parent: 'localization', label: 'Localizable.strings', kind: 'resource', role: 'Localized strings' },
+    { id: 'assets', parent: 'resources', label: 'Additional Assets', kind: 'directory', role: 'Inventory not available', pending: true },
+    { id: 'signatures', parent: 'contents', label: '_CodeSignature', kind: 'directory', role: 'Signing artifacts' },
+    { id: 'seal', parent: 'signatures', label: 'CodeResources', kind: 'seal', role: 'Application resource-seal manifest' },
+    { id: 'original-reference', parent: null, label: 'Original Example library', kind: 'reference', role: 'Recorded absolute load name', external: true, domain: 'filesystem', path: '/Original/Atlas.app/Contents/Frameworks/Example.framework/Versions/A/Example' },
+    { id: 'system-library', parent: null, label: 'libSystem.B.dylib', kind: 'reference', role: 'System library reference', external: true, domain: 'os', path: '/usr/lib/libSystem.B.dylib' },
+    { id: 'user-cache', parent: null, label: 'Atlas cache path', kind: 'reference', role: 'Possible user-data path', external: true, domain: 'filesystem', path: '~/Library/Application Support/Atlas/cache.db' },
+    { id: 'indexer-service', parent: null, label: 'Indexer service name', kind: 'service', role: 'XPC service-name reference', external: true, domain: 'os', path: 'com.example.atlas.indexer' },
+    { id: 'file-capability', parent: null, label: 'User-selected file access', kind: 'capability', role: 'Declared entitlement', external: true, domain: 'os', path: 'com.apple.security.files.user-selected.read-write' },
+    { id: 'unresolved-library', parent: null, label: 'Optional.dylib', kind: 'reference', role: 'Unresolved weak dependency', external: true, domain: 'unknown', path: '@rpath/Optional.dylib' }
+  ];
+  const ORIGINAL = '/Original/Atlas.app/Contents/Frameworks/Example.framework/Versions/A/Example';
+  const BOTH = ['arm64', 'x86_64'];
+  // strength: recorded (solid) · derived (dashed, includes candidates) · string (dotted, includes inferred paths)
+  const relationships = [
+    { id: 'declared-main', source: 'info', target: 'main', cat: 'metadata', strength: 'recorded', verb: 'declares main executable', status: 'Recorded metadata', evidence: 'Info.plist · CFBundleExecutable', raw: 'CFBundleExecutable = Atlas', limits: 'A declared executable is not evidence of a process launch.' },
+    { id: 'plugin-binds-main', source: 'plugin-code', target: 'main', cat: 'symbol', strength: 'recorded', verb: 'binds symbols to the main executable', status: 'Recorded bind ordinal · binding not performed', evidence: 'Mach-O bind opcodes · BIND_SPECIAL_DYLIB_MAIN_EXECUTABLE', raw: '_AtlasPreviewHostRegister → main executable (illustrative symbol)', arches: BOTH, limits: 'A recorded binding names the host image the plug-in expects. It does not establish which process loads the plug-in.' },
+    { id: 'main-info-slot', source: 'main', target: 'info', cat: 'slot', strength: 'recorded', verb: 'binds Info.plist hash', status: 'Recorded special slot · hash not checked', evidence: 'CodeDirectory special slot −1', raw: 'slot −1 · sha256 4be1…c07a (illustrative)', arches: BOTH, limits: 'A recorded hash does not establish that the present Info.plist matches it.' },
+    { id: 'main-seal-slot', source: 'main', target: 'seal', cat: 'slot', strength: 'recorded', verb: 'binds resource-seal hash', status: 'Recorded special slot · hash not checked', evidence: 'CodeDirectory special slot −3', raw: 'slot −3 · sha256 91d0…5e2f (illustrative)', arches: BOTH, limits: 'Binding a seal is not seal validity, resource integrity or certificate trust.' },
+    { id: 'settings-path-reference', source: 'main', target: 'settings', cat: 'path', strength: 'string', verb: 'mentions resource path', status: 'String evidence · access not observed', evidence: 'Illustrative executable string', raw: 'Contents/Resources/Settings.plist', arches: BOTH, limits: 'A path string does not establish that the application reads or writes the resource.' },
+    { id: 'original-library-reference', source: 'main', target: 'original-reference', cat: 'library', strength: 'recorded', verb: 'records absolute load reference', status: 'Recorded · target not acquired', evidence: 'Mach-O arm64 slice · LC_LOAD_DYLIB', raw: ORIGINAL, arches: ['arm64'], limits: 'The load name alone does not establish target existence or runtime loading. Copying or re-signing the bundle leaves this recorded path unchanged.' },
+    { id: 'main-example-x86', source: 'main', target: 'framework-code', cat: 'library', strength: 'derived', verb: 'records bundle-relative load reference', status: 'Derived target · not loaded', evidence: 'Mach-O x86_64 slice · LC_LOAD_DYLIB', raw: '@executable_path/../Frameworks/Example.framework/Versions/A/Example', arches: ['x86_64'], steps: ['@executable_path → Contents/MacOS', '../Frameworks → Contents/Frameworks', 'Example.framework/Versions/A/Example'], limits: 'Derived from the executable location in this illustrative layout. Loader behavior and actual loading were not observed.' },
+    { id: 'system-library-reference', source: 'main', target: 'system-library', cat: 'library', strength: 'recorded', verb: 'records system load reference', status: 'Recorded · target not acquired', evidence: 'Mach-O · LC_LOAD_DYLIB', raw: '/usr/lib/libSystem.B.dylib', arches: BOTH, limits: 'This is a library reference, not an observed OS service connection.' },
+    { id: 'cache-path-reference', source: 'main', target: 'user-cache', cat: 'path', strength: 'string', verb: 'mentions possible cache path', status: 'Inferred path · target not inspected', evidence: 'Illustrative executable string', raw: '~/Library/Application Support/Atlas/cache.db', arches: BOTH, limits: 'Neither file existence nor a read or write operation has been established.' },
+    { id: 'indexer-name-reference', source: 'main', target: 'indexer-service', cat: 'service', strength: 'string', verb: 'names XPC service', status: 'String reference · lookup not observed', evidence: 'Illustrative service-name string', raw: 'com.example.atlas.indexer', arches: BOTH, limits: 'A named endpoint does not establish an IPC exchange or a running provider.' },
+    { id: 'file-access-entitlement', source: 'main', target: 'file-capability', cat: 'capability', strength: 'recorded', verb: 'declares entitlement', status: 'Declared capability · not exercised', evidence: 'Illustrative entitlements blob', raw: 'com.apple.security.files.user-selected.read-write = true', arches: BOTH, limits: 'A declaration is not proof that permission was granted or a file was accessed.' },
+    { id: 'weak-library-reference', source: 'main', target: 'unresolved-library', cat: 'library', strength: 'recorded', verb: 'records weak load reference', status: 'Recorded · target unresolved', evidence: 'Mach-O · LC_LOAD_WEAK_DYLIB', raw: '@rpath/Optional.dylib', arches: BOTH, limits: 'No runpath candidate exists in the example inventory. Containment and the actual loading target remain unknown.' },
+    { id: 'staged-library-candidate', source: 'original-reference', target: 'framework-code', cat: 'staging', strength: 'derived', verb: 'has proposed staged candidate', status: 'Candidate · not resolved', evidence: 'Proposed staging inventory', raw: 'Staged/Atlas.app/Contents/Frameworks/Example.framework/Versions/A/Example', arches: ['arm64'], limits: 'The recorded original reference still needs a supported rewrite and a resolution check.' },
+    { id: 'framework-link-target', source: 'framework-alias', target: 'framework-code', cat: 'link', strength: 'derived', verb: 'resolves through version aliases', status: 'Derived link target · not opened', evidence: 'Illustrative symlink inventory', raw: 'Example → Versions/Current/Example; Current → A', steps: ['Example → Versions/Current/Example', 'Versions/Current → A', 'Versions/A/Example'], limits: 'The link remains a separate filesystem entry; the target subtree is not duplicated.' },
+    { id: 'current-version-target', source: 'framework-current', target: 'framework-a', cat: 'link', strength: 'recorded', verb: 'points to', status: 'Stored link target', evidence: 'Illustrative symlink inventory', raw: 'Current → A', limits: 'Target identity and access require their own filesystem checks.' },
+    { id: 'resources-link-target', source: 'framework-resources-link', target: 'framework-resources', cat: 'link', strength: 'derived', verb: 'resolves through version aliases', status: 'Derived link target · not opened', evidence: 'Illustrative symlink inventory', raw: 'Resources → Versions/Current/Resources; Current → A', steps: ['Resources → Versions/Current/Resources', 'Versions/Current → A', 'Versions/A/Resources'], limits: 'The link remains a separate filesystem entry; the target subtree is not duplicated.' },
+    { id: 'framework-info-slot', source: 'framework-code', target: 'framework-info', cat: 'slot', strength: 'recorded', verb: 'binds Info.plist hash', status: 'Recorded special slot · hash not checked', evidence: 'CodeDirectory special slot −1', raw: 'slot −1 · sha256 0c9a…71d4 (illustrative)', arches: BOTH, limits: 'A recorded hash does not establish that the present Info.plist matches it.' },
+    { id: 'framework-seal-slot', source: 'framework-code', target: 'framework-seal', cat: 'slot', strength: 'recorded', verb: 'binds resource-seal hash', status: 'Recorded special slot · hash not checked', evidence: 'CodeDirectory special slot −3', raw: 'slot −3 · sha256 e83f…02bb (illustrative)', arches: BOTH, limits: 'Binding a seal is not seal validity, resource integrity or certificate trust.' },
+    { id: 'framework-telemetry-candidate', source: 'framework-code', target: 'telemetry-code', cat: 'library', strength: 'derived', verb: 'has candidate dependency', status: 'Derived candidate · not loaded', evidence: 'LC_LOAD_DYLIB + LC_RPATH (illustrative)', raw: '@rpath/libTelemetry.dylib', arches: BOTH, steps: ['@rpath/libTelemetry.dylib', 'LC_RPATH @loader_path/../../..', '→ Atlas.app/Contents/Frameworks', 'libTelemetry.dylib'], limits: 'The illustrative inventory supplies a candidate. Resolution and runtime loading have not been established.' },
+    { id: 'framework-settings-reference', source: 'framework-code', target: 'settings', cat: 'path', strength: 'string', verb: 'mentions configuration path', status: 'String evidence · access not observed', evidence: 'Illustrative framework executable string', raw: 'Contents/Resources/Settings.plist', arches: ['arm64'], limits: 'A string reference does not establish that the framework reads or writes the file.' },
+    { id: 'framework-system-reference', source: 'framework-code', target: 'system-library', cat: 'library', strength: 'recorded', verb: 'records system load reference', status: 'Recorded · target not acquired', evidence: 'Mach-O · LC_LOAD_DYLIB', raw: '/usr/lib/libSystem.B.dylib', arches: BOTH, limits: 'The system library has not been acquired or inspected in this sample.' },
+    { id: 'declared-helper', source: 'helper-info', target: 'helper-code', cat: 'metadata', strength: 'recorded', verb: 'declares helper executable', status: 'Recorded metadata', evidence: 'Info.plist · CFBundleExecutable', raw: 'CFBundleExecutable = Render Helper', limits: 'A declared executable is not evidence of a process launch.' },
+    { id: 'helper-renderkit-candidate', source: 'helper-code', target: 'renderkit-code', cat: 'library', strength: 'derived', verb: 'has candidate dependency', status: 'Derived candidate · not loaded', evidence: 'LC_LOAD_DYLIB + LC_RPATH (illustrative)', raw: '@rpath/RenderKit.framework/RenderKit', arches: ['arm64'], steps: ['@rpath/RenderKit.framework/RenderKit', 'LC_RPATH @executable_path/../Frameworks', '→ Render Helper.app/Contents/Frameworks', 'RenderKit.framework/RenderKit'], limits: 'Candidate selection is specific to the illustrative launch context.' },
+    { id: 'helper-library-reference', source: 'helper-code', target: 'framework-code', cat: 'library', strength: 'derived', verb: 'has candidate dependency', status: 'Derived candidate · not loaded', evidence: 'LC_LOAD_DYLIB + LC_RPATH (illustrative)', raw: '@rpath/Example.framework/Versions/A/Example', arches: ['arm64'], steps: ['@rpath/Example.framework/Versions/A/Example', 'LC_RPATH @executable_path/../../../../Frameworks', '→ Atlas.app/Contents/Frameworks', 'Example.framework/Versions/A/Example'], limits: 'Candidate selection is specific to the illustrative launch context.' },
+    { id: 'helper-system-reference', source: 'helper-code', target: 'system-library', cat: 'library', strength: 'recorded', verb: 'records system load reference', status: 'Recorded · target not acquired', evidence: 'Mach-O · LC_LOAD_DYLIB', raw: '/usr/lib/libSystem.B.dylib', arches: ['arm64'], limits: 'This is a library reference, not an observed OS service connection.' },
+    { id: 'plugin-library-reference', source: 'plugin-code', target: 'framework-code', cat: 'library', strength: 'derived', verb: 'has candidate dependency', status: 'Derived candidate · not loaded', evidence: 'LC_LOAD_DYLIB + LC_RPATH (illustrative)', raw: '@rpath/Example.framework/Versions/A/Example', arches: BOTH, steps: ['@rpath/Example.framework/Versions/A/Example', 'LC_RPATH @loader_path/../../../../Frameworks', '→ Atlas.app/Contents/Frameworks', 'Example.framework/Versions/A/Example'], limits: 'Candidate selection is specific to the illustrative loading context.' },
+    { id: 'declared-xpc', source: 'xpc-info', target: 'xpc-code', cat: 'metadata', strength: 'recorded', verb: 'declares service executable', status: 'Recorded metadata', evidence: 'Info.plist · CFBundleExecutable', raw: 'CFBundleExecutable = Indexer', limits: 'A declared executable is not evidence of a process launch.' },
+    { id: 'indexer-provider-candidate', source: 'indexer-service', target: 'xpc', cat: 'service', strength: 'derived', verb: 'has candidate provider bundle', status: 'Candidate · binding not verified', evidence: 'Service name and bundle metadata', raw: 'Indexer.xpc · CFBundleIdentifier = com.example.atlas.indexer', limits: 'Matching an identifier does not establish service registration or execution.' },
+    { id: 'xpc-system-reference', source: 'xpc-code', target: 'system-library', cat: 'library', strength: 'recorded', verb: 'records system load reference', status: 'Recorded · target not acquired', evidence: 'Mach-O · LC_LOAD_DYLIB', raw: '/usr/lib/libSystem.B.dylib', arches: ['arm64'], limits: 'This is a library reference, not an observed OS service connection.' },
+    { id: 'resource-seal-entry', source: 'seal', target: 'settings', cat: 'seal', strength: 'recorded', verb: 'lists resource entry', status: 'Manifest entry · hash not checked', evidence: 'CodeResources · files2', raw: 'Resources/Settings.plist', limits: 'A recorded seal entry does not establish resource integrity or certificate trust.' },
+    { id: 'seal-nested-framework', source: 'seal', target: 'framework', cat: 'nested', strength: 'recorded', verb: 'records nested code', status: 'Manifest entry · requirement not evaluated', evidence: 'CodeResources · files2 nested-code entry', raw: 'Frameworks/Example.framework · cdhash 7a2c…e19b (illustrative)', limits: 'A nested-code record does not establish that the nested signature is valid or that the outer seal is current.' },
+    { id: 'seal-nested-helper', source: 'seal', target: 'helper', cat: 'nested', strength: 'recorded', verb: 'records nested code', status: 'Manifest entry · requirement not evaluated', evidence: 'CodeResources · files2 nested-code entry', raw: 'Helpers/Render Helper.app · cdhash 3f81…a6c0 (illustrative)', limits: 'A nested-code record does not establish that the nested signature is valid or that the outer seal is current.' }
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Containment helpers
+  // ---------------------------------------------------------------------------
+  const APP = 'bundle';
+  const byId = new Map(artifacts.map(a => [a.id, a]));
+  const node = id => byId.get(id);
+  const label = id => node(id).label;
+  const kids = id => artifacts.filter(a => a.parent === id);
+  const lineage = id => { const out = []; for (let a = node(id); a; a = node(a.parent)) out.unshift(a); return out; };
+  const descendants = id => kids(id).flatMap(a => [a, ...descendants(a.id)]);
+  const isContainer = a => a.kind === 'bundle' || a.kind === 'directory';
+  const within = (id, rootId) => lineage(id).some(a => a.id === rootId);
+  const pathOf = id => node(id).external ? node(id).path : lineage(id).map(a => a.label).join('/');
+  const pathFrom = (id, rootId) => { const chain = lineage(id), i = chain.findIndex(a => a.id === rootId); return chain.slice(Math.max(i, 0)).map(a => a.label).join('/'); };
+  const treeAncestors = id => node(id).external ? ['refs-root', `refs-${node(id).domain}`] : lineage(id).slice(0, -1).map(a => a.id);
+  const archOk = (e, arch) => !e.arches || e.arches.includes(arch);
+
+  const KIND = { bundle: 'Bundle', binary: 'Mach-O', directory: '', symlink: 'Link', metadata: 'Metadata', resource: 'Resource', seal: 'Seal data', reference: 'Reference', service: 'Service name', capability: 'Capability' };
+  const kindLabel = a => a.pending ? 'Unknown' : KIND[a.kind];
+  const CAT = { library: 'Load command', staging: 'Staging candidate', link: 'Link target', metadata: 'Declared in metadata', slot: 'Signature slot', seal: 'Seal entry', nested: 'Nested code', path: 'Path string', service: 'Service name', capability: 'Entitlement', symbol: 'Symbol binding' };
+  const STRENGTH = { recorded: 'Recorded', derived: 'Derived / candidate', string: 'String / inferred' };
+  const STRENGTH_ORDER = { recorded: 0, derived: 1, string: 2 };
+  const DASH = { recorded: '', derived: '5 3', string: '0.5 3.5' };
+  const WIRE_DASH = { recorded: '', derived: '6 4', string: '0.5 4.5', aggregate: '2 3' };
+  const GROUP = { filesystem: 'External paths', os: 'System names & capabilities', unknown: 'Unresolved targets' };
+  const domainLabel = a => a.external ? ({ filesystem: 'External path reference', os: 'System name / capability', unknown: 'Unresolved reference · containment unknown' })[a.domain] : 'Inside Atlas.app';
+  const signature = a => a.external ? 'Not inspected · reference only'
+    : a.kind === 'binary' ? ({ present: 'Signature range found · integrity not checked', absent: 'No signature command in the sample image', uninspected: 'Signature metadata not inspected' })[a.signature]
+    : a.kind === 'bundle' ? 'Independent code unit · coverage not checked'
+    : a.kind === 'directory' ? 'Descendants have independent signing states'
+    : 'Resource-seal coverage not evaluated';
+
+  const ICONS = {
+    bundle: '<path d="M8 1.6 14 4.6v6.8L8 14.4 2 11.4V4.6z"/><path d="M2 4.6l6 3 6-3M8 7.6v6.8"/>',
+    binary: '<path d="M4 1.5h5.2l3.3 3.3v9.7H4z"/><path d="M9 1.5V5h3.5"/><path d="M6.8 8.6 5.6 10l1.2 1.4M9.2 8.6l1.2 1.4-1.2 1.4"/>',
+    directory: '<path d="M1.8 4.2h4.4l1.4 1.5h6.6v7a.8.8 0 0 1-.8.8H2.6a.8.8 0 0 1-.8-.8z"/>',
+    symlink: '<path d="M6.6 9.4l2.8-2.8"/><path d="M7.2 4.6l1-1a2.4 2.4 0 0 1 3.4 3.4l-1 1M8.8 11.4l-1 1a2.4 2.4 0 0 1-3.4-3.4l1-1"/>',
+    metadata: '<path d="M4 1.5h5.2l3.3 3.3v9.7H4z"/><path d="M9 1.5V5h3.5M6 8.5h4.4M6 11h4.4"/>',
+    resource: '<path d="M4 1.5h5.2l3.3 3.3v9.7H4z"/><path d="M9 1.5V5h3.5"/>',
+    seal: '<path d="M4 1.5h5.2l3.3 3.3v9.7H4z"/><path d="M9 1.5V5h3.5"/><circle cx="8.2" cy="9.4" r="1.6"/><path d="M8.2 11v1.8"/>',
+    reference: '<path d="M6.6 9.4l2.8-2.8"/><path d="M7.2 4.6l1-1a2.4 2.4 0 0 1 3.4 3.4l-1 1M8.8 11.4l-1 1a2.4 2.4 0 0 1-3.4-3.4l1-1"/><path d="M2 2l2 2M14 14l-2-2"/>',
+    service: '<circle cx="8" cy="8" r="1.5"/><path d="M5.2 5.2a4 4 0 0 0 0 5.6M10.8 5.2a4 4 0 0 1 0 5.6M3.3 3.3a6.6 6.6 0 0 0 0 9.4M12.7 3.3a6.6 6.6 0 0 1 0 9.4"/>',
+    capability: '<circle cx="5.4" cy="10.6" r="2.6"/><path d="M7.3 8.7 13.2 2.8M11 5l1.7 1.7M9.6 6.4l1.2 1.2"/>',
+    unknown: '<circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.3a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3v.4M8 11.6v.1"/>'
+  };
+  const icon = a => `<svg class="ico" viewBox="0 0 16 16" aria-hidden="true">${ICONS[a.pending || a.domain === 'unknown' ? 'unknown' : a.kind]}</svg>`;
+  const strokeSample = strength => `<svg class="stroke" viewBox="0 0 24 6" aria-hidden="true"><line x1="2" y1="3" x2="22" y2="3"${DASH[strength] ? ` stroke-dasharray="${DASH[strength]}"` : ''}/></svg>`;
+
+  // ---------------------------------------------------------------------------
+  // Perimeter classification
+  //   Focus scope F: the selected entry, plus descendants for a bundle or directory.
+  //   Perimeter P: nearest enclosing bundle (self included) or the application.
+  //   An endpoint is on the focus's side of P or across it. Crossing traffic is
+  //   North (toward the focus) or South (away); same-side traffic is West or East.
+  // ---------------------------------------------------------------------------
+  const BRIDGES = ['north', 'west', 'east', 'south', 'unplaced'];
+  const across = c => c.focusSide === 'outside' ? `inside ${c.P.label}` : `outside ${c.P.label}`;
+  const BR = {
+    north: { compass: 'North bridge', short: 'North', dir: 'in', title: () => 'Ingress across the perimeter', sub: c => `Reaches the focus from ${across(c)}` },
+    west: { compass: 'West bridge', short: 'West', dir: 'in', title: c => c.focusSide === 'outside' ? 'Lateral ingress' : 'Internal ingress', sub: c => c.focusSide === 'outside' ? 'Other reference records that point to the focus' : `Refers to the focus from inside ${c.P.label}` },
+    east: { compass: 'East bridge', short: 'East', dir: 'out', title: c => c.focusSide === 'outside' ? 'Lateral egress' : 'Internal resolution', sub: c => c.focusSide === 'outside' ? 'Reference records the focus points to' : `Resolves, or is proposed to resolve, inside ${c.P.label}` },
+    south: { compass: 'South bridge', short: 'South', dir: 'out', title: () => 'Egress across the perimeter', sub: c => `Leaves the focus for ${across(c)}` },
+    unplaced: { compass: 'Unplaced tray', short: 'Unplaced', dir: 'ref', title: () => 'Containment unknown', sub: () => 'Cannot be placed inside or outside the perimeter · not routed through a gate' }
+  };
+  const LIMIT = { north: 4, south: 4, west: 3, east: 3, unplaced: 4 };
+  const modeName = mode => mode === 'app' ? 'Application' : 'Nearest bundle';
+
+  function perimeterFor(focusId, mode) {
+    const a = node(focusId);
+    if (mode === 'app' || a.external) return node(APP);
+    return lineage(focusId).filter(n => n.kind === 'bundle').at(-1) || node(APP);
+  }
+  function sideOf(id, P) {
+    const a = node(id);
+    if (a.external) return a.domain === 'unknown' ? 'unknown' : 'outside';
+    return within(id, P.id) ? 'inside' : 'outside';
+  }
+  function focusScope(focusId) {
+    const a = node(focusId);
+    return new Set([a.id, ...(isContainer(a) ? descendants(a.id).map(n => n.id) : [])]);
+  }
+  function classify(v) {
+    const P = perimeterFor(v.focus, v.perimeter), F = focusScope(v.focus), focusSide = sideOf(v.focus, P);
+    const c = { P, F, focusSide, inside: [], hiddenArch: 0 };
+    BRIDGES.forEach(b => { c[b] = []; });
+    for (const e of relationships) {
+      const s = F.has(e.source), t = F.has(e.target);
+      if (!s && !t) continue;
+      if (!archOk(e, v.arch)) { c.hiddenArch++; continue; }
+      if (s && t) { c.inside.push(e); continue; }
+      const dir = t ? 'in' : 'out', other = t ? e.source : e.target, otherSide = sideOf(other, P);
+      const bridge = otherSide === 'unknown' || focusSide === 'unknown' ? 'unplaced'
+        : otherSide !== focusSide ? (dir === 'in' ? 'north' : 'south')
+        : (dir === 'in' ? 'west' : 'east');
+      c[bridge].push({ e, dir, other, bridge });
+    }
+    return c;
+  }
+  // Two-hop notes: a crossing reference whose external record leads back inside the perimeter.
+  function noteFor(item, c) {
+    const o = node(item.other);
+    if (!o.external) return null;
+    if (item.bridge === 'south') {
+      const via = relationships.find(r => r.source === o.id && !node(r.target).external && within(r.target, c.P.id) && archOk(r, state.arch));
+      return via ? { kind: item.e.cat === 'library' ? 'bypass' : 'roundtrip', via } : null;
+    }
+    if (item.bridge === 'north') {
+      const via = relationships.find(r => r.target === o.id && !node(r.source).external && within(r.source, c.P.id) && archOk(r, state.arch));
+      return via ? { kind: via.cat === 'library' ? 'standin' : 'provider', via } : null;
+    }
+    return null;
+  }
+  const NOTE_RANK = { bypass: 0, standin: 1, roundtrip: 2, provider: 2 };
+  function context(over = {}) {
+    const v = { focus: state.focus, perimeter: state.perimeter, arch: state.arch, ...over };
+    const c = classify(v);
+    c.hidden = {};
+    c.hiddenEvidence = 0;
+    for (const b of BRIDGES) {
+      const all = c[b];
+      c[b] = all.filter(i => state.evidence[i.e.strength]);
+      c.hidden[b] = all.length - c[b].length;
+      c.hiddenEvidence += c.hidden[b];
+    }
+    c.inside = c.inside.filter(e => state.evidence[e.strength]);
+    c.notes = new Map();
+    for (const b of ['north', 'south']) for (const item of c[b]) { const n = noteFor(item, c); if (n) c.notes.set(item.e.id, n); }
+    const rank = i => { const n = c.notes.get(i.e.id); return n ? NOTE_RANK[n.kind] : 3; };
+    for (const b of BRIDGES) c[b].sort((x, y) => rank(x) - rank(y) || STRENGTH_ORDER[x.e.strength] - STRENGTH_ORDER[y.e.strength] || label(x.other).localeCompare(label(y.other)));
+    return c;
+  }
+  const findItem = (c, relId) => { for (const b of BRIDGES) { const i = c[b].find(x => x.e.id === relId); if (i) return i; } return null; };
+  const positions = c => { const m = new Map(); BRIDGES.forEach(b => c[b].forEach(i => m.set(i.e.id, b))); return m; };
+
+  // ---------------------------------------------------------------------------
+  // State and navigation history (lens settings are part of each snapshot)
+  // ---------------------------------------------------------------------------
+  const state = {
+    focus: 'framework-code', rel: null, perimeter: 'unit', arch: 'arm64',
+    evidence: { recorded: true, derived: true, string: true },
+    expanded: new Set(['bundle', 'contents', 'frameworks', 'framework', 'framework-versions', 'framework-a', 'helpers', 'helper', 'helper-contents', 'helper-macos', 'refs-root']),
+    more: new Set(), history: [], future: [], moved: new Set(), flash: [],
+    feedback: 'Example (the framework image) is in focus. With the nearest-bundle perimeter, Example.framework, every bridge carries traffic. Switch the perimeter to Application to see the same records move.'
+  };
+  const snapshot = () => ({ focus: state.focus, rel: state.rel, perimeter: state.perimeter, arch: state.arch, expanded: [...state.expanded] });
+  const restore = s => { Object.assign(state, { focus: s.focus, rel: s.rel, perimeter: s.perimeter, arch: s.arch, expanded: new Set(s.expanded) }); state.more.clear(); };
+  const remember = () => { state.history.push(snapshot()); state.future = []; if (state.history.length > 20) state.history.shift(); };
+  const tallyText = c => `North ${c.north.length} · West ${c.west.length} · East ${c.east.length} · South ${c.south.length}${c.unplaced.length ? ` · Unplaced ${c.unplaced.length}` : ''} with the ${c.P.label} perimeter.`;
+
+  function navigate(id, viaRel = null) {
+    if (!node(id)) return;
+    const from = state.focus;
+    if (id !== from) remember();
+    state.focus = id;
+    treeAncestors(id).forEach(x => state.expanded.add(x));
+    state.more.clear();
+    state.rel = viaRel;
+    const c = context(), item = viaRel ? findItem(c, viaRel) : null;
+    if (viaRel && !item) state.rel = null;
+    state.feedback = item
+      ? `Focused ${label(id)} from ${label(from)}. The relationship you followed stays selected and now sits on the ${BR[item.bridge].compass.toLowerCase()}. ${tallyText(c)}`
+      : `Focused ${label(id)}. ${tallyText(c)}`;
+    if (viaRel) state.flash = [id];
+    render();
+  }
+  function setPerimeter(mode) {
+    if (mode === state.perimeter) return;
+    const before = context(), a = positions(before);
+    state.perimeter = mode;
+    const after = context(), b = positions(after), moves = new Map();
+    state.moved = new Set();
+    for (const [id, bridge] of b) {
+      const old = a.get(id);
+      if (old && old !== bridge) { const key = `${BR[old].short} → ${BR[bridge].short}`; moves.set(key, (moves.get(key) || 0) + 1); state.moved.add(id); }
+    }
+    state.feedback = before.P.id === after.P.id
+      ? `${modeName(mode)} perimeter. For ${label(state.focus)} both choices resolve to ${after.P.label}, so no relationship changes bridge.`
+      : `Perimeter ${mode === 'app' ? 'widened' : 'narrowed'} from ${before.P.label} to ${after.P.label}. ${moves.size ? [...moves].map(([k, n]) => `${k}: ${n}`).join(' · ') : 'No relationship changes bridge.'}`;
+    render();
+  }
+  function setArch(arch) {
+    if (arch === state.arch) return;
+    const before = positions(context());
+    state.arch = arch;
+    const c = context(), after = positions(c);
+    const added = [...after.keys()].filter(k => !before.has(k)).length, removed = [...before.keys()].filter(k => !after.has(k)).length;
+    state.moved = new Set([...after.keys()].filter(k => !before.has(k)));
+    if (state.rel && !findItem(c, state.rel)) state.rel = null;
+    const f = node(state.focus), missing = f.kind === 'binary' && !f.arches.includes(arch);
+    state.feedback = `${arch} context: ${added} relationship${added === 1 ? '' : 's'} added, ${removed} removed.${missing ? ` ${f.label} has no ${arch} slice; only architecture-independent records remain.` : ''}`;
+    render();
+  }
+  function locate(ids) {
+    ids.forEach(id => treeAncestors(id).forEach(x => state.expanded.add(x)));
+    state.flash = ids;
+    state.feedback = `Located ${ids.map(label).join(' and ')} in the tree. The focus is unchanged.`;
+    render();
+  }
+
+  const PRESETS = [
+    { label: 'Framework image', hint: 'all four bridges', focus: 'framework-code', perimeter: 'unit', arch: 'arm64', rel: null, note: 'Nearest-bundle perimeter Example.framework: the helper and plug-in arrive from the north, the version alias resolves from the west, signature slots resolve east, and system, telemetry and settings references leave south.' },
+    { label: 'Main executable', hint: 'perimeter bypass · arm64', focus: 'main', perimeter: 'app', arch: 'arm64', rel: 'original-library-reference', note: 'The arm64 slice records an absolute path into /Original/…. It leaves through the south gate although a staged copy of the framework exists inside the perimeter.' },
+    { label: 'Main executable', hint: 'same framework · x86_64', focus: 'main', perimeter: 'app', arch: 'x86_64', rel: 'main-example-x86', note: 'The x86_64 slice records an @executable_path reference instead. The same framework resolves on the east bridge, inside the perimeter.' },
+    { label: 'Render Helper', hint: 'toggle the perimeter', focus: 'helper-code', perimeter: 'unit', arch: 'arm64', rel: 'helper-library-reference', note: 'With Render Helper.app as the perimeter, Example.framework lies outside it: south. RenderKit stays east. Switch to Application and watch Example.framework move east.' },
+    { label: 'Settings.plist', hint: 'internal ingress only', focus: 'settings', perimeter: 'app', arch: 'arm64', rel: null, note: 'Two path strings and one seal entry arrive from the west. Nothing crosses the perimeter, and no runtime access is implied.' },
+    { label: 'Frameworks folder', hint: 'directory scope', focus: 'frameworks', perimeter: 'app', arch: 'arm64', rel: null, note: 'A directory focus bridges only relationships that cross the folder boundary. Links and slots wholly inside it are counted in the focus details.' },
+    { label: 'Indexer service name', hint: 'reference-record focus', focus: 'indexer-service', perimeter: 'app', arch: 'arm64', rel: null, note: 'A reference record sits outside Atlas.app. The executable that names it and the candidate provider bundle both cross the perimeter.' }
+  ];
+  function applyPreset(p) {
+    remember();
+    Object.assign(state, { focus: p.focus, perimeter: p.perimeter, arch: p.arch, rel: p.rel });
+    treeAncestors(p.focus).forEach(x => state.expanded.add(x));
+    state.more.clear();
+    state.flash = [p.focus];
+    state.feedback = p.note;
+    render();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------------------
+  const fact = (name, value, html = false) => `<div class="fact"><dt>${esc(name)}</dt><dd>${html ? value : esc(value)}</dd></div>`;
+
+  function renderToolbar() {
+    const a = node(state.focus);
+    const crumbs = a.external
+      ? [`<span class="crumb">Reference records</span>`, `<span class="crumb">${esc(GROUP[a.domain])}</span>`, `<span class="crumb current" aria-current="location">${esc(a.label)}</span>`]
+      : lineage(a.id).map((n, i, all) => i === all.length - 1 ? `<span class="crumb current" aria-current="location">${esc(n.label)}</span>` : `<button type="button" class="crumb" data-action="focus" data-id="${n.id}">${esc(n.label)}</button>`);
+    $('#toolbar').innerHTML = `<div class="group"><button type="button" class="cmd" data-action="history" data-value="back"${state.history.length ? '' : ' disabled'}>← Back</button><button type="button" class="cmd" data-action="history" data-value="forward"${state.future.length ? '' : ' disabled'}>Forward →</button></div><div class="crumbs"><span class="group-label">Focus</span>${crumbs.join('<span class="sep" aria-hidden="true">/</span>')}</div>`;
+  }
+
+  function renderTree() {
+    const f = node(state.focus), P = perimeterFor(state.focus, state.perimeter), showTag = !f.external;
+    const item = a => `<button type="button" class="item" data-action="focus" data-id="${a.id}"${state.focus === a.id ? ' aria-current="true"' : ''} title="${esc(`${pathOf(a.id)} · ${a.role}`)}">${icon(a)}<span class="label">${esc(a.label)}</span>${showTag && P.id === a.id ? '<span class="tag-perimeter">perimeter</span>' : `<span class="kind">${esc(kindLabel(a))}</span>`}</button>`;
+    const rowAttrs = id => ` data-row="${id}"${state.focus === id ? ' data-focus="true"' : ''}`;
+    const leaf = a => `<li><div class="row"${rowAttrs(a.id)}><span class="caret-spacer" aria-hidden="true"></span>${item(a)}</div></li>`;
+    const branch = (id, name, labelHtml, inner, physical) => {
+      const open = state.expanded.has(id);
+      return `<li><div class="row"${physical ? rowAttrs(id) : ''}><button type="button" class="caret" data-action="toggle" data-id="${id}" aria-expanded="${open}" aria-controls="t-${id}" aria-label="${open ? 'Collapse' : 'Expand'} ${esc(name)}">${open ? '▾' : '▸'}</button>${labelHtml}</div><ul id="t-${id}" aria-label="${esc(name)}"${open ? '' : ' hidden'}>${inner}</ul></li>`;
+    };
+    const physical = a => {
+      const children = kids(a.id);
+      if (!children.length && !a.pending) return leaf(a);
+      return branch(a.id, a.label, item(a), a.pending ? '<li class="unknown">Inventory unavailable · contents unknown</li>' : children.map(physical).join(''), true);
+    };
+    const groupButton = (id, name) => `<button type="button" class="item group" data-action="toggle" data-id="${id}"><span class="label">${esc(name)}</span></button>`;
+    const groups = Object.keys(GROUP).map(d => branch(`refs-${d}`, GROUP[d], groupButton(`refs-${d}`, GROUP[d]), artifacts.filter(a => a.external && a.domain === d).map(leaf).join(''), false)).join('');
+    $('#tree').innerHTML = `<ul class="tree" aria-label="Application files">${physical(node(APP))}</ul><div class="refs"><span class="refs-label">Reference records · target acquisition not implied</span><ul class="tree" aria-label="Reference records outside the file inventory">${branch('refs-root', 'Referenced targets', groupButton('refs-root', 'Referenced targets'), groups, false)}</ul></div>`;
+  }
+
+  function renderLens() {
+    const ext = node(state.focus).external, unit = perimeterFor(state.focus, 'unit');
+    const seg = (action, value, html, pressed, cls = '') => `<button type="button" class="cmd ${cls}" data-action="${action}" data-value="${value}" aria-pressed="${pressed}">${html}</button>`;
+    $('#lens').innerHTML = `
+      <div class="group" role="group" aria-label="Perimeter"><span class="group-label">Perimeter</span>${seg('perimeter', 'unit', `Nearest bundle<small>${esc(ext ? 'n/a for references' : unit.label)}</small>`, state.perimeter === 'unit')}${seg('perimeter', 'app', `Application<small>${esc(node(APP).label)}</small>`, state.perimeter === 'app')}</div>
+      <div class="group" role="group" aria-label="Architecture context"><span class="group-label">Architecture</span>${['arm64', 'x86_64'].map(v => seg('arch', v, v, state.arch === v)).join('')}</div>
+      <div class="group" role="group" aria-label="Evidence filter"><span class="group-label">Evidence</span>${Object.keys(STRENGTH).map(k => seg('evidence', k, `${strokeSample(k)}${STRENGTH[k]}`, state.evidence[k], 'check')).join('')}</div>`;
+  }
+
+  function renderPresets() {
+    $('#presets').innerHTML = `<span class="group-label">Try</span>${PRESETS.map((p, i) => `<button type="button" class="preset" data-action="preset" data-value="${i}">${esc(p.label)}<small>${esc(p.hint)}</small></button>`).join('')}`;
+  }
+
+  const NOTE_CARD = { bypass: 'Bypasses a contained candidate', roundtrip: 'Returns through the OS to a contained candidate', standin: 'Stand-in for a reference recorded inside', provider: 'Candidate provider for a name used inside' };
+
+  function card(i, c) {
+    const { e, dir, other, bridge } = i, o = node(other), note = c.notes.get(e.id), lateral = bridge === 'west' || bridge === 'east';
+    const location = lateral && !o.external ? pathFrom(other, c.P.id) : pathOf(other);
+    const via = c.F.size > 1 ? `<span class="bcard-via">${dir === 'in' ? `into ${esc(label(e.target))}` : `from ${esc(label(e.source))}`}</span>` : '';
+    const steps = !e.steps ? '' : lateral
+      ? `<span class="piers" aria-label="Resolution steps">${e.steps.map(s => `<span class="pier">${esc(s)}</span>`).join('<span class="pier-sep" aria-hidden="true">↓</span>')}</span>`
+      : `<span class="bcard-hops">${e.steps.length}-step resolution · see inspector</span>`;
+    const role = bridge === 'unplaced' ? (dir === 'in' ? 'from' : 'to') : (dir === 'in' ? 'from' : 'to');
+    return `<div class="bcard${state.moved.has(e.id) ? ' moved' : ''}" data-anchor data-rel="${e.id}" data-dir="${dir}" data-strength="${e.strength}" data-bridge="${bridge}" data-active="${state.rel === e.id}">
+      <button type="button" class="bcard-main" data-action="select-rel" data-rel="${e.id}" aria-pressed="${state.rel === e.id}">
+        <span class="bcard-top"><span class="chip">${esc(CAT[e.cat])}</span>${strokeSample(e.strength)}<span class="sr">${STRENGTH[e.strength]}</span></span>
+        <span class="bcard-title">${icon(o)}<span><small>${role}</small> ${esc(o.label)}</span></span>
+        <span class="bcard-verb">${esc(e.verb)}</span>${via}
+        <span class="bcard-path">${esc(location)}</span>${steps}
+        <span class="bcard-status">${esc(e.status)}</span>
+        ${note ? `<span class="bcard-note ${note.kind}">${NOTE_CARD[note.kind]}</span>` : ''}
+      </button>
+      <button type="button" class="bcard-go" data-action="focus" data-id="${other}" data-via="${e.id}" aria-label="Focus ${esc(o.label)}" title="Focus ${esc(o.label)}">↗</button>
+    </div>`;
+  }
+
+  function emptyText(b, c) {
+    const hidden = c.hidden[b] ? ` ${c.hidden[b]} hidden by the evidence filter.` : '';
+    const fills = c.F.has(c.P.id);
+    if (b === 'north') return (c.focusSide === 'inside' ? `No recorded ingress from outside ${c.P.label}. Consumers elsewhere on the system are not inventoried in this example.` : `Nothing ${across(c)} refers to the focus in this example.`) + hidden;
+    if (b === 'south') return `No recorded reference leaves for ${across(c)}.` + hidden;
+    if (fills && (b === 'west' || b === 'east')) return 'The selection fills the perimeter, so no traffic can stay inside it without also being inside the selection.' + hidden;
+    if (b === 'west') return (c.focusSide === 'outside' ? 'No other reference record points to the focus.' : `No recorded reference to the focus from elsewhere inside ${c.P.label}.`) + hidden;
+    if (b === 'east') return (c.focusSide === 'outside' ? 'The focus points to no other reference record.' : `No reference from the focus resolves inside ${c.P.label}.`) + hidden;
+    return 'No unplaced endpoints.' + hidden;
+  }
+
+  function bridgeSection(b, c) {
+    const meta = BR[b], items = c[b], open = state.more.has(b), limit = LIMIT[b];
+    const shown = open ? items : items.slice(0, limit), rest = items.length - shown.length;
+    const counts = new Map();
+    items.forEach(i => counts.set(CAT[i.e.cat], (counts.get(CAT[i.e.cat]) || 0) + 1));
+    const cats = items.length > 1 && counts.size > 1 ? `<span class="cats">${[...counts].map(([k, n]) => `${n} ${esc(k)}`).join(' · ')}</span>` : '';
+    const head = `<header class="bridge-head"><span class="bridge-name">${meta.compass}</span><span class="bridge-title">${esc(meta.title(c))}</span><span class="count" aria-label="${items.length} relationships">${items.length}</span><span class="bridge-sub">${esc(meta.sub(c))}</span>${cats}</header>`;
+    const toggle = rest > 0
+      ? `<button type="button" class="more" data-action="more" data-value="${b}" data-anchor data-rel="more-${b}" data-dir="${meta.dir}" data-strength="aggregate">+${rest} more</button>`
+      : open && items.length > limit ? `<button type="button" class="more" data-action="more" data-value="${b}">Show fewer</button>` : '';
+    const lane = items.length ? `<div class="lane">${shown.map(i => card(i, c)).join('')}${toggle}</div>` : `<div class="empty">${esc(emptyText(b, c))}</div>`;
+    return `<section class="bridge ${b}" id="bridge-${b}" data-dir="${meta.dir}" aria-label="${esc(`${meta.compass}: ${meta.title(c)}, ${items.length} relationships`)}">${b === 'south' ? lane + head : head + lane}</section>`;
+  }
+
+  function focusCard(c) {
+    const a = node(state.focus), missing = a.kind === 'binary' && !a.arches.includes(state.arch);
+    return `<div class="focus-card" id="focus-card">
+      <span class="focus-eyebrow">Focus${kindLabel(a) ? ` · ${esc(kindLabel(a))}` : ' · Folder'}</span>
+      <strong class="focus-title">${icon(a)}<span>${esc(a.label)}</span></strong>
+      <span class="focus-role">${esc(a.role)}</span>
+      <span class="focus-path">${esc(pathOf(a.id))}</span>
+      ${a.arches ? `<span class="focus-meta">${a.arches.map(x => `<span class="arch" data-on="${x === state.arch}">${x}</span>`).join('')}</span>` : ''}
+      <span class="focus-meta">${esc(signature(a))}</span>
+      ${missing ? `<span class="focus-warn">No ${state.arch} slice in this image · architecture-specific records unavailable</span>` : ''}
+      <span class="focus-actions">
+        <button type="button" class="mini" data-action="inspect-focus" aria-pressed="${!state.rel}">Details${c.F.size > 1 ? ` · ${c.inside.length} inside` : ''}</button>
+        <button type="button" class="mini" data-action="locate" data-value="${a.id}">Locate in tree</button>
+      </span>
+    </div>`;
+  }
+
+  function renderStage(c) {
+    const band = c.focusSide === 'inside' ? `<b>Perimeter</b> · ${esc(c.P.label)}`
+      : c.focusSide === 'outside' ? `<b>Outside</b> · ${esc(c.P.label)}` : '<b>Containment unknown</b>';
+    const bandTitle = c.focusSide === 'inside' ? `${modeName(state.perimeter)} perimeter: ${c.P.label}` : c.focusSide === 'outside' ? `The focus is a reference record outside ${c.P.label}` : 'The focus has no known containment';
+    const acrossLabel = c.focusSide === 'inside' ? `Outside ${c.P.label}` : c.focusSide === 'outside' ? `Inside ${c.P.label}` : 'Other side unknown';
+    const n = c.north.length, s = c.south.length;
+    $('#stage').innerHTML = `<div class="compass" id="compass" data-side="${c.focusSide}">
+      <svg class="wire" id="wire" aria-hidden="true"></svg>
+      <div class="across">${esc(acrossLabel)}</div>
+      ${bridgeSection('north', c)}
+      <div class="perimeter" id="perimeter">
+        <span class="perimeter-tab" title="${esc(bandTitle)}">${band}</span>
+        <span class="gate north" id="gate-north" data-empty="${!n}">${n ? `▼ ${n} ingress` : 'no ingress'}</span>
+        ${bridgeSection('west', c)}
+        ${focusCard(c)}
+        ${bridgeSection('east', c)}
+        <span class="gate south" id="gate-south" data-empty="${!s}">${s ? `▼ ${s} egress` : 'no egress'}</span>
+      </div>
+      ${bridgeSection('south', c)}
+      <div class="across bottom">${esc(acrossLabel)}</div>
+      ${c.unplaced.length || c.hidden.unplaced ? bridgeSection('unplaced', c) : ''}
+    </div>`;
+  }
+
+  function altPlacement(e) {
+    const mode = state.perimeter === 'unit' ? 'app' : 'unit', c2 = classify({ focus: state.focus, perimeter: mode, arch: state.arch });
+    for (const b of BRIDGES) if (c2[b].some(i => i.e.id === e.id)) return { mode, P: c2.P, bridge: b };
+    return null;
+  }
+  function explain(i, c) {
+    const { e, dir, other, bridge } = i, o = node(other), f = node(state.focus), multi = c.F.size > 1, out = [];
+    out.push(dir === 'in'
+      ? `<strong>Toward the focus.</strong> ${esc(label(e.source))} is the source; ${multi ? `${esc(f.label)} contains the target, ${esc(label(e.target))}` : 'the focus is the target'}.`
+      : `<strong>Away from the focus.</strong> ${multi ? `${esc(f.label)} contains the source, ${esc(label(e.source))}` : 'The focus is the source'}; ${esc(o.label)} is the target.`);
+    if (bridge === 'unplaced') {
+      out.push(`<strong>Unplaced.</strong> ${c.focusSide === 'unknown' ? 'The focus itself has no known containment.' : `${esc(o.label)} has no known containment.`} It cannot be placed inside or outside ${esc(c.P.label)}, so it does not pass through a gate.`);
+    } else {
+      const where = o.external ? `${esc(o.label)} is a reference record outside the inspected tree` : within(other, c.P.id) ? `${esc(o.label)} lies inside ${esc(c.P.label)}` : `${esc(o.label)} lies outside ${esc(c.P.label)}`;
+      const crossing = bridge === 'north' || bridge === 'south';
+      out.push(`<strong>${crossing ? 'Crosses the perimeter.' : 'Stays on one side.'}</strong> ${where}${c.focusSide === 'outside' ? '; the focus is itself a reference record outside Atlas.app' : ''}.`);
+    }
+    const alt = altPlacement(e);
+    if (alt) out.push(alt.P.id === c.P.id
+      ? `<strong>Perimeter choice.</strong> Both choices resolve to ${esc(c.P.label)} for this focus.`
+      : `<strong>Perimeter choice.</strong> With the ${modeName(alt.mode)} perimeter (${esc(alt.P.label)}) this relationship ${alt.bridge === bridge ? `stays on the ${BR[bridge].compass.toLowerCase()}` : `moves to the ${BR[alt.bridge].compass.toLowerCase()}`}.`);
+    return out;
+  }
+  function noteBox(note, item, c) {
+    const v = note.via;
+    if (note.kind === 'bypass') return `<div class="notebox bypass"><strong>Perimeter bypass.</strong> ${esc(label(item.e.source))} records a path outside ${esc(c.P.label)}, although a contained copy exists at <span class="mono">${esc(pathOf(v.target))}</span> (${esc(v.status)}). Copying or re-signing the bundle does not rewrite recorded paths; the copy is only a candidate until a supported rewrite and a resolution check succeed.</div>`;
+    if (note.kind === 'roundtrip') return `<div class="notebox roundtrip"><strong>Returns through the OS.</strong> The name leaves the perimeter; ${esc(label(v.target))} inside ${esc(c.P.label)} is a candidate provider (${esc(v.status)}). Name matching does not establish registration or an IPC exchange.</div>`;
+    if (note.kind === 'standin') return `<div class="notebox standin"><strong>Stand-in.</strong> ${esc(label(v.source))} records this reference (${esc(v.evidence)}). The focus is a proposed staged candidate for it, not a resolved target.</div>`;
+    return `<div class="notebox provider"><strong>Candidate provider.</strong> ${esc(label(v.source))} names this service (${esc(v.status)}). Matching an identifier does not establish registration or execution.</div>`;
+  }
+  function inspectRelationship(i, c) {
+    const { e, bridge } = i, meta = BR[bridge], note = c.notes.get(e.id);
+    return `<div class="insp-body">
+      <div class="insp-top"><span class="insp-eyebrow" data-dir="${meta.dir}" data-bridge="${bridge}">${meta.compass} · ${esc(meta.title(c))}</span><button type="button" class="link" data-action="inspect-focus">Focus details</button></div>
+      <h2>${esc(label(e.source))} <span class="arrow">→</span> ${esc(label(e.target))}</h2>
+      <p class="insp-verb">${esc(e.verb)}</p>
+      <span class="state">${esc(e.status)}</span><span class="state">${STRENGTH[e.strength]}</span>
+      ${note ? noteBox(note, i, c) : ''}
+      <section class="why"><h3 class="h">Why the ${esc(meta.compass.toLowerCase())}</h3><ul>${explain(i, c).map(t => `<li>${t}</li>`).join('')}</ul></section>
+      ${e.steps ? `<h3 class="h">Resolution steps</h3><ol class="steps">${e.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}
+      <dl class="facts">${fact('Source', `<span class="mono">${esc(pathOf(e.source))}</span>`, true)}${fact('Target', `<span class="mono">${esc(pathOf(e.target))}</span>`, true)}${fact('Category', CAT[e.cat])}${fact('Evidence', e.evidence)}${fact('Architectures', e.arches ? e.arches.join(' · ') : 'Not architecture-specific')}</dl>
+      <div class="code">${esc(e.raw)}</div>
+      <p class="limit">${esc(e.limits)}</p>
+      <div class="actions"><button type="button" class="cmd" data-action="focus" data-id="${i.other}" data-via="${e.id}">Focus ${esc(label(i.other))} ↗</button><button type="button" class="cmd" data-action="locate" data-value="${e.source},${e.target}">Locate both in tree</button></div>
+    </div>`;
+  }
+  function inspectFocus(c) {
+    const a = node(state.focus), multi = c.F.size > 1;
+    const t = (b, text) => `<button type="button" data-action="goto-bridge" data-value="${b}" data-dir="${BR[b].dir}" data-bridge="${b}"><strong>${c[b].length}</strong>${text}</button>`;
+    const hidden = [c.hiddenArch ? `${c.hiddenArch} recorded for another architecture` : '', c.hiddenEvidence ? `${c.hiddenEvidence} hidden by the evidence filter` : ''].filter(Boolean).join(' · ');
+    return `<div class="insp-body">
+      <span class="insp-eyebrow">Focus details</span>
+      <h2>${esc(a.label)}</h2>
+      <p class="insp-verb">${esc(a.role)} · ${esc(domainLabel(a))}</p>
+      <div class="tally" aria-label="Relationships per bridge">
+        <span></span>${t('north', 'North · ingress')}<span></span>
+        ${t('west', BR.west.title(c))}<span class="tf">Focus</span>${t('east', BR.east.title(c))}
+        <span></span>${t('south', 'South · egress')}${c.unplaced.length ? t('unplaced', 'Unplaced') : '<span></span>'}
+      </div>
+      ${hidden ? `<p class="hidden-line">Not shown: ${esc(hidden)}.</p>` : ''}
+      <dl class="facts">
+        ${fact('Perimeter', c.focusSide === 'inside' ? `${c.P.label} · ${modeName(state.perimeter).toLowerCase()}` : `Outside ${c.P.label} · reference record`)}
+        ${fact('Scope', multi ? `${a.label} and ${c.F.size - 1} contained entries` : 'This entry only')}
+        ${fact('Path / name', `<span class="mono">${esc(pathOf(a.id))}</span>`, true)}
+        ${a.arches ? fact('Architectures', a.arches.join(' · ')) : ''}
+        ${fact('Signing evidence', signature(a))}
+        ${a.target ? fact('Stored link text', a.target) : ''}
+      </dl>
+      ${multi ? `<h3 class="h">Inside the selection · ${c.inside.length}</h3><p class="limit">Both endpoints lie inside ${esc(a.label)}. These are counted, not bridged.</p><ul class="inside">${c.inside.map(e => `<li>${esc(label(e.source))} → ${esc(label(e.target))}<small>${esc(e.verb)} · ${esc(e.status)}</small></li>`).join('') || '<li><small>None recorded.</small></li>'}</ul>` : ''}
+      <p class="limit">Select a bridge card to read its evidence, resolution steps and why it sits on that bridge. Incoming coverage is limited to the example's records; consumers elsewhere on the system and runtime activity are not inventoried.</p>
+    </div>`;
+  }
+  function renderInspector(c) {
+    const item = state.rel ? findItem(c, state.rel) : null;
+    if (state.rel && !item) state.rel = null;
+    $('#inspector').innerHTML = item ? inspectRelationship(item, c) : inspectFocus(c);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Wires: drawn only inside the visualization layer, never in the tree
+  // ---------------------------------------------------------------------------
+  const COMPACT = 640;
+  const DEFS = '<defs>' + ['in', 'out'].map(d => `<marker id="arrow-${d}" viewBox="0 0 10 10" refX="10" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path class="arrow-${d}" d="M0 0L10 5L0 10z"/></marker>`).join('') + '</defs>';
+  const spread = (i, n, gap) => (i - (n - 1) / 2) * gap;
+  function draw() {
+    const compass = $('#compass'), svg = $('#wire');
+    if (!compass || !svg) return;
+    if (compass.clientWidth <= COMPACT) { svg.innerHTML = ''; return; }
+    const box = compass.getBoundingClientRect();
+    const R = el => { const b = el.getBoundingClientRect(); return { l: b.left - box.left, r: b.right - box.left, t: b.top - box.top, b: b.bottom - box.top, cx: (b.left + b.right) / 2 - box.left, cy: (b.top + b.bottom) / 2 - box.top, h: b.height }; };
+    const f = R($('#focus-card')), gn = R($('#gate-north')), gs = R($('#gate-south'));
+    const anchors = b => [...compass.querySelectorAll(`#bridge-${b} [data-anchor]`)];
+    const out = [];
+    const add = (el, d, x, y) => {
+      const rel = el.dataset.rel, dir = el.dataset.dir, dash = WIRE_DASH[el.dataset.strength];
+      const st = state.rel ? (rel === state.rel ? 'active' : 'dim') : 'normal';
+      out.push(`<path class="wire-line" data-rel="${rel}" data-dir="${dir}" data-state="${st}" d="${d}"${dash ? ` stroke-dasharray="${dash}"` : ''} marker-end="url(#arrow-${dir})"/><circle class="wire-dot" data-rel="${rel}" data-dir="${dir}" data-state="${st}" cx="${x}" cy="${y}" r="2.4"/>`);
+    };
+    const north = anchors('north');
+    north.forEach((el, i) => { const c = R(el), x = gn.cx + spread(i, north.length, 7), m = (c.b + gn.cy) / 2; add(el, `M${c.cx} ${c.b} C${c.cx} ${m} ${x} ${m} ${x} ${gn.cy} L${x} ${f.t - 2}`, c.cx, c.b); });
+    const south = anchors('south');
+    south.forEach((el, i) => { const c = R(el), x = gs.cx + spread(i, south.length, 7), m = (gs.cy + c.t) / 2; add(el, `M${x} ${f.b} L${x} ${gs.cy} C${x} ${m} ${c.cx} ${m} ${c.cx} ${c.t - 2}`, x, f.b); });
+    const lateral = (b, toward) => {
+      const list = anchors(b), gap = Math.min(10, (f.h - 24) / Math.max(1, list.length - 1));
+      list.forEach((el, i) => {
+        const c = R(el), y = f.cy + spread(i, list.length, gap);
+        if (toward) { const m = (c.r + f.l) / 2; add(el, `M${c.r} ${c.cy} C${m} ${c.cy} ${m} ${y} ${f.l - 2} ${y}`, c.r, c.cy); }
+        else { const m = (f.r + c.l) / 2; add(el, `M${f.r} ${y} C${m} ${y} ${m} ${c.cy} ${c.l - 2} ${c.cy}`, f.r, y); }
+      });
+    };
+    lateral('west', true);
+    lateral('east', false);
+    svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
+    svg.dataset.active = String(Boolean(state.rel));
+    svg.innerHTML = DEFS + out.join('');
+  }
+  let frame = 0;
+  const scheduleDraw = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); };
+  function setHot(id, on) {
+    document.querySelectorAll(`#wire [data-rel="${id}"], .bcard[data-rel="${id}"]`).forEach(el => el.classList.toggle('hot', on));
+  }
+
+  function render() {
+    const c = context();
+    renderToolbar();
+    renderTree();
+    renderLens();
+    renderStage(c);
+    renderInspector(c);
+    $('#feedback').textContent = state.feedback;
+    state.moved = new Set();
+    scheduleDraw();
+    if (state.flash.length) {
+      const rows = state.flash.map(id => document.querySelector(`[data-row="${id}"]`)).filter(Boolean);
+      rows.forEach(row => { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); });
+      rows[0]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      state.flash = [];
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Interaction
+  // ---------------------------------------------------------------------------
+  const THEMES = ['auto', 'light', 'dark'];
+  let theme = 'auto';
+  try { theme = THEMES.includes(localStorage.getItem('perimeter-bridges-theme')) ? localStorage.getItem('perimeter-bridges-theme') : 'auto'; } catch (_) { theme = 'auto'; }
+  const applyTheme = () => {
+    if (theme === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme;
+    $('#theme').textContent = `Theme · ${theme[0].toUpperCase()}${theme.slice(1)}`;
+  };
+
+  document.addEventListener('click', event => {
+    const target = event.target.closest('[data-action]');
+    if (!target) return;
+    const { action, value, id, via, rel } = target.dataset;
+    if (action === 'focus') { navigate(id, via || null); return; }
+    if (action === 'select-rel') {
+      state.rel = state.rel === rel ? null : rel;
+      const e = relationships.find(x => x.id === rel);
+      state.feedback = state.rel ? `Inspecting ${label(e.source)} → ${label(e.target)}. The focus and tree are unchanged.` : 'Relationship deselected.';
+      render();
+      document.querySelector(`.bcard[data-rel="${rel}"] .bcard-main`)?.focus({ preventScroll: true });
+      return;
+    }
+    if (action === 'inspect-focus') { state.rel = null; render(); return; }
+    if (action === 'toggle') { state.expanded.has(id) ? state.expanded.delete(id) : state.expanded.add(id); renderTree(); document.querySelector(`.caret[data-id="${id}"]`)?.focus({ preventScroll: true }); return; }
+    if (action === 'locate') { locate(value.split(',')); return; }
+    if (action === 'perimeter') { setPerimeter(value); return; }
+    if (action === 'arch') { setArch(value); return; }
+    if (action === 'evidence') {
+      state.evidence[value] = !state.evidence[value];
+      const c = context();
+      if (state.rel && !findItem(c, state.rel)) state.rel = null;
+      state.feedback = `${STRENGTH[value]} evidence ${state.evidence[value] ? 'shown' : 'hidden'}. ${c.hiddenEvidence} relationship${c.hiddenEvidence === 1 ? '' : 's'} hidden by the evidence filter for this focus.`;
+      render();
+      return;
+    }
+    if (action === 'more') { state.more.has(value) ? state.more.delete(value) : state.more.add(value); render(); return; }
+    if (action === 'preset') { applyPreset(PRESETS[Number(value)]); return; }
+    if (action === 'goto-bridge') {
+      const section = document.getElementById(`bridge-${value}`);
+      section?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      section?.querySelector('.bcard-main')?.focus({ preventScroll: true });
+      return;
+    }
+    if (action === 'history') {
+      const from = value === 'back' ? state.history : state.future, to = value === 'back' ? state.future : state.history;
+      if (!from.length) return;
+      to.push(snapshot());
+      restore(from.pop());
+      state.feedback = `Restored ${label(state.focus)} with its earlier perimeter, architecture and tree expansion.`;
+      state.flash = [state.focus];
+      render();
+      return;
+    }
+    if (action === 'theme') {
+      theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+      try { localStorage.setItem('perimeter-bridges-theme', theme); } catch (_) { /* storage unavailable */ }
+      applyTheme();
+    }
+  });
+  const stage = $('#stage');
+  const hotTarget = event => event.target.closest?.('.bcard[data-rel]');
+  stage.addEventListener('pointerover', event => { const el = hotTarget(event); if (el) setHot(el.dataset.rel, true); });
+  stage.addEventListener('pointerout', event => { const el = hotTarget(event); if (el && !el.contains(event.relatedTarget)) setHot(el.dataset.rel, false); });
+  stage.addEventListener('focusin', event => { const el = hotTarget(event); if (el) setHot(el.dataset.rel, true); });
+  stage.addEventListener('focusout', event => { const el = hotTarget(event); if (el && !el.contains(event.relatedTarget)) setHot(el.dataset.rel, false); });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && state.rel) { state.rel = null; state.feedback = 'Relationship deselected.'; render(); }
+  });
+  if (globalThis.ResizeObserver) new ResizeObserver(scheduleDraw).observe($('#compass-wrap'));
+  window.addEventListener('resize', scheduleDraw);
+  document.fonts?.ready.then(scheduleDraw);
+
+  applyTheme();
+  renderPresets();
+  render();
+})();
+</script>
+</body>
+</html>

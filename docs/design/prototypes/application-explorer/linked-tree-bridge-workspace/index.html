@@ -1,0 +1,2194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Application Explorer · Linked tree bridges</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: light-dark(#f5f6f8, #12161c);
+        --panel: light-dark(#fff, #1a2028);
+        --text: light-dark(#252e3d, #e8edf5);
+        --muted: light-dark(#657083, #a6b2c5);
+        --line: light-dark(#dde3eb, #35404e);
+        --soft: light-dark(#eef1f5, #242d39);
+        --blue: light-dark(#365e9e, #a2c2f4);
+        --blue-soft: light-dark(#eaf0fb, #26374f);
+        --amber: light-dark(#8a5b1c, #e8bd79);
+        --amber-soft: light-dark(#fbf2e5, #342d23);
+        --incoming: light-dark(#246f66, #8bd2c5);
+        --incoming-soft: light-dark(#e4f3ee, #203b36);
+        --violet: light-dark(#7859a4, #c8afea);
+        --violet-soft: light-dark(#f1ecf9, #30283d);
+        --dots: light-dark(#dce2eb, #28313d);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      button,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      button:focus-visible,
+      select:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 3px;
+      }
+      button {
+        -webkit-tap-highlight-color: transparent;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      button,
+      select {
+        border-radius: 6px;
+      }
+      strong,
+      h1,
+      h2,
+      h3 {
+        font-weight: 600;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+        overflow-wrap: anywhere;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .eyebrow {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .icon {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+        vertical-align: middle;
+      }
+      .chrome {
+        min-height: 69px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 15px 25px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        color: var(--blue);
+      }
+      .brand strong {
+        display: block;
+        font-size: 13px;
+        letter-spacing: 0.02em;
+      }
+      .brand small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .chrome-right {
+        display: flex;
+        align-items: center;
+        gap: 17px;
+      }
+      .study {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .study::before {
+        content: '';
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--violet);
+        margin-right: 7px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        min-height: 33px;
+        font-size: 12px;
+      }
+      .button:hover:not(:disabled) {
+        background: var(--soft);
+      }
+      .button.primary {
+        background: var(--text);
+        border-color: var(--text);
+        color: var(--panel);
+      }
+      .toolbar {
+        padding: 14px 25px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+      }
+      .toolbar h1 {
+        font-size: 17px;
+        letter-spacing: -0.02em;
+      }
+      .toolbar p {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 3px;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: 294px minmax(0, 1fr) 310px;
+        min-height: calc(100vh - 180px);
+      }
+      .sidebar {
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 16px 13px;
+      }
+      .sidebar-heading h2 {
+        font-size: 12px;
+      }
+      .text-button {
+        border: 0;
+        padding: 3px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .text-button:hover {
+        color: var(--blue);
+      }
+      .tree-scroll {
+        padding: 0 10px 20px;
+        max-height: 660px;
+        overflow: auto;
+        flex: 1;
+      }
+      .file-tree,
+      .file-tree ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .file-tree ul {
+        margin-left: 8px;
+        padding-left: 3px;
+        border-left: 1px solid var(--line);
+      }
+      .tree-row {
+        display: flex;
+        align-items: center;
+        border-radius: 5px;
+        gap: 2px;
+        min-height: 32px;
+        position: relative;
+      }
+
+      .tree-row[data-tree-role='incoming'] {
+        --row-mark: var(--incoming);
+        background: var(--incoming-soft);
+        color: var(--incoming);
+      }
+      .tree-row[data-tree-role='outgoing'] {
+        --row-mark: var(--violet);
+        background: var(--violet-soft);
+        color: var(--violet);
+      }
+      .tree-row[data-tree-role='both'] {
+        --row-mark: var(--violet);
+        background: linear-gradient(
+          90deg,
+          var(--incoming-soft) 50%,
+          var(--violet-soft) 50%
+        );
+      }
+      .tree-row[data-preview='true'] {
+        outline: 2px solid var(--row-mark, var(--violet));
+        outline-offset: -2px;
+      }
+      .tree-row[data-revealed='true']:not([data-preview='true']) {
+        outline: 1px dashed var(--muted);
+        outline-offset: -1px;
+      }
+      .tree-row[data-selected='true'] {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+      .tree-badge {
+        font-size: 8px;
+        line-height: 16px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        border-radius: 3px;
+        padding: 0 4px;
+        margin-right: 5px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        background: var(--panel);
+        color: var(--row-mark, var(--blue));
+      }
+      .tree-badge.hidden-count {
+        background: var(--soft);
+        color: var(--muted);
+      }
+      .tree-key {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        margin: 0 15px 12px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .tree-key span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .tree-key i {
+        height: 6px;
+        width: 6px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      .tree-key .incoming i {
+        background: var(--incoming);
+      }
+      .tree-key .outgoing i {
+        background: var(--violet);
+      }
+      .tree-key-note {
+        padding: 0 15px 12px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .button {
+        text-decoration: none;
+      }
+      .disclosure,
+      .spacer {
+        width: 17px;
+        flex: 0 0 17px;
+      }
+      .disclosure {
+        align-self: stretch;
+        border: 0;
+        background: transparent;
+        font-size: 11px;
+        color: var(--muted);
+        padding: 0;
+      }
+      .file-button {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 3px;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        min-width: 0;
+        flex: 1;
+        font-size: 11px;
+      }
+      .file-button .icon {
+        width: 14px;
+        height: 14px;
+        opacity: 0.75;
+      }
+      .file-button span {
+        overflow-wrap: anywhere;
+      }
+      .sidebar-footer {
+        margin: 0 16px;
+        padding: 15px 0;
+        border-top: 1px solid var(--line);
+      }
+      .sidebar-footer p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .main {
+        min-width: 0;
+        padding: 22px 26px 18px;
+      }
+      .context-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .context-bar .path {
+        flex: 1;
+        min-width: 0;
+      }
+      .path small {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        margin-bottom: 3px;
+      }
+      .path span {
+        color: var(--muted);
+      }
+      .context-select {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      select {
+        padding: 6px 9px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        min-height: 32px;
+      }
+
+      .axis-key {
+        display: flex;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 11px;
+        flex-wrap: wrap;
+      }
+      .axis-key span {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .axis-key b {
+        font-size: 17px;
+        color: var(--violet);
+      }
+      .canvas-viewport {
+        overflow-x: auto;
+        padding: 2px 2px 5px;
+      }
+      .bridge-grid {
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        grid-template-columns: minmax(170px, 1fr) minmax(205px, 1.15fr) minmax(
+            170px,
+            1fr
+          );
+        grid-template-areas: 'north north north' 'west focus east' 'south south south';
+        column-gap: 34px;
+        row-gap: 48px;
+        min-width: 643px;
+        padding: 0 12px 5px;
+        background-image: radial-gradient(var(--dots) 0.7px, transparent 0.7px);
+        background-size: 16px 16px;
+        border-radius: 10px;
+      }
+      .bundle-boundary {
+        grid-area: 2/1/3/4;
+        align-self: stretch;
+        position: relative;
+        margin: -16px -11px;
+        border: 1px dashed var(--line);
+        border-radius: 11px;
+        background: color-mix(in srgb, var(--violet-soft) 24%, var(--bg));
+        z-index: 0;
+        pointer-events: none;
+      }
+      .bundle-boundary span {
+        position: absolute;
+        top: -10px;
+        left: 17px;
+        padding: 0 7px;
+        background: var(--bg);
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .bridge {
+        position: relative;
+        z-index: 2;
+        min-width: 0;
+        align-self: center;
+      }
+      .north {
+        grid-area: north;
+        width: min(100%, 500px);
+        justify-self: center;
+      }
+      .south {
+        grid-area: south;
+        width: 100%;
+        justify-self: center;
+      }
+      .west {
+        grid-area: west;
+      }
+      .east {
+        grid-area: east;
+      }
+      .bridge-heading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 11px;
+        background: var(--bg);
+        width: max-content;
+        max-width: 100%;
+      }
+      .compass {
+        display: inline-grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        font-size: 10px;
+        background: var(--panel);
+        flex-shrink: 0;
+        color: var(--violet);
+      }
+      .north .compass,
+      .south .compass {
+        color: var(--amber);
+      }
+      .bridge-heading h2 {
+        font-size: 12px;
+      }
+      .bridge-heading p {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .count {
+        font-size: 10px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .relation-list {
+        display: grid;
+        gap: 9px;
+      }
+      .north .relation-list,
+      .south .relation-list {
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+      }
+      .relation {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        text-align: left;
+        padding: 11px 12px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 8px;
+        min-height: 108px;
+      }
+      .relation:hover {
+        border-color: var(--muted);
+      }
+      .relation[aria-pressed='true'] {
+        border-color: var(--violet);
+        box-shadow: 0 0 0 2px var(--violet-soft);
+      }
+      .relation-type {
+        font-size: 9px;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+      .relation strong {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 5px;
+        overflow-wrap: anywhere;
+      }
+      .record {
+        color: var(--muted);
+        font-size: 10px;
+        overflow-wrap: anywhere;
+        width: 100%;
+      }
+      .relation .state {
+        font-size: 10px;
+        color: var(--muted);
+        padding-top: 8px;
+        margin-top: auto;
+      }
+      .relation .state::before {
+        content: '';
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        background: currentColor;
+        border-radius: 50%;
+        margin-right: 5px;
+      }
+      .relation .state.candidate {
+        color: var(--violet);
+      }
+      .relation .state.unknown {
+        color: var(--amber);
+      }
+      .focus-lane {
+        grid-area: focus;
+        align-self: center;
+        position: relative;
+        z-index: 2;
+      }
+      .focus-card {
+        position: relative;
+        background: var(--panel);
+        border: 1px solid var(--blue);
+        border-radius: 10px;
+        padding: 15px 14px;
+        box-shadow: 0 4px 18px #00000006;
+        min-width: 0;
+      }
+      .focus-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 13px 0;
+      }
+      .focus-title h2 {
+        font-size: 21px;
+        letter-spacing: -0.03em;
+        overflow-wrap: anywhere;
+      }
+      .focus-title p {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .file-glyph {
+        display: grid;
+        place-items: center;
+        width: 31px;
+        height: 36px;
+        flex-shrink: 0;
+        border-radius: 7px;
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+      .focus-meta {
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+        margin-top: 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .focus-card::before,
+      .focus-card::after {
+        content: '';
+        position: absolute;
+        top: calc(50% - 4px);
+        width: 7px;
+        height: 7px;
+        border: 1px solid var(--violet);
+        border-radius: 50%;
+        background: var(--panel);
+      }
+      .focus-card::before {
+        left: -5px;
+      }
+      .focus-card::after {
+        right: -5px;
+      }
+      .empty {
+        padding: 13px;
+        border: 1px dashed var(--line);
+        border-radius: 7px;
+        background: var(--bg);
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .edges {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        overflow: visible;
+      }
+      .edges path.edge {
+        fill: none;
+        stroke-width: 1.4;
+        opacity: 0.65;
+      }
+      .edges .west-edge {
+        stroke: var(--incoming);
+      }
+      .west .compass,
+      .west .relation .state.candidate {
+        color: var(--incoming);
+      }
+      .west .relation[aria-pressed='true'] {
+        border-color: var(--incoming);
+        box-shadow: 0 0 0 2px var(--incoming-soft);
+      }
+      .edges .east-edge {
+        stroke: var(--violet);
+      }
+      .edges .north-edge,
+      .edges .south-edge {
+        stroke: var(--amber);
+      }
+      .edges .candidate-edge {
+        stroke-dasharray: 4 3;
+      }
+      .edges .active-edge {
+        stroke-width: 2 !important;
+        opacity: 1 !important;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 18px 0 13px;
+        margin-top: 15px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .line-sample {
+        width: 20px;
+        border-top: 2px solid var(--violet);
+      }
+      .line-sample.incoming {
+        border-color: var(--incoming);
+      }
+      .line-sample.external {
+        border-color: var(--amber);
+      }
+      .line-sample.candidate {
+        border-top-style: dashed;
+      }
+      .inspector {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        min-width: 0;
+        min-height: calc(100vh - 180px);
+        max-height: 100dvh;
+        border-left: 1px solid var(--line);
+        background: var(--panel);
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+      }
+      .inspector-header {
+        padding: 14px 17px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+        background: var(--soft);
+      }
+      .inspector-header h2 {
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+      .inspector-header p {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+      .inspector-header > span {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .inspector-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        padding: 16px 17px;
+      }
+      .inspector-grid > div {
+        min-width: 0;
+      }
+      .inspector-grid > div + div {
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+      }
+      .step-title {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        margin-bottom: 7px;
+      }
+      .inspector-grid strong {
+        font-size: 12px;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .inspector-grid p {
+        font-size: 11px;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      .inspector-grid code {
+        display: block;
+        background: var(--soft);
+        border-radius: 5px;
+        padding: 8px;
+        margin-top: 7px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        font-size: 10px;
+      }
+      .evidence-limit {
+        font-size: 11px;
+        color: var(--muted);
+        padding: 0 17px 14px;
+      }
+      .inspector-actions {
+        border-top: 1px solid var(--line);
+        padding: 12px 17px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .inspector-actions > span {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .status {
+        font-size: 11px;
+        color: var(--muted);
+        padding: 12px 0 0;
+        min-height: 30px;
+      }
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 11px 25px;
+        border-top: 1px solid var(--line);
+        background: var(--panel);
+        font-size: 10px;
+        color: var(--muted);
+      }
+      dialog {
+        width: min(730px, calc(100vw - 36px));
+        max-height: 85vh;
+        padding: 0;
+        color: var(--text);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        box-shadow: 0 22px 90px #00000030;
+      }
+      dialog::backdrop {
+        background: #0a142861;
+        backdrop-filter: blur(3px);
+      }
+      .notes-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--line);
+      }
+      .notes-header h2 {
+        font-size: 18px;
+      }
+      .notes-body {
+        padding: 23px 24px;
+      }
+      .notes-body p {
+        margin: 0 0 15px;
+        color: var(--muted);
+      }
+      .notes-body h3 {
+        margin: 20px 0 8px;
+        font-size: 13px;
+      }
+      .notes-body a {
+        color: var(--blue);
+      }
+      .notes-body li {
+        margin: 7px 0;
+        color: var(--muted);
+      }
+      .comparison {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        margin: 18px 0;
+      }
+      .comparison th,
+      .comparison td {
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--line);
+        padding: 11px 10px 11px 0;
+      }
+      .comparison th {
+        color: var(--muted);
+        font-weight: 400;
+      }
+      @media (max-width: 1190px) {
+        .workspace {
+          grid-template-columns: 230px minmax(0, 1fr) 280px;
+        }
+        .main {
+          padding: 18px 13px;
+        }
+        .context-bar {
+          flex-wrap: wrap;
+        }
+        .context-select {
+          margin-left: auto;
+        }
+        .bridge-grid {
+          column-gap: 27px;
+          min-width: 629px;
+        }
+        .relation {
+          padding: 10px;
+        }
+        .focus-card {
+          padding: 14px 12px;
+        }
+        .axis-key {
+          font-size: 10px;
+        }
+      }
+      @media (max-width: 780px) {
+        .chrome,
+        .toolbar {
+          padding: 13px 16px;
+        }
+        .toolbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .study {
+          display: none;
+        }
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+        .inspector {
+          position: static;
+          min-height: 0;
+          max-height: none;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+          overflow: visible;
+        }
+        .sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .tree-scroll {
+          max-height: 180px;
+        }
+        .sidebar-heading {
+          padding: 12px 16px;
+        }
+        .sidebar-footer {
+          padding: 10px 0;
+          display: flex;
+          gap: 14px;
+          align-items: center;
+        }
+        .sidebar-footer p {
+          margin: 0;
+          flex: 1;
+        }
+        .main {
+          padding: 16px 12px;
+        }
+        .inspector-grid {
+          grid-template-columns: 1fr;
+          gap: 15px;
+        }
+        .context-bar .path {
+          flex-basis: calc(100% - 55px);
+        }
+        .context-select {
+          margin-left: 0;
+        }
+        .footer {
+          padding: 11px 16px;
+          flex-wrap: wrap;
+        }
+        .inspector-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        button {
+          transition:
+            border-color 0.12s,
+            background-color 0.12s;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="chrome">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">⌘</span>
+        <div>
+          <strong>CODE WORKBENCH</strong><small>Application anatomy</small>
+        </div>
+      </div>
+      <div class="chrome-right">
+        <span class="study">Copy · linked tree</span
+        ><a
+          class="button"
+          href="../separated-bridge-workspace/index.html"
+          target="_blank"
+          rel="noopener"
+          >Original version ↗</a
+        ><button class="button" id="open-notes">Design notes ↗</button>
+      </div>
+    </header>
+    <section class="toolbar" aria-label="Prototype layout">
+      <div>
+        <h1>Application Explorer</h1>
+        <p>
+          Related resources follow automatically in the tree. One selected file
+          stays at the center.
+        </p>
+      </div>
+      <div class="axis-key" aria-label="Relationship axes">
+        <span><b>↔</b> Within Atlas.app</span
+        ><span><b>↕</b> System, paths &amp; unresolved</span>
+      </div>
+    </section>
+    <div class="workspace">
+      <aside class="sidebar" aria-label="Physical file navigation">
+        <div class="sidebar-heading">
+          <h2>Atlas.app <span class="muted">/ Files</span></h2>
+          <button class="text-button" id="collapse-tree">Collapse all</button>
+        </div>
+        <div class="tree-key" aria-label="Tree highlight legend">
+          <span><i></i>Selected</span
+          ><span class="incoming"><i></i>IN · source</span
+          ><span class="outgoing"><i></i>OUT · target</span>
+        </div>
+        <p class="tree-key-note">
+          Outlined row = active connection. +count = related resources inside a
+          collapsed branch.
+        </p>
+        <nav class="tree-scroll" aria-label="Illustrative bundle files">
+          <ul class="file-tree" id="file-tree"></ul>
+        </nav>
+        <div class="sidebar-footer">
+          <p id="tree-note">
+            Containment only. Select a file to explore its connections.
+          </p>
+          <button class="button" id="reveal-selected">Locate selection</button>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="context-bar">
+          <button
+            class="button"
+            id="back"
+            disabled
+            aria-label="Back to previous file"
+          >
+            ←
+          </button>
+          <div class="path">
+            <small>SELECTED FILE / EXACT LOCATION</small
+            ><span class="mono" id="selected-path"></span>
+          </div>
+          <label class="context-select"
+            >Example slice
+            <select id="architecture" aria-label="Example slice">
+              <option value="arm64">arm64</option>
+              <option value="x86_64">x86_64</option>
+            </select></label
+          >
+        </div>
+
+        <div
+          class="canvas-viewport"
+          role="region"
+          aria-label="Four-bridge relationship canvas; scroll horizontally on narrow screens"
+          tabindex="0"
+        >
+          <div class="bridge-grid" id="bridge-grid">
+            <div class="bundle-boundary" aria-hidden="true">
+              <span>Inside Atlas.app · nested bundles included</span>
+            </div>
+            <svg class="edges" id="edges" aria-hidden="true"></svg>
+            <section class="bridge north" aria-labelledby="north-title">
+              <div class="bridge-heading">
+                <span class="compass">N</span>
+                <div>
+                  <h2 id="north-title">
+                    External ingress
+                    <span class="count" id="north-count"></span>
+                  </h2>
+                  <p>Incoming system / path references</p>
+                </div>
+              </div>
+              <div class="relation-list" id="north-list"></div>
+            </section>
+            <section class="bridge west" aria-labelledby="west-title">
+              <div class="bridge-heading">
+                <span class="compass">W</span>
+                <div>
+                  <h2 id="west-title">
+                    Bundle ingress <span class="count" id="west-count"></span>
+                  </h2>
+                  <p>Internal resources referencing this file</p>
+                </div>
+              </div>
+              <div class="relation-list" id="west-list"></div>
+            </section>
+            <section class="focus-lane" aria-label="Selected file">
+              <div class="focus-card" id="focus-card"></div>
+            </section>
+            <section class="bridge east" aria-labelledby="east-title">
+              <div class="bridge-heading">
+                <span class="compass">E</span>
+                <div>
+                  <h2 id="east-title">
+                    Bundle egress <span class="count" id="east-count"></span>
+                  </h2>
+                  <p>Internal resource targets / candidates</p>
+                </div>
+              </div>
+              <div class="relation-list" id="east-list"></div>
+            </section>
+            <section class="bridge south" aria-labelledby="south-title">
+              <div class="bridge-heading">
+                <span class="compass">S</span>
+                <div>
+                  <h2 id="south-title">
+                    External / unresolved egress
+                    <span class="count" id="south-count"></span>
+                  </h2>
+                  <p>
+                    System names, paths, capabilities · unknown containment
+                    stays explicit
+                  </p>
+                </div>
+              </div>
+              <div class="relation-list" id="south-list"></div>
+            </section>
+          </div>
+        </div>
+        <div class="legend" aria-label="Bridge legend">
+          <span><i class="line-sample incoming"></i>Bundle ingress</span
+          ><span><i class="line-sample"></i>Bundle egress</span
+          ><span
+            ><i class="line-sample external"></i>External / unresolved
+            reference</span
+          ><span
+            ><i class="line-sample candidate"></i>Candidate / inferred
+            association</span
+          ><span>Static relationships · no runtime traffic</span>
+        </div>
+        <p class="status" id="status" role="status">
+          Select a connection to preview its evidence. The center stays on your
+          file.
+        </p>
+      </main>
+      <aside
+        class="inspector"
+        id="resolution"
+        aria-label="Connection details; outside the graph"
+        tabindex="0"
+      ></aside>
+    </div>
+    <footer class="footer">
+      <span>Linked tree bridges / separate design copy</span
+      ><span
+        >Fixed example data · no files inspected · no observed runtime
+        activity</span
+      >
+    </footer>
+    <dialog id="design-notes" aria-labelledby="notes-title">
+      <div class="notes-header">
+        <h2 id="notes-title">Why separate the layers?</h2>
+        <button class="button" id="close-notes" aria-label="Close design notes">
+          ✕
+        </button>
+      </div>
+      <div class="notes-body">
+        <h3>Automatic tree highlighting · separate copy</h3>
+        <p>
+          The
+          <a href="../separated-bridge-workspace/index.html"
+            >approved original</a
+          >
+          is preserved. In this copy, a new file or architecture selection opens
+          the branches containing its internal incoming sources and outgoing
+          targets. The current file stays blue; incoming sources are teal with
+          IN labels; outgoing targets are purple with OUT labels.
+        </p>
+        <p>
+          Previewing a bridge card automatically opens and scrolls its other
+          endpoint into view in the tree, with a stronger outline. This changes
+          neither the selected file nor keyboard focus. Manual collapse is
+          respected until a new selection or an explicit relationship preview. A
+          neutral +count marks hidden related descendants; it does not make the
+          ancestor a relationship endpoint.
+        </p>
+        <p>
+          System and unresolved references have no corresponding file row.
+          Planning suggestions are excluded from automatic target marks, but can
+          still be revealed explicitly through the inspector. Back restores the
+          earlier expansion, preview, selected file and tree scroll position.
+        </p>
+
+        <p>
+          The selected file has four bridges. Horizontal connections stay within
+          the visible <strong>Atlas.app</strong> inventory. Vertical connections
+          hold system names, external paths and references whose containment is
+          still unknown.
+        </p>
+        <table class="comparison">
+          <thead>
+            <tr>
+              <th>Bridge</th>
+              <th>Direction</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>West</td>
+              <td>Resource → selection</td>
+              <td>
+                Internal ingress: helper, executable alias, metadata or resource
+                records.
+              </td>
+            </tr>
+            <tr>
+              <td>East</td>
+              <td>Selection → resource</td>
+              <td>Internal egress: bundle targets and labelled candidates.</td>
+            </tr>
+            <tr>
+              <td>North</td>
+              <td>External source → selection</td>
+              <td>
+                Only evidenced incoming external associations. This example has
+                no such inventory.
+              </td>
+            </tr>
+            <tr>
+              <td>South</td>
+              <td>Selection → reference</td>
+              <td>
+                System libraries, external paths, capabilities and unresolved
+                names.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <h3>Resolution context has no graph port</h3>
+        <p>
+          The vertical inspector at the far right explains the active
+          connection. It never receives an arrow. The selected resource appears
+          once in the graph; inspecting an incoming relation cannot create a
+          second target node for that same file.
+        </p>
+        <h3>Paths do not determine the axis by their spelling</h3>
+        <p>
+          <code>@rpath/libTelemetry.dylib</code> has an internal candidate in
+          this example, so its resource endpoint is east.
+          <code>@rpath/Optional.dylib</code> has no target, so it remains south
+          with containment unknown. The original load name and runpath context
+          remain visible in the inspector. A proposed replacement for an
+          absolute <code>/Original/…</code> path is a planning suggestion, not
+          an internal resolution.
+        </p>
+        <h3>Try the original application's richer neighborhood</h3>
+        <p>
+          Select Example: Render Helper and the executable alias enter from the
+          west; framework metadata, libTelemetry and application settings leave
+          to the east. The system library and unresolved optional dependency
+          leave south. Select a connection to inspect it, Reveal to locate its
+          other endpoint, or Focus to recenter. Back restores the prior
+          exploration.
+        </p>
+        <p>
+          Scope is the outer Atlas.app inventory. A resource elsewhere in
+          Atlas.app is still internal even when outside Example.framework. Each
+          card identifies its immediate bundle. Collapsing the physical tree
+          never changes graph geometry.
+        </p>
+        <h3>Evidence and implementation limits</h3>
+        <p>
+          All data is authored for this design study. Candidate dependencies,
+          path mentions, aliases and declarations retain their own evidence
+          labels. These are not observed file accesses, successful loads or
+          verified signature states. Empty external ingress means no records
+          were supplied, not that no external consumers exist.
+        </p>
+        <p>
+          This file uses only HTML, CSS and presentation JavaScript. The
+          ordinary Rust core remains unchanged; actual binary interpretation and
+          planning belong under <code>crates/binary/inspection</code>. No
+          resolver, filesystem acquisition, React, Wasm or service integration
+          is added.
+        </p>
+        <p>
+          Reference examples:
+          <a href="../mixed-relation-overlay/index.html"
+            >mixed relation overlay</a
+          >,
+          <a href="../../../../rebuilding/application-relocation-and-signing.md"
+            >application relocation</a
+          >.
+        </p>
+      </div>
+    </dialog>
+    <script>
+      (() => {
+        'use strict';
+        // Fixed design records only. JavaScript controls presentation, never resolution.
+        const files = [
+          { id: 'app', name: 'Atlas.app', parent: null, kind: 'bundle' },
+          { id: 'contents', name: 'Contents', parent: 'app', kind: 'folder' },
+          {
+            id: 'info',
+            name: 'Info.plist',
+            parent: 'contents',
+            kind: 'metadata',
+          },
+          { id: 'macos', name: 'MacOS', parent: 'contents', kind: 'folder' },
+          {
+            id: 'main',
+            name: 'Atlas',
+            parent: 'macos',
+            kind: 'binary',
+            role: 'Main executable',
+            arches: ['arm64', 'x86_64'],
+          },
+          {
+            id: 'frameworks',
+            name: 'Frameworks',
+            parent: 'contents',
+            kind: 'folder',
+          },
+          {
+            id: 'telemetry',
+            name: 'libTelemetry.dylib',
+            parent: 'frameworks',
+            kind: 'binary',
+            role: 'Dynamic library',
+            arches: ['arm64'],
+          },
+          {
+            id: 'framework',
+            name: 'Example.framework',
+            parent: 'frameworks',
+            kind: 'bundle',
+          },
+          {
+            id: 'alias',
+            name: 'Example',
+            parent: 'framework',
+            kind: 'link',
+            role: 'Executable alias',
+          },
+          {
+            id: 'versions',
+            name: 'Versions',
+            parent: 'framework',
+            kind: 'folder',
+          },
+          {
+            id: 'current',
+            name: 'Current',
+            parent: 'versions',
+            kind: 'link',
+            role: 'Version alias',
+          },
+          { id: 'version-a', name: 'A', parent: 'versions', kind: 'folder' },
+          {
+            id: 'example',
+            name: 'Example',
+            parent: 'version-a',
+            kind: 'binary',
+            role: 'Framework executable',
+            arches: ['arm64', 'x86_64'],
+          },
+          {
+            id: 'helpers',
+            name: 'Helpers',
+            parent: 'contents',
+            kind: 'folder',
+          },
+          {
+            id: 'helper-app',
+            name: 'Render Helper.app',
+            parent: 'helpers',
+            kind: 'bundle',
+          },
+          {
+            id: 'helper-contents',
+            name: 'Contents',
+            parent: 'helper-app',
+            kind: 'folder',
+          },
+          {
+            id: 'helper-macos',
+            name: 'MacOS',
+            parent: 'helper-contents',
+            kind: 'folder',
+          },
+          {
+            id: 'helper',
+            name: 'Render Helper',
+            parent: 'helper-macos',
+            kind: 'binary',
+            role: 'Helper executable',
+            arches: ['arm64'],
+          },
+          {
+            id: 'resources',
+            name: 'Resources',
+            parent: 'contents',
+            kind: 'folder',
+          },
+          {
+            id: 'settings',
+            name: 'Settings.plist',
+            parent: 'resources',
+            kind: 'metadata',
+            role: 'Application settings',
+          },
+          {
+            id: 'icon',
+            name: 'AppIcon.icns',
+            parent: 'resources',
+            kind: 'resource',
+            role: 'Icon resource',
+          },
+        ];
+        files.push(
+          {
+            id: 'framework-resources',
+            name: 'Resources',
+            parent: 'version-a',
+            kind: 'folder',
+          },
+          {
+            id: 'framework-info',
+            name: 'Info.plist',
+            parent: 'framework-resources',
+            kind: 'metadata',
+            role: 'Framework metadata',
+          },
+          {
+            id: 'xpcs',
+            name: 'XPCServices',
+            parent: 'contents',
+            kind: 'folder',
+          },
+          {
+            id: 'indexer',
+            name: 'Indexer.xpc',
+            parent: 'xpcs',
+            kind: 'bundle',
+            role: 'Service provider bundle',
+          },
+        );
+        // Each candidate and context below is authored, not calculated from a load name.
+        const relations = [
+          {
+            id: 'helper-example',
+            source: 'helper',
+            candidate: 'example',
+            title: 'Example.framework',
+            type: 'Dependency reference',
+            raw: '@rpath/Example.framework/Versions/A/Example',
+            command: 'LC_LOAD_DYLIB',
+            arches: ['arm64'],
+            state: 'candidate',
+            stateText: 'Candidate association',
+            context: 'Render Helper launch',
+            contextDetail: 'arm64 · loader: Render Helper',
+            runpath: '@executable_path/../../../../Frameworks',
+            result: 'Inside Atlas.app',
+            detail:
+              'The example runpath context supplies this candidate. No resolution or load has been verified.',
+          },
+          {
+            id: 'alias-example',
+            source: 'alias',
+            candidate: 'example',
+            title: 'Example',
+            type: 'Filesystem alias',
+            raw: 'Versions/Current/Example',
+            command: 'Stored symlink target',
+            state: 'candidate',
+            stateText: 'Alias target example',
+            context: 'Framework alias chain',
+            contextDetail: 'Current → A · architecture independent',
+            runpath: 'Example → Versions/Current/Example → Versions/A/Example',
+            result: 'Same bundle · distinct file',
+            detail:
+              'The link and target are distinct entries. This is an authored alias chain, not a filesystem traversal.',
+          },
+          {
+            id: 'example-telemetry',
+            source: 'example',
+            candidate: 'telemetry',
+            title: 'libTelemetry.dylib',
+            type: 'Dependency reference',
+            raw: '@rpath/libTelemetry.dylib',
+            command: 'LC_LOAD_DYLIB',
+            arches: ['arm64'],
+            state: 'candidate',
+            stateText: 'Inside bundle · candidate',
+            context: 'Atlas launch',
+            contextDetail:
+              'arm64 · loader: Example.framework/Versions/A/Example',
+            runpath: '@executable_path/../Frameworks',
+            result: 'Inside Atlas.app',
+            detail:
+              'A file is represented in the example inventory. Compatibility and runtime loading remain unverified.',
+          },
+          {
+            id: 'example-system',
+            source: 'example',
+            title: 'libSystem.B.dylib',
+            type: 'System reference',
+            raw: '/usr/lib/libSystem.B.dylib',
+            command: 'LC_LOAD_DYLIB',
+            arches: ['arm64', 'x86_64'],
+            state: 'external',
+            stateText: 'External · not acquired',
+            context: 'Absolute recorded name',
+            contextDetail: 'No bundle candidate is supplied.',
+            result: 'System target not acquired',
+            detail:
+              'The name is an external reference record. No inspected file or runtime-loaded image is claimed.',
+          },
+          {
+            id: 'example-optional',
+            source: 'example',
+            title: 'Optional.dylib',
+            type: 'Weak dependency',
+            raw: '@rpath/Optional.dylib',
+            command: 'LC_LOAD_WEAK_DYLIB',
+            arches: ['arm64', 'x86_64'],
+            state: 'unknown',
+            stateText: 'Unresolved in this example',
+            context: 'Atlas launch',
+            contextDetail: 'Applicable context remains incomplete.',
+            runpath: 'Ordered runpath search not evaluated',
+            result: 'No candidate supplied',
+            detail:
+              'Unknown is preserved. This does not prove that the dependency is absent on a real host.',
+          },
+          {
+            id: 'main-original',
+            source: 'main',
+            candidate: 'example',
+            suggestion: true,
+            title: 'Original Example',
+            type: 'Absolute dependency',
+            raw: '/Original/Atlas.app/Contents/Frameworks/Example.framework/Versions/A/Example',
+            command: 'LC_LOAD_DYLIB',
+            arches: ['arm64', 'x86_64'],
+            state: 'unknown',
+            stateText: 'Still names original location',
+            context: 'Staged Atlas launch',
+            contextDetail:
+              'Copying the bundle leaves this recorded path unchanged.',
+            result: 'Possible staged replacement',
+            detail:
+              'This local file is a planning suggestion, not a resolved target of the original absolute reference. No rewrite is proposed by this page.',
+          },
+          {
+            id: 'main-system',
+            source: 'main',
+            title: 'libSystem.B.dylib',
+            type: 'System reference',
+            raw: '/usr/lib/libSystem.B.dylib',
+            command: 'LC_LOAD_DYLIB',
+            arches: ['arm64', 'x86_64'],
+            state: 'external',
+            stateText: 'External · not acquired',
+            context: 'Absolute recorded name',
+            contextDetail: 'No bundle candidate is supplied.',
+            result: 'System target not acquired',
+            detail:
+              'A recorded dependency does not establish that this library was loaded.',
+          },
+          {
+            id: 'main-settings',
+            source: 'main',
+            candidate: 'settings',
+            title: 'Settings.plist',
+            type: 'Resource string',
+            raw: 'Contents/Resources/Settings.plist',
+            command: 'Illustrative string evidence',
+            arches: ['arm64', 'x86_64'],
+            state: 'candidate',
+            stateText: 'Mention · access not observed',
+            context: 'Resource path mention',
+            contextDetail: 'Matched only within the fixed example inventory.',
+            result: 'Inside Atlas.app',
+            detail:
+              'A string mention does not establish a read, write or successful resource lookup.',
+          },
+          {
+            id: 'info-main',
+            source: 'info',
+            candidate: 'main',
+            title: 'Atlas',
+            type: 'Bundle declaration',
+            raw: 'Atlas',
+            command: 'Info.plist · CFBundleExecutable',
+            state: 'candidate',
+            stateText: 'Declared executable',
+            context: 'Bundle metadata',
+            contextDetail: 'Atlas.app/Contents/Info.plist',
+            result: 'Declared file in this example',
+            detail:
+              'The metadata declaration does not establish a process launch.',
+          },
+          {
+            id: 'current-version',
+            source: 'current',
+            candidate: 'version-a',
+            title: 'A',
+            type: 'Filesystem alias',
+            raw: 'A',
+            command: 'Stored symlink target',
+            state: 'candidate',
+            stateText: 'Alias target example',
+            context: 'Relative alias',
+            contextDetail: 'Example.framework/Versions/Current',
+            result: 'Directory target example',
+            detail:
+              'This is an authored alias target. The prototype does not follow a real filesystem link.',
+          },
+        ];
+        relations.push(
+          {
+            id: 'example-info',
+            source: 'example',
+            candidate: 'framework-info',
+            title: 'Info.plist',
+            type: 'Resource path',
+            raw: 'Resources/Info.plist',
+            command: 'Illustrative framework string',
+            arches: ['arm64'],
+            state: 'candidate',
+            stateText: 'Path candidate · access unknown',
+            context: 'Example.framework bundle lookup',
+            contextDetail:
+              'The fixed example matches a framework-relative metadata path.',
+            result: 'Inside Example.framework',
+            detail:
+              'This authored path match does not establish an actual resource lookup or file access.',
+          },
+          {
+            id: 'example-settings',
+            source: 'example',
+            candidate: 'settings',
+            title: 'Settings.plist',
+            type: 'Resource string',
+            raw: 'Contents/Resources/Settings.plist',
+            command: 'Illustrative framework string',
+            arches: ['arm64'],
+            state: 'candidate',
+            stateText: 'Path mention · access unknown',
+            context: 'Atlas application-root context',
+            contextDetail:
+              'The illustrative path is matched against the outer application inventory.',
+            result: 'Elsewhere inside Atlas.app',
+            detail:
+              'A matching resource path is a candidate association, not an observed read or write.',
+          },
+          {
+            id: 'main-cache',
+            source: 'main',
+            title: 'Atlas cache path',
+            type: 'External path',
+            raw: '~/Library/Application Support/Atlas/cache.db',
+            command: 'Illustrative executable string',
+            arches: ['arm64', 'x86_64'],
+            state: 'external',
+            stateText: 'Path reference · not inspected',
+            context: 'Possible user-data path',
+            contextDetail: 'No user home or concrete file was acquired.',
+            result: 'External path reference only',
+            detail:
+              'Neither file existence nor any read or write operation is established.',
+          },
+          {
+            id: 'main-service',
+            source: 'main',
+            candidate: 'indexer',
+            title: 'Indexer.xpc',
+            type: 'Service name',
+            raw: 'com.example.atlas.indexer',
+            command: 'Illustrative service-name string',
+            arches: ['arm64', 'x86_64'],
+            state: 'candidate',
+            stateText: 'Provider candidate · not bound',
+            context: 'Bundle identifier match',
+            contextDetail:
+              'The example identifier matches the nested Indexer.xpc bundle.',
+            result: 'Inside Atlas.app · nested XPC bundle',
+            detail:
+              'A name match does not establish registration, service execution or an IPC exchange.',
+          },
+        );
+        const $ = (id) => document.getElementById(id);
+        const byId = (id) => files.find((file) => file.id === id);
+        const children = (id) => files.filter((file) => file.parent === id);
+        const ancestry = (id) => {
+          const list = [];
+          for (let file = byId(id); file; file = byId(file.parent))
+            list.unshift(file);
+          return list;
+        };
+        const path = (id) =>
+          ancestry(id)
+            .map((file) => file.name)
+            .join('/');
+        const escape = (value) =>
+          String(value).replace(
+            /[&<>"']/g,
+            (char) =>
+              ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+              })[char],
+          );
+        const state = {
+          selected: 'example',
+          active: 'example-telemetry',
+          arch: 'arm64',
+          revealed: null,
+          expanded: new Set([
+            'app',
+            'contents',
+            'macos',
+            'frameworks',
+            'framework',
+            'versions',
+            'version-a',
+            'resources',
+          ]),
+          history: [],
+        };
+        const kindName = (file) =>
+          ({
+            binary: 'Mach-O',
+            bundle: 'Bundle',
+            folder: 'Directory',
+            link: 'Symbolic link',
+            metadata: 'Metadata',
+            resource: 'Resource',
+          })[file.kind];
+        const icon = (kind) =>
+          `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">${kind === 'folder' || kind === 'bundle' ? '<path d="M3 7V5h7l2 3h9v12H3Z"/>' : kind === 'link' ? '<path d="m9 15 6-6M8 16l-1 1a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 2 1-1a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>' : kind === 'binary' ? '<path d="M6 3h8l4 4v14H6Z"/><path d="m10 10-2 3 2 3m4-6 2 3-2 3"/>' : '<path d="M6 3h8l4 4v14H6Z"/><path d="M9 12h6m-6 4h6"/>'}</svg>`;
+        // Presentation of fixed associations only: no path expansion or resolution.
+        function relevant() {
+          const groups = { north: [], west: [], east: [], south: [] };
+          for (const relation of relations) {
+            if (relation.arches && !relation.arches.includes(state.arch))
+              continue;
+            if (relation.source === relation.candidate) continue;
+            if (relation.candidate === state.selected && !relation.suggestion) {
+              groups[byId(relation.source) ? 'west' : 'north'].push(relation);
+            } else if (relation.source === state.selected) {
+              groups[
+                relation.candidate && !relation.suggestion ? 'east' : 'south'
+              ].push(relation);
+            }
+          }
+          return groups;
+        }
+        function normalizeActive() {
+          const groups = relevant();
+          const all = [
+            ...groups.east,
+            ...groups.west,
+            ...groups.south,
+            ...groups.north,
+          ];
+          if (!all.some((relation) => relation.id === state.active))
+            state.active = all[0]?.id || null;
+        }
+        function bundleLabel(id) {
+          const owner = ancestry(id)
+            .filter((file) => file.kind === 'bundle')
+            .at(-1);
+          return owner?.id === 'app'
+            ? 'Elsewhere inside Atlas.app'
+            : `Inside ${owner?.name || 'Atlas.app'}`;
+        }
+
+        function treeMarks() {
+          const marks = new Map();
+          const groups = relevant();
+          const add = (id, role) => {
+            if (!byId(id) || id === state.selected) return;
+            const entry = marks.get(id) || { incoming: false, outgoing: false };
+            entry[role] = true;
+            marks.set(id, entry);
+          };
+          groups.west.forEach((relation) => add(relation.source, 'incoming'));
+          groups.east.forEach((relation) =>
+            add(relation.candidate, 'outgoing'),
+          );
+          return marks;
+        }
+        function activeTreeEndpoint() {
+          const groups = relevant();
+          const incoming = groups.west.find(
+            (relation) => relation.id === state.active,
+          );
+          if (incoming) return incoming.source;
+          return (
+            groups.east.find((relation) => relation.id === state.active)
+              ?.candidate || null
+          );
+        }
+        function openAncestors(id) {
+          ancestry(id)
+            .slice(0, -1)
+            .forEach((file) => state.expanded.add(file.id));
+        }
+        function expandRelated() {
+          openAncestors(state.selected);
+          for (const id of treeMarks().keys()) openAncestors(id);
+        }
+        function scrollTreeRow(id) {
+          const pane = document.querySelector('.tree-scroll');
+          const row = pane.querySelector(`[data-tree-id="${id}"]`);
+          if (!row) return;
+          const outer = pane.getBoundingClientRect();
+          const inner = row.getBoundingClientRect();
+          if (inner.top < outer.top + 6)
+            pane.scrollTop += inner.top - outer.top - 6;
+          else if (inner.bottom > outer.bottom - 6)
+            pane.scrollTop += inner.bottom - outer.bottom + 6;
+        }
+        function treeMarkup(
+          parent = null,
+          marks = treeMarks(),
+          active = activeTreeEndpoint(),
+        ) {
+          return children(parent)
+            .map((file) => {
+              const nested = children(file.id).length > 0;
+              const expanded = state.expanded.has(file.id);
+              const selected = file.id === state.selected;
+              const mark = marks.get(file.id);
+              const role =
+                mark?.incoming && mark?.outgoing
+                  ? 'both'
+                  : mark?.incoming
+                    ? 'incoming'
+                    : mark?.outgoing
+                      ? 'outgoing'
+                      : '';
+              const hidden =
+                nested && !expanded
+                  ? [...marks.keys()].filter(
+                      (id) =>
+                        id !== file.id &&
+                        ancestry(id).some(
+                          (ancestor) => ancestor.id === file.id,
+                        ),
+                    ).length
+                  : 0;
+              const label = selected
+                ? 'Selected file'
+                : role === 'both'
+                  ? 'Incoming source and outgoing target'
+                  : role === 'incoming'
+                    ? 'Incoming source'
+                    : role === 'outgoing'
+                      ? 'Outgoing target'
+                      : '';
+              const badge = selected
+                ? 'SEL'
+                : role === 'both'
+                  ? 'IN/OUT'
+                  : role === 'incoming'
+                    ? 'IN'
+                    : role === 'outgoing'
+                      ? 'OUT'
+                      : '';
+              const activePreview = active === file.id;
+              const accessible = [
+                file.name,
+                label,
+                activePreview ? 'Active connection endpoint' : '',
+                hidden
+                  ? `${hidden} related resource${hidden === 1 ? '' : 's'} inside collapsed branch`
+                  : '',
+              ]
+                .filter(Boolean)
+                .join(', ');
+              return `<li><div class="tree-row" data-tree-id="${file.id}" data-selected="${selected}" data-tree-role="${role}" data-preview="${activePreview}" data-revealed="${state.revealed === file.id}" data-hidden-related="${hidden}">${nested ? `<button class="disclosure" data-expand="${file.id}" aria-label="${expanded ? 'Collapse' : 'Expand'} ${escape(file.name)}" aria-expanded="${expanded}">${expanded ? '⌄' : '›'}</button>` : '<span class="spacer"></span>'}<button class="file-button" data-select="${file.id}" aria-label="${escape(accessible)}" ${selected ? 'aria-current="true"' : ''}>${icon(file.kind)}<span>${escape(file.name)}</span></button>${badge ? `<span class="tree-badge" aria-hidden="true" title="${escape(label)}">${badge}</span>` : ''}${hidden ? `<span class="tree-badge hidden-count" aria-hidden="true" title="${hidden} related resources inside; this branch is not an endpoint">+${hidden}</span>` : ''}</div>${nested && expanded ? `<ul>${treeMarkup(file.id, marks, active)}</ul>` : ''}</li>`;
+            })
+            .join('');
+        }
+        function renderTree() {
+          const pane = document.querySelector('.tree-scroll');
+          const previousScroll = pane.scrollTop;
+          const marks = treeMarks();
+          $('file-tree').innerHTML = treeMarkup(null, marks);
+          pane.scrollTop = previousScroll;
+          const visible = ancestry(state.selected)
+            .slice(0, -1)
+            .every((file) => state.expanded.has(file.id));
+          const hidden = [...marks.keys()].filter(
+            (id) => !pane.querySelector(`[data-tree-id="${id}"]`),
+          ).length;
+          const active = activeTreeEndpoint();
+          const hint = active
+            ? `Active endpoint: ${byId(active).name}.`
+            : state.active
+              ? 'Reference preview has no internal file endpoint.'
+              : 'No direct relationships supplied for this selection.';
+          $('tree-note').textContent =
+            `${marks.size} related resource${marks.size === 1 ? '' : 's'}${hidden ? ` · ${hidden} inside collapsed branches` : ''}. ${visible ? hint : 'The selected file is inside a collapsed branch; the center stays fixed.'}`;
+        }
+        function relationCard(relation, direction) {
+          const incoming = direction === 'west' || direction === 'north';
+          const endpoint = incoming
+            ? byId(relation.source)
+            : direction === 'east'
+              ? byId(relation.candidate)
+              : null;
+          const title = endpoint
+            ? endpoint.name + (endpoint.kind === 'link' ? ' · alias' : '')
+            : relation.title;
+          const description = endpoint
+            ? path(endpoint.id).replace('Atlas.app/Contents/', '')
+            : relation.raw;
+          return `<button class="relation" data-relation="${relation.id}" data-direction="${direction}" aria-pressed="${state.active === relation.id}"><span class="relation-type">${escape(relation.type)}</span><strong>${escape(title)}</strong><span class="record mono">${escape(description)}</span><span class="state ${relation.state}">${escape(relation.stateText)}</span>${endpoint ? `<span class="record" style="padding-top:4px">${escape(bundleLabel(endpoint.id))}</span>` : ''}</button>`;
+        }
+        function renderResolution() {
+          const relation = relations.find((item) => item.id === state.active);
+          if (!relation) {
+            $('resolution').innerHTML =
+              '<div class="inspector-header"><div><h2>Connection details</h2><p>Select a relationship to inspect its evidence.</p></div><span>Inspector · outside the graph</span></div>';
+            return;
+          }
+          const incoming = relation.source !== state.selected;
+          const other = incoming ? relation.source : relation.candidate;
+          const endpoint =
+            other && other !== state.selected ? byId(other) : null;
+          const group = Object.entries(relevant()).find(([, items]) =>
+            items.some((item) => item.id === relation.id),
+          )?.[0];
+          const sourceFile = byId(relation.source);
+          const sourceName = sourceFile
+            ? sourceFile.name + (sourceFile.kind === 'link' ? ' (alias)' : '')
+            : relation.sourceLabel || 'External reference';
+          const targetName =
+            relation.candidate && !relation.suggestion
+              ? byId(relation.candidate).name
+              : relation.title;
+          const endpointRole = incoming
+            ? 'source'
+            : relation.suggestion
+              ? 'suggested file'
+              : 'target';
+          $('resolution').innerHTML =
+            `<div class="inspector-header"><div><h2>${escape(sourceName)} → ${escape(targetName)}</h2><p>${escape(group || '')} bridge · ${escape(relation.type)} · ${escape(relation.stateText)}</p></div><span>Connection details · not a graph node</span></div><div class="inspector-grid"><div><div class="step-title">Recorded evidence</div><strong>${escape(relation.command)}</strong><code>${escape(relation.raw)}</code></div><div><div class="step-title">Resolution / interpretation context</div><strong>${escape(relation.context)}</strong><p>${escape(relation.contextDetail)}</p>${relation.runpath ? `<code>${escape(relation.runpath)}</code>` : ''}</div><div><div class="step-title">${relation.suggestion ? 'Separate planning suggestion' : 'Endpoint status'}</div><strong>${escape(relation.result)}</strong><p>${escape(relation.candidate ? path(relation.candidate) : relation.stateText)}</p>${incoming ? '<p style="margin-top:8px">This endpoint is the selected file, already shown at the center.</p>' : ''}</div></div><p class="evidence-limit">${escape(relation.detail)}</p><div class="inspector-actions">${endpoint ? `<button class="button" data-reveal="${endpoint.id}">Reveal ${endpointRole}</button><button class="button primary" data-focus="${endpoint.id}">Focus ${endpointRole} →</button>` : '<span>No acquired file endpoint to reveal or focus.</span>'}</div>`;
+        }
+        function render() {
+          normalizeActive();
+          renderTree();
+          const selected = byId(state.selected);
+          const groups = relevant();
+          $('selected-path').textContent = path(selected.id);
+          $('back').disabled = !state.history.length;
+          $('architecture').disabled = !selected.arches;
+          $('architecture').value = state.arch;
+          for (const option of $('architecture').options)
+            option.disabled =
+              !!selected.arches && !selected.arches.includes(option.value);
+          const empty = {
+            north:
+              'No external incoming records supplied. Consumers outside this inventory are unknown.',
+            west: 'No internal incoming associations supplied for this selection.',
+            east: 'No internal targets supplied for this selection and slice.',
+            south:
+              'No system, external or unresolved references supplied for this selection.',
+          };
+          for (const [direction, items] of Object.entries(groups)) {
+            $(direction + '-count').textContent = `(${items.length})`;
+            $(direction + '-list').innerHTML =
+              items
+                .map((relation) => relationCard(relation, direction))
+                .join('') || `<p class="empty">${empty[direction]}</p>`;
+          }
+          const folder = ['folder', 'bundle'].includes(selected.kind);
+          $('focus-card').innerHTML =
+            `<span class="eyebrow" style="color:var(--blue)">Selected ${folder ? 'location' : 'file'}</span><div class="focus-title"><span class="file-glyph">${icon(selected.kind)}</span><div><h2>${escape(selected.name)}</h2><p>${escape(selected.role || kindName(selected))}</p></div></div><div class="mono muted">${escape(path(selected.id).replace('Atlas.app/', ''))}</div><div class="focus-meta"><span>${escape(kindName(selected))}${selected.arches ? ' · ' + state.arch : ''}</span><span>Scope: Atlas.app</span></div>${folder ? '<p class="muted" style="font-size:10px;margin-top:8px">Direct associations only. Contained files are not aggregated.</p>' : ''}`;
+          renderResolution();
+          requestAnimationFrame(drawEdges);
+        }
+        function drawEdges() {
+          const grid = $('bridge-grid');
+          const bounds = grid.getBoundingClientRect();
+          const box = (element) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              left: rect.left - bounds.left,
+              right: rect.right - bounds.left,
+              top: rect.top - bounds.top,
+              bottom: rect.bottom - bounds.top,
+              x: (rect.left + rect.right) / 2 - bounds.left,
+              y: (rect.top + rect.bottom) / 2 - bounds.top,
+            };
+          };
+          const center = box($('focus-card'));
+          const svg = $('edges');
+          svg.setAttribute('viewBox', `0 0 ${bounds.width} ${bounds.height}`);
+          const definitions = `<defs>${['north', 'south', 'west', 'east'].map((direction) => `<marker id="arrow-${direction}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="m1 1 6 3-6 3" fill="none" stroke="var(--${direction === 'north' || direction === 'south' ? 'amber' : direction === 'west' ? 'incoming' : 'violet'})" stroke-width="1.4"/></marker>`).join('')}</defs>`;
+          const paths = [];
+          grid.querySelectorAll('[data-relation]').forEach((element) => {
+            const relation = relations.find(
+              (item) => item.id === element.dataset.relation,
+            );
+            const direction = element.dataset.direction;
+            const card = box(element);
+            let d;
+            const source = relation.source;
+            const target =
+              direction === 'south'
+                ? relation.id + '-reference'
+                : relation.candidate;
+            if (!target || source === target) return;
+            if (direction === 'west') {
+              const lane = (card.right + center.left) / 2;
+              d = `M${card.right + 2},${card.y} H${lane} V${center.y} H${center.left - 5}`;
+            } else if (direction === 'east') {
+              const lane = (center.right + card.left) / 2;
+              d = `M${center.right + 5},${center.y} H${lane} V${card.y} H${card.left - 3}`;
+            } else if (direction === 'north') {
+              const lane = (card.bottom + center.top) / 2;
+              d = `M${card.x},${card.bottom + 2} V${lane} H${center.x} V${center.top - 3}`;
+            } else {
+              const lane = box($('south-list')).top - 18;
+              d = `M${center.x},${center.bottom + 2} V${lane} H${card.x} V${card.top - 3}`;
+            }
+            const candidate =
+              (direction === 'west' || direction === 'east') &&
+              relation.state === 'candidate';
+            paths.push(
+              `<path class="edge ${direction}-edge ${candidate ? 'candidate-edge' : ''} ${state.active === relation.id ? 'active-edge' : ''}" data-from="${source}" data-to="${target}" data-edge="${relation.id}" d="${d}" marker-end="url(#arrow-${direction})"/>`,
+            );
+          });
+          // The inspector is deliberately outside this SVG: no context edge or self-loop.
+          svg.innerHTML = definitions + paths.join('');
+        }
+        function announce(message) {
+          $('status').textContent = message;
+        }
+        function snapshot() {
+          return {
+            selected: state.selected,
+            active: state.active,
+            arch: state.arch,
+            expanded: [...state.expanded],
+            revealed: state.revealed,
+            treeScroll: document.querySelector('.tree-scroll').scrollTop,
+          };
+        }
+        function select(id) {
+          if (id === state.selected) return;
+          state.history.push(snapshot());
+          const file = byId(id);
+          state.selected = id;
+          state.active = null;
+          state.revealed = null;
+          if (file.arches && !file.arches.includes(state.arch))
+            state.arch = file.arches[0];
+          ancestry(id)
+            .slice(0, -1)
+            .forEach((parent) => state.expanded.add(parent.id));
+          expandRelated();
+          render();
+          scrollTreeRow(id);
+          announce(
+            `Focused ${path(id)}. Back restores your previous exploration.`,
+          );
+        }
+        function reveal(id) {
+          ancestry(id)
+            .slice(0, -1)
+            .forEach((parent) => state.expanded.add(parent.id));
+          state.revealed = id;
+          renderTree();
+          scrollTreeRow(id);
+          announce(
+            `Revealed ${path(id)} in the tree. ${byId(state.selected).name} remains selected.`,
+          );
+        }
+        function preserveFocus(callback) {
+          const element = document.activeElement;
+          const key = ['relation', 'expand', 'select'].find(
+            (name) => element?.dataset[name],
+          );
+          const selector = key
+            ? `[data-${key}="${element.dataset[key]}"]`
+            : null;
+          callback();
+          if (selector)
+            document.querySelector(selector)?.focus({ preventScroll: true });
+        }
+        document.addEventListener('click', (event) => {
+          const button = event.target.closest('button');
+          if (!button) return;
+          if (button.dataset.expand) {
+            const id = button.dataset.expand;
+            state.expanded.has(id)
+              ? state.expanded.delete(id)
+              : state.expanded.add(id);
+            preserveFocus(renderTree);
+          } else if (button.dataset.select)
+            preserveFocus(() => select(button.dataset.select));
+          else if (button.dataset.relation) {
+            state.active = button.dataset.relation;
+            state.revealed = null;
+            const endpoint = activeTreeEndpoint();
+            if (endpoint) openAncestors(endpoint);
+            preserveFocus(render);
+            if (endpoint) scrollTreeRow(endpoint);
+            announce(
+              `Previewing ${endpoint ? byId(endpoint).name : relations.find((relation) => relation.id === state.active).title}. ${endpoint ? 'Its related tree row is highlighted.' : 'This reference has no automatic internal tree endpoint.'} The selected file is unchanged.`,
+            );
+          } else if (button.dataset.reveal) reveal(button.dataset.reveal);
+          else if (button.dataset.focus) {
+            select(button.dataset.focus);
+            $('focus-card').setAttribute('tabindex', '-1');
+            $('focus-card').focus({ preventScroll: true });
+          }
+        });
+        $('architecture').addEventListener('change', (event) => {
+          state.arch = event.target.value;
+          state.revealed = null;
+          expandRelated();
+          render();
+          announce(
+            `Showing fixed ${state.arch} example records. No analysis was performed.`,
+          );
+        });
+        $('back').addEventListener('click', () => {
+          const previous = state.history.pop();
+          if (!previous) return;
+          Object.assign(state, previous, {
+            expanded: new Set(previous.expanded),
+          });
+          render();
+          document.querySelector('.tree-scroll').scrollTop =
+            previous.treeScroll || 0;
+          announce(
+            `Restored ${byId(state.selected).name}, its preview and tree state.`,
+          );
+        });
+        $('collapse-tree').addEventListener('click', () => {
+          state.expanded.clear();
+          renderTree();
+          announce(
+            'Collapsed file navigation. Selection and bridge geometry are unchanged.',
+          );
+        });
+        $('reveal-selected').addEventListener('click', () =>
+          reveal(state.selected),
+        );
+        $('open-notes').addEventListener('click', () =>
+          $('design-notes').showModal(),
+        );
+        $('close-notes').addEventListener('click', () =>
+          $('design-notes').close(),
+        );
+        const resize = new ResizeObserver(() =>
+          requestAnimationFrame(drawEdges),
+        );
+        resize.observe($('bridge-grid'));
+        expandRelated();
+        render();
+      })();
+    </script>
+  </body>
+</html>
