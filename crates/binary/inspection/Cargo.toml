@@ -1,0 +1,11 @@
+[package]
+name = "binary-inspection"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+object.workspace = true
+
+[dev-dependencies]
+test-assets-ureq = "=0.7.0"
