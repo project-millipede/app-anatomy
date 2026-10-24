@@ -1,0 +1,5 @@
+package apple-code:build-dependencies@0.1.0;
+
+world dependencies {
+  import polymorph:websocket/connections@0.1.0;
+}

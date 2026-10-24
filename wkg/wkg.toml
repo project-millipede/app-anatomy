@@ -1,0 +1,2 @@
+[overrides]
+"polymorph:websocket" = { path = "vendor/polymorph-websocket-0.1.0/websocket.wit" }
