@@ -1,0 +1,30 @@
+{
+  "name": "@apple-code/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm styles:codegen && next dev --hostname 127.0.0.1 --port 3210",
+    "build": "pnpm styles:codegen && next build",
+    "start": "next start --hostname 127.0.0.1 --port 3210",
+    "typecheck": "pnpm styles:codegen && next typegen && tsc --noEmit",
+    "styles:codegen": "panda codegen",
+    "prepare": "pnpm styles:codegen"
+  },
+  "dependencies": {
+    "@apple-code/browser": "workspace:*",
+    "@ark-ui/react": "5.39.3",
+    "@base-ui/react": "1.9.0",
+    "next": "16.4.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@pandacss/dev": "^2.4.0",
+    "@pandacss/preset-base": "^2.4.0",
+    "@types/node": "24.13.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2"
+  }
+}

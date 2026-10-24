@@ -1,0 +1,32 @@
+{
+  "name": "apple-code-workbench",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "pnpm engine:build && pnpm --filter @apple-code/web dev",
+    "build": "pnpm engine:build && pnpm --filter @apple-code/web build",
+    "engine:build": "node scripts/build-engine.ts",
+    "typecheck": "tsc --noEmit -p scripts/tsconfig.json && pnpm --filter @apple-code/browser typecheck && pnpm --filter @apple-code/web typecheck && tsc --noEmit -p tests/tsconfig.json",
+    "test": "pnpm engine:build && cargo test --locked --workspace --exclude workbench-component --all-targets && cargo test --locked -p workbench-component --lib && pnpm test:web",
+    "test:web": "vitest run --dir tests",
+    "format": "prettier --write . && cargo fmt --all",
+    "format:check": "prettier --check . && cargo fmt --all -- --check",
+    "wit:fetch": "cargo run --locked -p app-anatomy-xtask -- wit fetch",
+    "wit:check": "cargo run --locked -p app-anatomy-xtask -- wit check",
+    "reset:dependencies": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +"
+  },
+  "devDependencies": {
+    "@bytecodealliance/jco": "1.36.0",
+    "@jsr/polymorph__websocket": "0.6.1",
+    "@types/node": "24.13.3",
+    "esbuild": "^0.28.2",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

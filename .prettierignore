@@ -1,0 +1,11 @@
+pnpm-lock.yaml
+Cargo.lock
+target
+node_modules
+.next
+generated
+apps/web/public/engine
+apps/web/next-env.d.ts
+apps/web/styled-system
+wkg/vendor
+wkg/wit/deps

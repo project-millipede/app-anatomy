@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+overrides:
+  '@bytecodealliance/jco': 1.36.0
+allowBuilds:
+  '@parcel/watcher': false
+  esbuild: true
+  sharp: false

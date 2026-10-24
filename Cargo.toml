@@ -1,0 +1,35 @@
+[workspace]
+members = [
+    "crates/binary/inspection",
+    "crates/workbench/component",
+    "crates/filesystem/data",
+    "crates/filesystem/native",
+    "crates/filesystem/protocol",
+    "crates/workbench/operations",
+    "crates/services/filesystem",
+    "crates/distribution/packaging",
+    "crates/distribution/integration",
+    "crates/distribution/composition",
+    "experiments/workbench/native",
+    "xtask",
+]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+object = { version = "=0.40.0", default-features = false, features = ["read_core", "macho", "elf", "pe", "names"] }
+thiserror = "=2.0.21"
+
+# Pin feat/macos-standalone-event-loop so native event ownership is reproducible.
+[patch.crates-io]
+rfd = { git = "https://github.com/project-millipede/rfd", rev = "ee57c7d2c9f896d69d40332c3bad11483d55754e" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1

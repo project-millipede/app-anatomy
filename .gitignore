@@ -1,0 +1,16 @@
+node_modules/
+target/
+.next/
+out/
+dist/
+packages/apple-code-browser/generated/
+apps/web/public/engine/
+apps/web/public/installers/*.pkg
+*.tsbuildinfo
+.DS_Store
+.env*
+!.env.example
+.vercel/
+apps/web/styled-system/
+wkg/vendor/
+wkg/wit/deps/
