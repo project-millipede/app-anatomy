@@ -1,0 +1,20 @@
+[package]
+name = "filesystem-service"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+binary-inspection = { path = "../../binary/inspection" }
+filesystem-protocol = { path = "../../filesystem/protocol" }
+filesystem-native = { path = "../../filesystem/native" }
+anyhow = "1"
+futures = "0.3"
+rand = "0.10"
+rfd = { version = "=0.17.2", default-features = false, features = ["xdg-portal"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "sync", "time", "signal"] }
+tokio-websockets = { version = "=0.13.3", default-features = false, features = ["server", "sha1_smol", "fastrand"] }
+
+[dev-dependencies]
+tempfile = "=3.27.0"
