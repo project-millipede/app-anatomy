@@ -1,0 +1,4 @@
+{
+  "extends": "../packages/apple-code-browser/tsconfig.json",
+  "include": ["**/*.test.ts"]
+}

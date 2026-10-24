@@ -1,0 +1,21 @@
+{
+  "name": "@apple-code/browser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./native": "./src/native/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@jsr/polymorph__websocket": "0.6.1",
+    "@jsr/polyengine__protocol": "0.3.1"
+  }
+}
