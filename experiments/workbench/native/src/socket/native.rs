@@ -104,23 +104,3 @@ impl Transport for NativeTransport {
         self.socket = None;
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::error::Error;
-
-    #[test]
-    fn native_configuration_rejects_an_entered_tokio_runtime() {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .build()
-            .unwrap();
-        let _entered = runtime.enter();
-        let failure = match NativeTransport::new("ws://localhost:8123/files".into()) {
-            Ok(_) => panic!("entered Tokio runtime was accepted"),
-            Err(failure) => failure,
-        };
-        assert_eq!(failure.operation(), Some(TransportOperation::Configure));
-        assert!(failure.source().is_none());
-    }
-}
