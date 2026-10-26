@@ -1,0 +1,739 @@
+<div id="native-writer-contracts">
+  <style>
+    #native-writer-contracts {
+      color: var(--foreground);
+    }
+    #native-writer-contracts .heading {
+      padding-right: 94px;
+      margin-bottom: 18px;
+    }
+    #native-writer-contracts h2 {
+      margin: 0 0 6px;
+    }
+    #native-writer-contracts .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    #native-writer-contracts .group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    #native-writer-contracts .canvas {
+      width: 100%;
+    }
+    #native-writer-contracts svg {
+      display: block;
+      width: 100%;
+    }
+    #native-writer-contracts .map text {
+      fill: var(--foreground);
+      font: inherit;
+      font-size: var(--font-size-base);
+      font-weight: 400;
+    }
+    #native-writer-contracts .map .strong {
+      font-weight: 500;
+    }
+    #native-writer-contracts .map .muted {
+      fill: var(--muted-foreground);
+    }
+    #native-writer-contracts .map .error-text {
+      fill: var(--destructive);
+    }
+    #native-writer-contracts .map .scope {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #native-writer-contracts .map .borrow {
+      fill: color-mix(in srgb, var(--muted) 22%, transparent);
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #native-writer-contracts .map .node {
+      fill: var(--background);
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #native-writer-contracts .map .native {
+      fill: color-mix(in srgb, var(--viz-series-1) 8%, var(--background));
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #native-writer-contracts .map .result {
+      fill: color-mix(in srgb, var(--viz-series-1) 11%, var(--background));
+      stroke: none;
+    }
+    #native-writer-contracts .map .failure {
+      fill: color-mix(in srgb, var(--destructive) 8%, var(--background));
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #native-writer-contracts .map .buffer {
+      fill: color-mix(in srgb, var(--viz-series-1) 18%, var(--background));
+      stroke: none;
+    }
+    #native-writer-contracts .map .wire {
+      fill: none;
+      stroke: var(--viz-series-1);
+      stroke-width: 1.5;
+    }
+    #native-writer-contracts .map .wire.error {
+      stroke: var(--destructive);
+    }
+    #native-writer-contracts .map .wire.idle {
+      stroke: var(--border);
+    }
+    #native-writer-contracts .map .idle-node {
+      fill: color-mix(in srgb, var(--muted) 24%, var(--background));
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #native-writer-contracts .contracts {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    #native-writer-contracts .contracts dt {
+      font-weight: 500;
+    }
+    #native-writer-contracts .contracts dd {
+      margin: 0;
+    }
+    #native-writer-contracts .detail {
+      margin-top: 12px;
+    }
+    @media (max-width: 450px) {
+      #native-writer-contracts .contracts {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+      #native-writer-contracts .contracts dd {
+        margin-bottom: 10px;
+      }
+    }
+  </style>
+  <div class="heading">
+    <h2>Native writer: ownership and completion</h2>
+    <div class="text-small text-muted">
+      Separate proposal · ordinary Rust API · no JavaScript, Wasm or RPC
+      required by the native workflow.
+    </div>
+  </div>
+  <div class="controls">
+    <div class="group" role="group" aria-label="Native adapter route">
+      <button type="button" class="btn" data-route="vec" aria-pressed="true">
+        Rust Vec adapter
+      </button>
+      <button
+        type="button"
+        class="btn"
+        data-route="stream"
+        aria-pressed="false"
+      >
+        C++ stream bridge
+      </button>
+    </div>
+    <div class="group" role="group" aria-label="Output scenario">
+      <button type="button" class="btn" data-case="success" aria-pressed="true">
+        Success
+      </button>
+      <button type="button" class="btn" data-case="write" aria-pressed="false">
+        Write error
+      </button>
+      <button type="button" class="btn" data-case="check" aria-pressed="false">
+        Readback error
+      </button>
+      <button type="button" class="btn" data-case="sync" aria-pressed="false">
+        Sync error
+      </button>
+    </div>
+  </div>
+  <div class="canvas"></div>
+  <dl class="contracts text-small">
+    <dt>Borrow</dt>
+    <dd>
+      Call lifetime only; adapter never retains, closes, renames or publishes
+      the writer.
+    </dd>
+    <dt>Writer</dt>
+    <dd>
+      Short writes are permitted; the adapter completes them. Zero progress with
+      bytes remaining is WriteZero; retain the first provider error.
+    </dd>
+    <dt>FFI</dt>
+    <dd>
+      Callback bytes live only for that callback; contain panics/exceptions;
+      check the captured error after LIEF returns.
+    </dd>
+    <dt>Receipt</dt>
+    <dd>
+      Output length, qualified member inventory and applied changes; no
+      durability, publication or signature-validity claim.
+    </dd>
+    <dt>Publication</dt>
+    <dd>
+      Caller-owned, fallible commit; promised durability includes publication
+      metadata. No automatic bundle transaction.
+    </dd>
+    <dt>Memory</dt>
+    <dd>
+      Both routes retain LIEF’s complete reconstruction buffer. Input memory
+      needs separate qualification.
+    </dd>
+    <dt>Qualification</dt>
+    <dd>
+      Refuse unsupported inputs and check rebuilt structures; the bridge does
+      not repair discarded upstream build errors.
+    </dd>
+  </dl>
+  <div class="detail text-small text-muted" aria-live="polite"></div>
+  <script>
+    (function () {
+      const root = document.getElementById('native-writer-contracts');
+      const canvas = root.querySelector('.canvas');
+      const detail = root.querySelector('.detail');
+      let state = { route: 'vec', scenario: 'success' };
+      let lastWidth = 0;
+      function restore(value) {
+        const v = value && value.privateContent;
+        if (!v) return;
+        if (['vec', 'stream'].includes(v.route)) state.route = v.route;
+        if (['success', 'write', 'check', 'sync'].includes(v.scenario))
+          state.scenario = v.scenario;
+      }
+      if (window.openai) restore(window.openai.widgetState);
+      function esc(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+      function rect(x, y, w, h, cls, r) {
+        return (
+          '<rect x="' +
+          x +
+          '" y="' +
+          y +
+          '" width="' +
+          w +
+          '" height="' +
+          h +
+          '" rx="' +
+          (r === undefined ? 8 : r) +
+          '" class="' +
+          cls +
+          '"/>'
+        );
+      }
+      function text(x, y, value, cls, anchor) {
+        return (
+          '<text x="' +
+          x +
+          '" y="' +
+          y +
+          '" class="' +
+          (cls || '') +
+          '"' +
+          (anchor ? ' text-anchor="' + anchor + '"' : '') +
+          '>' +
+          esc(value) +
+          '</text>'
+        );
+      }
+      function path(d, kind) {
+        return (
+          '<path d="' +
+          d +
+          '" class="wire ' +
+          (kind || '') +
+          '" marker-end="url(#nwc-' +
+          (kind || 'normal') +
+          ')"/>'
+        );
+      }
+      function markers() {
+        return (
+          '<defs>' +
+          ['normal', 'error', 'idle']
+            .map(function (k) {
+              return (
+                '<marker id="nwc-' +
+                k +
+                '" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 1 1 L 8 5 L 1 9" fill="none" stroke="' +
+                (k === 'error'
+                  ? 'var(--destructive)'
+                  : k === 'idle'
+                    ? 'var(--border)'
+                    : 'var(--viz-series-1)') +
+                '" stroke-width="1.5"/></marker>'
+              );
+            })
+            .join('') +
+          '</defs>'
+        );
+      }
+      function step(x, y, w, title, sub, status, failed, idle) {
+        return (
+          rect(x, y, w, 78, failed ? 'failure' : idle ? 'idle-node' : 'node') +
+          text(x + 15, y + 24, title, 'strong') +
+          text(x + 15, y + 47, sub, 'muted') +
+          text(x + 15, y + 68, status, failed ? 'error-text' : 'muted')
+        );
+      }
+      function diagram(w) {
+        const small = w < 620;
+        const m = small ? 10 : 18;
+        const cx = m + 18;
+        const left = cx + 16;
+        const innerW = w - left * 2;
+        const gap = 28;
+        const cw = small ? innerW : (innerW - gap) / 2;
+        const right = small ? left : left + cw + gap;
+        const stream = state.route === 'stream';
+        const failedWrite = state.scenario === 'write';
+        const failedSync = state.scenario === 'sync';
+        const failedCheck = state.scenario === 'check';
+        const adapterY = small ? 390 : 358;
+        const writerY = small ? 646 : adapterY;
+        const resultY = small ? 898 : 610;
+        const borrowEnd = resultY + 102;
+        const afterY = borrowEnd + 39;
+        const stepsY = afterY + 36;
+        const row2Y = small ? stepsY + 220 : stepsY + 114;
+        const endY = failedWrite
+          ? stepsY + 140
+          : small
+            ? stepsY + 3 * 110 + 78 + 45
+            : row2Y + 78 + 45;
+        const h = endY + 32;
+        let s = rect(m, 14, w - 2 * m, h - 28, 'scope', 12);
+        s += text(cx, 43, 'NATIVE HOST PROCESS', 'strong');
+        s += text(
+          cx,
+          65,
+          small
+            ? 'Direct Rust calls + native FFI'
+            : 'Direct Rust calls and native FFI · one host process',
+          'muted',
+        );
+        s += rect(cx, 82, w - 2 * cx, 58, 'node');
+        s += text(
+          cx + 15,
+          106,
+          small
+            ? 'Caller owns original + plan'
+            : 'Caller owns original input, plan and isolated staging destination',
+          'strong',
+        );
+        s += text(
+          cx + 15,
+          129,
+          small
+            ? 'Private stage; original protected'
+            : 'LIEF input adapter qualified separately; stage must not alias the original.',
+          'muted',
+        );
+        s += path('M ' + w / 2 + ' 140 V 164');
+        s += rect(cx, 164, w - 2 * cx, borrowEnd - 164, 'borrow', 10);
+        s += text(
+          left,
+          190,
+          small ? 'BORROWED CALL' : 'BORROWED FOR THIS SYNCHRONOUS CALL',
+          'strong',
+        );
+        s += rect(left, 210, innerW, small ? 130 : 100, 'node');
+        s += text(
+          left + 14,
+          237,
+          small
+            ? 'Proposed Rust API'
+            : 'binary-inspection · proposed ordinary Rust API',
+          'strong',
+        );
+        s += text(
+          left + 14,
+          264,
+          small
+            ? 'rewrite_into(original, plan,'
+            : 'rewrite_into(original, plan, &mut writer)',
+        );
+        if (small) {
+          s += text(left + 14, 287, '&mut writer)');
+          s += text(left + 14, 316, '→ Result<Receipt, Error>', 'muted');
+        } else
+          s += text(
+            left + 14,
+            291,
+            '→ Result<RebuildReceipt, RebuildError>',
+            'muted',
+          );
+        s += path(
+          'M ' +
+            w / 2 +
+            ' ' +
+            (small ? 340 : 310) +
+            ' V ' +
+            (adapterY - 20) +
+            ' H ' +
+            (left + cw / 2) +
+            ' V ' +
+            adapterY,
+        );
+        s += rect(left, adapterY, cw, 210, 'native');
+        s += text(left + 15, adapterY + 27, 'Native LIEF adapter', 'strong');
+        s += text(
+          left + 15,
+          adapterY + 53,
+          small
+            ? 'Reconstruct whole image'
+            : 'Reconstruct a complete Mach-O image',
+        );
+        s += rect(left + 14, adapterY + 72, cw - 28, 36, 'buffer', 4);
+        s += text(
+          left + cw / 2,
+          adapterY + 96,
+          'Full output buffer',
+          'strong',
+          'middle',
+        );
+        s += text(
+          left + 15,
+          adapterY + 138,
+          stream ? 'ostream → Rust callback' : 'Vec<u8> → write_all',
+        );
+        s += text(
+          left + 15,
+          adapterY + 164,
+          stream
+            ? 'Proposed stream bridge'
+            : small
+              ? 'Thin-image bytes API'
+              : 'Existing thin-image byte API',
+          'muted',
+        );
+        s += text(
+          left + 15,
+          adapterY + 190,
+          stream ? 'Borrowed callback context' : 'Rust sink errors preserved',
+          'muted',
+        );
+        s += path(
+          small
+            ? 'M ' + w / 2 + ' ' + (adapterY + 210) + ' V ' + writerY
+            : 'M ' + (left + cw) + ' ' + (adapterY + 99) + ' H ' + right,
+          failedWrite ? 'error' : '',
+        );
+        s += rect(right, writerY, cw, 210, failedWrite ? 'failure' : 'node');
+        s += text(
+          right + 15,
+          writerY + 27,
+          small ? 'Supplied Rust writer' : 'Caller-supplied Rust writer',
+          'strong',
+        );
+        s += text(right + 15, writerY + 53, 'impl std::io::Write');
+        s += text(right + 15, writerY + 80, 'Borrowed until return', 'muted');
+        s += text(right + 15, writerY + 106, 'Short writes permitted', 'muted');
+        s += text(
+          right + 15,
+          writerY + 132,
+          'Adapter retains first error',
+          'muted',
+        );
+        s += text(
+          right + 15,
+          writerY + 164,
+          failedWrite ? 'Provider error latched' : 'All output bytes accepted',
+          failedWrite ? 'error-text' : 'strong',
+        );
+        s += text(
+          right + 15,
+          writerY + 190,
+          failedWrite ? 'Partial stage may remain' : 'Acceptance ≠ durability',
+          'muted',
+        );
+        s += path(
+          'M ' + (right + cw / 2) + ' ' + (writerY + 210) + ' V ' + resultY,
+          failedWrite ? 'error' : '',
+        );
+        s += rect(
+          left,
+          resultY,
+          innerW,
+          70,
+          failedWrite ? 'failure' : 'result',
+        );
+        s += text(
+          left + 15,
+          resultY + 28,
+          failedWrite ? 'Err(OutputError)' : 'Ok(RebuildReceipt)',
+          'strong',
+        );
+        s += text(
+          left + 15,
+          resultY + 54,
+          failedWrite
+            ? small
+              ? 'No rollback guarantee'
+              : 'Provider cause preserved; no automatic rollback'
+            : small
+              ? 'Bytes accepted; private'
+              : 'Qualified reconstruction + bytes accepted; still private',
+          'muted',
+        );
+        s += text(
+          cx,
+          afterY,
+          small ? 'CALLER · AFTER RETURN' : 'SAME CALLER · AFTER RETURN',
+          'strong',
+        );
+        const afterReturnPath = small
+          ? 'M ' +
+            w / 2 +
+            ' ' +
+            (resultY + 70) +
+            ' V ' +
+            (borrowEnd + 10) +
+            ' H ' +
+            (w - cx - 6) +
+            ' V ' +
+            (stepsY - 12) +
+            ' H ' +
+            w / 2 +
+            ' V ' +
+            stepsY
+          : failedWrite
+            ? 'M ' + w / 2 + ' ' + (resultY + 70) + ' V ' + stepsY
+            : 'M ' +
+              w / 2 +
+              ' ' +
+              (resultY + 70) +
+              ' V ' +
+              (stepsY - 16) +
+              ' H ' +
+              (left + cw / 2) +
+              ' V ' +
+              stepsY;
+        s += path(afterReturnPath, failedWrite ? 'error' : '');
+        if (failedWrite) {
+          s += rect(left, stepsY, innerW, 98, 'failure');
+          s += text(
+            left + 15,
+            stepsY + 28,
+            small
+              ? 'Keep output unpublished'
+              : 'Keep partial output unpublished',
+            'strong',
+          );
+          s += text(
+            left + 15,
+            stepsY + 54,
+            small
+              ? 'Discard / quarantine stage'
+              : 'Caller discards or quarantines the incomplete stage.',
+            'muted',
+          );
+          s += text(
+            left + 15,
+            stepsY + 80,
+            small
+              ? 'Original protected'
+              : 'Original and previously published output stay protected.',
+            'muted',
+          );
+        } else {
+          const cells = small
+            ? [
+                { x: left, y: stepsY },
+                { x: left, y: stepsY + 110 },
+                { x: left, y: stepsY + 220 },
+                { x: left, y: stepsY + 330 },
+              ]
+            : [
+                { x: left, y: stepsY },
+                { x: right, y: stepsY },
+                { x: left, y: row2Y },
+                { x: right, y: row2Y },
+              ];
+          const stw = small ? innerW : cw;
+          s += step(
+            cells[0].x,
+            cells[0].y,
+            stw,
+            '1 · Flush buffering',
+            'Caller / concrete provider',
+            'flush() ≠ durable',
+            false,
+            false,
+          );
+          s += step(
+            cells[1].x,
+            cells[1].y,
+            stw,
+            '2 · Declared durability',
+            small
+              ? 'Provider sync if promised'
+              : 'sync_all or backend equivalent',
+            failedSync ? 'Sync failed' : 'As promised by provider',
+            failedSync,
+            false,
+          );
+          s += step(
+            cells[2].x,
+            cells[2].y,
+            stw,
+            '3 · Reopen + check',
+            'Separate read handle',
+            failedSync
+              ? 'Not reached'
+              : failedCheck
+                ? 'Readback check failed'
+                : 'Qualified checks pass',
+            failedCheck,
+            failedSync,
+          );
+          s += step(
+            cells[3].x,
+            cells[3].y,
+            stw,
+            '4 · Publish stage',
+            'Caller-defined commit',
+            failedSync || failedCheck
+              ? 'Blocked · no publication'
+              : 'Commit succeeds',
+            false,
+            failedSync || failedCheck,
+          );
+          for (let i = 0; i < 3; i++) {
+            const a = cells[i],
+              b = cells[i + 1];
+            const kind =
+              (failedSync && i >= 1) || (failedCheck && i >= 2)
+                ? 'idle'
+                : (failedSync && i === 0) || (failedCheck && i === 1)
+                  ? 'error'
+                  : '';
+            if (small)
+              s += path('M ' + w / 2 + ' ' + (a.y + 78) + ' V ' + b.y, kind);
+            else if (i === 1)
+              s += path(
+                'M ' +
+                  (a.x + stw / 2) +
+                  ' ' +
+                  (a.y + 78) +
+                  ' V ' +
+                  (b.y - 18) +
+                  ' H ' +
+                  (b.x + stw / 2) +
+                  ' V ' +
+                  b.y,
+                kind,
+              );
+            else
+              s += path(
+                'M ' + (a.x + stw) + ' ' + (a.y + 39) + ' H ' + b.x,
+                kind,
+              );
+          }
+          s += text(
+            left,
+            endY - 15,
+            small
+              ? failedSync || failedCheck
+                ? 'Failed stage stays unpublished'
+                : 'Original remains protected'
+              : failedSync || failedCheck
+                ? 'Finalization failed: no publication; caller owns cleanup.'
+                : 'Publication follows readback checks and the backend commit contract.',
+            'muted',
+          );
+        }
+        return { html: s, height: h };
+      }
+      function draw() {
+        const w = Math.max(
+          200,
+          Math.round(canvas.getBoundingClientRect().width),
+        );
+        lastWidth = w;
+        const d = diagram(w);
+        canvas.innerHTML =
+          '<svg class="map" data-route="' +
+          state.route +
+          '" data-scenario="' +
+          state.scenario +
+          '" viewBox="0 0 ' +
+          w +
+          ' ' +
+          d.height +
+          '" width="' +
+          w +
+          '" height="' +
+          d.height +
+          '" role="img" aria-labelledby="nwc-title nwc-desc"><title id="nwc-title">Native writer contract: ' +
+          state.route +
+          ', ' +
+          state.scenario +
+          '</title><desc id="nwc-desc">Proposed synchronous Rust rewrite API borrowing a caller-owned writer. LIEF reconstructs a full buffer, then output is delivered through a Rust Vec adapter or a proposed native stream bridge. A write error returns an error and leaves any partial stage unpublished. A successful rewrite receipt means bytes accepted, not durable or published. The caller flushes, requests promised durability, reopens through a separate read handle, validates, and only then publishes. Failed readback or synchronization blocks publication.</desc>' +
+          markers() +
+          d.html +
+          '</svg>';
+        root.querySelectorAll('[data-route]').forEach(function (b) {
+          if (b.tagName === 'BUTTON')
+            b.setAttribute(
+              'aria-pressed',
+              String(b.dataset.route === state.route),
+            );
+        });
+        root.querySelectorAll('[data-case]').forEach(function (b) {
+          b.setAttribute(
+            'aria-pressed',
+            String(b.dataset.case === state.scenario),
+          );
+        });
+        detail.textContent =
+          state.route === 'stream'
+            ? 'Stream bridge proposal: borrowed callback state, temporary byte slices and a captured provider error; LIEF stream success alone is insufficient.'
+            : 'Buffered Rust adapter: thin-image write_to_bytes() → write_all(). This controls the destination, not LIEF’s internal memory use.';
+      }
+      root
+        .querySelectorAll('button[data-route],button[data-case]')
+        .forEach(function (button) {
+          button.addEventListener('click', function () {
+            if (button.dataset.route) state.route = button.dataset.route;
+            if (button.dataset.case) state.scenario = button.dataset.case;
+            draw();
+            if (window.openai && window.openai.setWidgetState)
+              window.openai
+                .setWidgetState({
+                  modelContent: {
+                    nativeWriterRoute: state.route,
+                    scenario: state.scenario,
+                  },
+                  privateContent: state,
+                })
+                .catch(function () {});
+          });
+        });
+      window.addEventListener('openai:set_globals', function (event) {
+        restore(
+          event.detail &&
+            event.detail.globals &&
+            event.detail.globals.widgetState,
+        );
+        draw();
+      });
+      new ResizeObserver(function (entries) {
+        if (Math.round(entries[0].contentRect.width) !== lastWidth) draw();
+      }).observe(canvas);
+      draw();
+    })();
+  </script>
+</div>

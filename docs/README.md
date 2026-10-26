@@ -89,6 +89,12 @@ retain versioned findings, limitations and proposed checks alongside each candid
 - [LIEF native Mach-O rewriting experiment](libraries/lief-native-macho-rewriting-experiment.md):
   proposed path/rpath fixtures, layout growth, member preservation, structural
   checks and separately recorded signing/runtime evidence.
+- [object, LIEF and Gum mapper boundaries](libraries/object-lief-gum-mapper/README.md):
+  saved interactive study of inspection, file reconstruction and native module
+  loading, with native/browser views and explicit proposed process boundaries.
+- [Native writer ownership and completion](libraries/native-writer-contracts/README.md):
+  separate interactive proposal for Rust writer ownership, native LIEF adapters,
+  output failures and the caller's staged verification and publication contract.
 
 ## Filesystem
 

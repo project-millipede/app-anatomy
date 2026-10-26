@@ -1,0 +1,1115 @@
+<div id="binary-boundaries">
+  <style>
+    #binary-boundaries {
+      color: var(--foreground);
+    }
+    #binary-boundaries .heading {
+      padding-right: 96px;
+      margin-bottom: 18px;
+    }
+    #binary-boundaries h2 {
+      margin: 0 0 6px;
+    }
+    #binary-boundaries .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    #binary-boundaries .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+    }
+    #binary-boundaries .canvas {
+      width: 100%;
+    }
+    #binary-boundaries svg {
+      display: block;
+      width: 100%;
+      overflow: visible;
+    }
+    #binary-boundaries .map text {
+      fill: var(--foreground);
+      font-family: inherit;
+      font-size: var(--font-size-base);
+      font-weight: 400;
+    }
+    #binary-boundaries .map .strong {
+      font-weight: 500;
+    }
+    #binary-boundaries .map .muted {
+      fill: var(--muted-foreground);
+    }
+    #binary-boundaries .map .scope {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #binary-boundaries .map .component {
+      fill: color-mix(in srgb, var(--muted) 28%, transparent);
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #binary-boundaries .map .rust {
+      fill: color-mix(in srgb, var(--muted) 50%, transparent);
+      stroke: none;
+    }
+    #binary-boundaries .map .node {
+      fill: var(--background);
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #binary-boundaries .map .object {
+      --role-color: var(--viz-series-1);
+    }
+    #binary-boundaries .map .lief {
+      --role-color: var(--viz-series-2);
+    }
+    #binary-boundaries .map .mapper {
+      --role-color: var(--viz-series-3);
+    }
+    #binary-boundaries .map .library {
+      fill: color-mix(in srgb, var(--role-color) 10%, var(--background));
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #binary-boundaries .map .identity {
+      fill: var(--role-color);
+    }
+    #binary-boundaries .map .inactive .library {
+      fill: color-mix(in srgb, var(--muted) 30%, var(--background));
+    }
+    #binary-boundaries .map .inactive .identity {
+      opacity: 0.28;
+    }
+    #binary-boundaries .map .inactive .bar {
+      fill: var(--muted-foreground);
+      opacity: 0.18;
+    }
+    #binary-boundaries .map .wire {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 1.4;
+    }
+    #binary-boundaries .map .wire.active {
+      stroke: var(--role-color, var(--foreground));
+      stroke-width: 2;
+    }
+    #binary-boundaries .map .wire.proposed {
+      stroke-dasharray: 6 5;
+    }
+    #binary-boundaries .map .output {
+      fill: color-mix(in srgb, var(--muted) 65%, transparent);
+      stroke: none;
+    }
+    #binary-boundaries .map .bar {
+      fill: var(--role-color);
+      opacity: 0.25;
+    }
+    #binary-boundaries .map .bar.stronger {
+      opacity: 0.55;
+    }
+    #binary-boundaries .map .separator {
+      stroke: var(--border);
+      stroke-width: 1;
+    }
+    #binary-boundaries .route {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+    #binary-boundaries .route .arrow {
+      color: var(--muted-foreground);
+    }
+    #binary-boundaries .route-label {
+      font-weight: 500;
+    }
+    #binary-boundaries .detail {
+      margin-top: 10px;
+    }
+    #binary-boundaries .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 20px;
+      margin-top: 14px;
+    }
+    #binary-boundaries .legend-item {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+    }
+    #binary-boundaries .swatch {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--role-color);
+    }
+    #binary-boundaries .legend-item:nth-child(1) {
+      --role-color: var(--viz-series-1);
+    }
+    #binary-boundaries .legend-item:nth-child(2) {
+      --role-color: var(--viz-series-2);
+    }
+    #binary-boundaries .legend-item:nth-child(3) {
+      --role-color: var(--viz-series-3);
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      #binary-boundaries .map .wire {
+        transition: stroke 0.2s;
+      }
+    }
+  </style>
+
+  <div class="heading">
+    <h2>One application. Three different jobs.</h2>
+    <div class="text-small text-muted">
+      Architecture study · inspection exists today; LIEF and mapper integration
+      are proposed.
+    </div>
+  </div>
+  <div class="controls">
+    <div class="control-group" role="group" aria-label="Execution environment">
+      <button type="button" class="btn" data-env="native" aria-pressed="true">
+        Native Rust
+      </button>
+      <button type="button" class="btn" data-env="browser" aria-pressed="false">
+        Browser + Wasm
+      </button>
+    </div>
+    <div class="control-group" role="group" aria-label="Operation to trace">
+      <button type="button" class="btn" data-flow="tandem" aria-pressed="true">
+        All three
+      </button>
+      <button
+        type="button"
+        class="btn"
+        data-flow="inspect"
+        aria-pressed="false"
+      >
+        Inspect
+      </button>
+      <button
+        type="button"
+        class="btn"
+        data-flow="rewrite"
+        aria-pressed="false"
+      >
+        Rebuild
+      </button>
+      <button type="button" class="btn" data-flow="probe" aria-pressed="false">
+        Map + probe
+      </button>
+    </div>
+  </div>
+  <div class="canvas"></div>
+  <div class="route" aria-live="polite"></div>
+  <div class="detail text-small text-muted"></div>
+  <div class="legend text-small">
+    <span class="legend-item"><span class="swatch"></span>object · facts</span>
+    <span class="legend-item"
+      ><span class="swatch"></span>LIEF · file bytes</span
+    >
+    <span class="legend-item"
+      ><span class="swatch"></span>Gum mapper · memory</span
+    >
+  </div>
+
+  <script>
+    (function () {
+      const root = document.getElementById('binary-boundaries');
+      const canvas = root.querySelector('.canvas');
+      const route = root.querySelector('.route');
+      const detail = root.querySelector('.detail');
+      let state = { env: 'browser', flow: 'rewrite' };
+      let lastWidth = 0;
+      function restore(value) {
+        const model = value && value.modelContent;
+        const v =
+          value &&
+          (value.privateContent ||
+            (model && { env: model.environment, flow: model.operation }));
+        if (!v) return;
+        if (['native', 'browser'].includes(v.env)) state.env = v.env;
+        if (['tandem', 'inspect', 'rewrite', 'probe'].includes(v.flow))
+          state.flow = v.flow;
+      }
+      if (window.openai) restore(window.openai.widgetState);
+      function esc(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+      function text(x, y, s, cls, anchor) {
+        return (
+          '<text x="' +
+          x +
+          '" y="' +
+          y +
+          '" class="' +
+          (cls || '') +
+          '"' +
+          (anchor ? ' text-anchor="' + anchor + '"' : '') +
+          '>' +
+          esc(s) +
+          '</text>'
+        );
+      }
+      function rect(x, y, w, h, cls, radius) {
+        return (
+          '<rect x="' +
+          x +
+          '" y="' +
+          y +
+          '" width="' +
+          w +
+          '" height="' +
+          h +
+          '" rx="' +
+          (radius === undefined ? 8 : radius) +
+          '" class="' +
+          cls +
+          '"/>'
+        );
+      }
+      function path(d, role, active) {
+        return (
+          '<path d="' +
+          d +
+          '" class="wire ' +
+          (role || '') +
+          (active ? ' active' : '') +
+          '" marker-end="url(#bb-arrow-' +
+          (active && role ? role : 'neutral') +
+          ')"/>'
+        );
+      }
+      function active(role) {
+        if (role === 'object') return true;
+        return (
+          state.flow === 'tandem' ||
+          (role === 'lief' && state.flow === 'rewrite') ||
+          (role === 'mapper' && state.flow === 'probe')
+        );
+      }
+      function group(role, content, blocked) {
+        return (
+          '<g class="' +
+          role +
+          (!active(role) || blocked ? ' inactive' : '') +
+          '">' +
+          content +
+          '</g>'
+        );
+      }
+      function library(x, y, w, role, name, job, status, blocked) {
+        return group(
+          role,
+          rect(x, y, w, 98, 'library') +
+            rect(x, y + 16, 3, 24, 'identity', 0) +
+            text(x + 18, y + 29, name, 'strong') +
+            text(x + 18, y + 55, job) +
+            text(x + 18, y + 80, status, 'muted'),
+          blocked,
+        );
+      }
+      function fileOutput(x, y, w) {
+        return group(
+          'lief',
+          rect(x, y, w, 78, 'output') +
+            text(x + 16, y + 25, 'Rebuilt file bytes', 'strong') +
+            rect(x + 16, y + 41, (w - 36) * 0.22, 16, 'bar', 2) +
+            rect(
+              x + 20 + (w - 36) * 0.22,
+              y + 41,
+              (w - 36) * 0.27,
+              16,
+              'bar stronger',
+              2,
+            ) +
+            rect(
+              x + 24 + (w - 36) * 0.49,
+              y + 41,
+              (w - 36) * 0.49,
+              16,
+              'bar',
+              2,
+            ),
+        );
+      }
+      function memoryOutput(x, y, w) {
+        const cw = (w - 40) / 3;
+        return group(
+          'mapper',
+          rect(x, y, w, 78, 'output') +
+            text(x + 16, y + 25, 'Local native memory', 'strong') +
+            [0, 1, 2]
+              .map(function (i) {
+                return (
+                  rect(
+                    x + 16 + i * (cw + 4),
+                    y + 40,
+                    cw,
+                    24,
+                    'bar' + (i === 0 ? ' stronger' : ''),
+                    2,
+                  ) +
+                  text(
+                    x + 16 + i * (cw + 4) + cw / 2,
+                    y + 57,
+                    ['Code', 'Data', 'TLS'][i],
+                    '',
+                    'middle',
+                  )
+                );
+              })
+              .join(''),
+        );
+      }
+      function defs() {
+        return (
+          '<defs>' +
+          ['neutral', 'object', 'lief', 'mapper']
+            .map(function (r) {
+              return (
+                '<marker id="bb-arrow-' +
+                r +
+                '" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 1 1 L 8 5 L 1 9" fill="none" stroke="' +
+                (r === 'neutral'
+                  ? 'var(--border)'
+                  : 'var(--viz-series-' +
+                    { object: 1, lief: 2, mapper: 3 }[r] +
+                    ')') +
+                '" stroke-width="1.5"/></marker>'
+              );
+            })
+            .join('') +
+          '</defs>'
+        );
+      }
+      function nativeMap(w, small) {
+        const margin = small ? 10 : 18;
+        const x = margin + 18;
+        const iw = w - x * 2;
+        const inner = x + 18;
+        const right = w - inner;
+        let s = '';
+        const h = small ? 1120 : 744;
+        s += rect(margin, 14, w - margin * 2, h - 30, 'scope', 12);
+        s += text(x, 43, 'HOST APPLICATION PROCESS', 'strong');
+        s += text(
+          x,
+          66,
+          small
+            ? 'Rust + native libraries · direct FFI'
+            : 'Rust + native libraries · direct calls and FFI',
+          'muted',
+        );
+        s += rect(x, 88, iw, 49, 'node');
+        s += text(
+          x + 18,
+          118,
+          small ? 'Native Rust caller' : 'Native Rust caller / application',
+          'strong',
+        );
+        s += path('M ' + w / 2 + ' 137 V 173', '', false);
+        if (!small) {
+          s += rect(x, 173, iw, 197, 'rust', 9);
+          s += text(inner, 203, 'SHARED RUST DOMAIN', 'strong');
+          s += text(inner, 226, 'crates/binary/inspection', 'muted');
+          const ow = Math.round(iw * 0.36);
+          const dx = inner + ow + 42;
+          s += library(
+            inner,
+            249,
+            ow,
+            'object',
+            'object',
+            'Read selected structures',
+            'Implemented',
+          );
+          s += path('M ' + (inner + ow) + ' 290 H ' + (dx - 9), 'object', true);
+          s += text(dx, 273, 'Our Rust logic', 'strong');
+          s += text(dx, 299, 'Interpret facts · plan edits');
+          s += text(dx, 325, 'Check outputs · compose reports');
+          const cw = (iw - 60) / 2;
+          const lx = inner;
+          const mx = inner + cw + 24;
+          const lc = lx + cw / 2;
+          const mc = mx + cw / 2;
+          s += text(inner, 411, 'NATIVE ADAPTERS', 'strong');
+          s += text(right, 411, 'Same process · no RPC', 'muted', 'end');
+          s += path(
+            'M ' + (dx + 50) + ' 348 V 386 H ' + lc + ' V 436',
+            'lief',
+            active('lief'),
+          );
+          s += path(
+            'M ' + (dx + 143) + ' 348 V 436',
+            'mapper',
+            active('mapper'),
+          );
+          s += library(
+            lx,
+            436,
+            cw,
+            'lief',
+            'LIEF',
+            'Edit + reconstruct file',
+            'Proposed Rust / C++ binding',
+          );
+          s += library(
+            mx,
+            436,
+            cw,
+            'mapper',
+            'Gum mapper',
+            'Relocate + resolve imports',
+            'Optional Rust / C binding',
+          );
+          s += path('M ' + lc + ' 534 V 560', 'lief', active('lief'));
+          s += path('M ' + mc + ' 534 V 560', 'mapper', active('mapper'));
+          s += fileOutput(lx, 560, cw);
+          s += memoryOutput(mx, 560, cw);
+          s += text(
+            lx + 3,
+            662,
+            'Reinspect → sign separately if needed',
+            'muted',
+          );
+          s += text(
+            mx + 3,
+            662,
+            'Caller runs initializer + test probe',
+            'muted',
+          );
+          s +=
+            '<line x1="' +
+            x +
+            '" y1="684" x2="' +
+            (w - x) +
+            '" y2="684" class="separator"/>';
+          s += text(
+            inner,
+            710,
+            'Remote target = separate process + target-aware provider / resolver',
+            'muted',
+          );
+        } else {
+          s += rect(x, 173, iw, 318, 'rust', 9);
+          s += text(inner, 202, 'SHARED RUST DOMAIN', 'strong');
+          s += text(inner, 226, 'binary-inspection', 'muted');
+          s += library(
+            inner,
+            247,
+            iw - 36,
+            'object',
+            'object',
+            'Read + inspect',
+            'Implemented',
+          );
+          s += path('M ' + w / 2 + ' 345 V 378', 'object', true);
+          s += text(inner, 405, 'Our Rust logic', 'strong');
+          s += text(inner, 431, 'Facts · edit plans · checks');
+          s += text(inner, 457, 'Owned Rust reports');
+          s += text(inner, 529, 'NATIVE ADAPTERS', 'strong');
+          s += text(inner, 553, 'Same process · direct FFI', 'muted');
+          s += path(
+            'M ' +
+              w / 2 +
+              ' 491 V 510 H ' +
+              (w - x - 5) +
+              ' V 570 H ' +
+              w / 2 +
+              ' V 580',
+            'lief',
+            active('lief'),
+          );
+          s += library(
+            inner,
+            580,
+            iw - 36,
+            'lief',
+            'LIEF',
+            'Edit + rebuild file',
+            'Proposed · C++ binding',
+          );
+          s += path('M ' + w / 2 + ' 678 V 700', 'lief', active('lief'));
+          s += fileOutput(inner, 700, iw - 36);
+          s += text(inner, 802, 'Reinspect; sign separately', 'muted');
+          s += library(
+            inner,
+            837,
+            iw - 36,
+            'mapper',
+            'Gum mapper',
+            'Relocate + bind',
+            'Optional · C binding',
+          );
+          s += path('M ' + w / 2 + ' 935 V 955', 'mapper', active('mapper'));
+          s += memoryOutput(inner, 955, iw - 36);
+          s += text(inner, 1060, 'Caller runs initializer + probe', 'muted');
+          s += text(inner, 1086, 'Remote target: extra adapters', 'muted');
+        }
+        return { s: s, h: h };
+      }
+      function browserMap(w, small) {
+        const margin = small ? 10 : 18;
+        const x = margin + 18;
+        const iw = w - x * 2;
+        const inner = x + 18;
+        const inspection = state.flow === 'inspect';
+        const rebuild = state.flow === 'rewrite';
+        const probe = state.flow === 'probe';
+        const role = inspection ? 'object' : rebuild ? 'lief' : 'mapper';
+        const logic = {
+          inspect: ['Interpret file facts', 'Compose inspection report'],
+          rewrite: ['Plan dependency / rpath edits', 'Check rebuilt bytes'],
+          probe: ['Select module + probe', 'Compose module-test evidence'],
+          tandem: [
+            'Plan rebuild + native probe',
+            'Combine checks + observations',
+          ],
+        }[state.flow];
+        let s = '';
+        const browserH = small ? 664 : 520;
+        const portY = small ? 558 : 434;
+        const nativeY = browserH + 91;
+        const nativeH = inspection
+          ? 190
+          : rebuild
+            ? small
+              ? 348
+              : 252
+            : probe
+              ? small
+                ? 412
+                : 330
+              : small
+                ? 642
+                : 426;
+        const h = nativeY + nativeH + 26;
+        s += rect(margin, 14, w - margin * 2, browserH - 14, 'scope', 12);
+        s += text(x, 43, 'BROWSER PROCESS', 'strong');
+        s += rect(x, 67, iw, 54, 'node');
+        s += text(
+          x + 18,
+          99,
+          small
+            ? 'React presentation + jco'
+            : 'React presentation + jco browser binding',
+          'strong',
+        );
+        s += path('M ' + w / 2 + ' 121 V 188', '', false);
+        s += text(w / 2 + 13, 151, 'WIT calls', 'muted');
+        s += rect(x, 174, iw, browserH - 196, 'component', 9);
+        s += text(inner, 205, 'WASM COMPONENT', 'strong');
+        s += text(
+          inner,
+          230,
+          small ? 'WIT adapter → Rust API' : 'WIT adapter → ordinary Rust API',
+          'muted',
+        );
+        if (!small) {
+          s += rect(inner, 250, iw - 36, 167, 'rust', 7);
+          s += text(
+            inner + 16,
+            278,
+            'SHARED RUST DOMAIN · binary-inspection',
+            'strong',
+          );
+          const ow = Math.round(iw * 0.34);
+          const ox = inner + 16;
+          const dx = ox + ow + 42;
+          s += library(
+            ox,
+            297,
+            ow,
+            'object',
+            'object',
+            'Read + inspect',
+            'Implemented',
+          );
+          s += path('M ' + (ox + ow) + ' 346 H ' + (dx - 10), 'object', true);
+          s += text(dx, 321, 'Our Rust logic', 'strong');
+          s += text(dx, 347, logic[0]);
+          s += text(dx, 373, logic[1]);
+        } else {
+          s += rect(inner, 251, iw - 36, 289, 'rust', 7);
+          s += text(inner + 15, 279, 'SHARED RUST DOMAIN', 'strong');
+          s += text(inner + 15, 302, 'binary-inspection', 'muted');
+          s += library(
+            inner + 15,
+            320,
+            iw - 66,
+            'object',
+            'object',
+            'Read + inspect',
+            'Implemented',
+          );
+          s += path('M ' + w / 2 + ' 418 V 446', 'object', true);
+          s += text(inner + 15, 471, 'Our Rust logic', 'strong');
+          s += text(
+            inner + 15,
+            496,
+            inspection
+              ? 'Interpret facts + report'
+              : rebuild
+                ? 'Plan edits + check bytes'
+                : probe
+                  ? 'Request probe + evidence'
+                  : 'Rebuild + probe plans',
+          );
+        }
+
+        s += rect(inner, portY, iw - 36, 52, 'node');
+        s += text(
+          inner + 14,
+          portY + 22,
+          inspection ? 'Rust filesystem client' : 'Rust transport adapter',
+          'strong',
+        );
+        s += text(
+          inner + 14,
+          portY + 43,
+          inspection
+            ? small
+              ? 'Outside analysis core'
+              : 'Existing · outside the analysis core'
+            : small
+              ? 'Proposed adapter'
+              : 'Proposed · not implemented',
+          'muted',
+        );
+        s += path(
+          'M ' + w / 2 + ' ' + (small ? 540 : 417) + ' V ' + portY,
+          role,
+          true,
+        );
+
+        s += text(
+          x,
+          browserH + 32,
+          inspection
+            ? small
+              ? 'WEBSOCKET · EXISTING'
+              : 'EXISTING WEBSOCKET PROTOCOL'
+            : small
+              ? 'PROPOSED TRANSPORT'
+              : 'PROPOSED PROCESS TRANSPORT',
+          'strong',
+        );
+        s += text(
+          x,
+          browserH + 57,
+          inspection
+            ? small
+              ? 'File ranges ↔ Rust client'
+              : 'Selection + bounded reads ↔ Rust client'
+            : small
+              ? 'New API · not implemented'
+              : 'New API required · requests and results · not implemented',
+          'muted',
+        );
+        s += rect(margin, nativeY, w - margin * 2, nativeH, 'scope', 12);
+        s += text(
+          x,
+          nativeY + 30,
+          inspection ? 'NATIVE INPUT SERVICE' : 'PROPOSED NATIVE BACKEND',
+          'strong',
+        );
+        s += text(
+          x,
+          nativeY + 55,
+          inspection
+            ? 'Existing Rust filesystem service'
+            : 'Rust API + native library adapters',
+          'muted',
+        );
+
+        const nodeY = nativeY + 78;
+        const full = iw - 36;
+        const half = (full - 24) / 2;
+        const wireX = w - margin - 8;
+        s +=
+          '<path d="M ' +
+          (w - inner) +
+          ' ' +
+          (portY + 26) +
+          ' H ' +
+          wireX +
+          ' V ' +
+          (nativeY - 16) +
+          ' H ' +
+          w / 2 +
+          ' V ' +
+          (nativeY + 8) +
+          '" class="wire active ' +
+          role +
+          (inspection ? '' : ' proposed') +
+          '" marker-end="url(#bb-arrow-' +
+          role +
+          ')"/>';
+
+        if (inspection) {
+          s += rect(inner, nodeY, full, 78, 'output');
+          s += text(
+            inner + 16,
+            nodeY + 28,
+            small
+              ? 'Native dialog + file reads'
+              : 'Native dialog + bounded file reads',
+            'strong',
+          );
+          s += text(
+            inner + 16,
+            nodeY + 55,
+            small
+              ? 'Selected file → byte ranges'
+              : 'Selected file → requested byte ranges → browser Rust',
+            'muted',
+          );
+        } else if (rebuild) {
+          const outputX = small ? inner : inner + half + 24;
+          const outputY = small ? nodeY + 122 : nodeY + 10;
+          s += library(
+            inner,
+            nodeY,
+            small ? full : half,
+            'lief',
+            'LIEF',
+            'Edit + rebuild file',
+            'Proposed · C++ binding',
+          );
+          s += path(
+            small
+              ? 'M ' + w / 2 + ' ' + (nodeY + 98) + ' V ' + outputY
+              : 'M ' + (inner + half) + ' ' + (nodeY + 49) + ' H ' + outputX,
+            'lief',
+            true,
+          );
+          s += fileOutput(outputX, outputY, small ? full : half);
+          const captionY = nativeY + (small ? 308 : 218);
+          s += text(
+            inner,
+            captionY,
+            small
+              ? 'Reinspect; sign separately'
+              : 'Reinspect outputs; signing remains a separate step.',
+            'muted',
+          );
+          s += text(
+            x,
+            h + 4,
+            small
+              ? 'Alternative: unqualified Wasm port'
+              : 'Alternative: compile LIEF into Wasm · separate port, still unqualified.',
+            'muted',
+          );
+        } else if (probe) {
+          const outputX = small ? inner : inner + half + 24;
+          const outputY = small ? nodeY + 122 : nodeY + 10;
+          s += library(
+            inner,
+            nodeY,
+            small ? full : half,
+            'mapper',
+            'Gum mapper',
+            'Relocate + bind',
+            'Native execution only',
+          );
+          s += path(
+            small
+              ? 'M ' + w / 2 + ' ' + (nodeY + 98) + ' V ' + outputY
+              : 'M ' + (inner + half) + ' ' + (nodeY + 49) + ' H ' + outputX,
+            'mapper',
+            true,
+          );
+          s += memoryOutput(outputX, outputY, small ? full : half);
+          const callerY = nativeY + (small ? 302 : 210);
+          s += rect(inner, callerY, full, 51, 'node');
+          s += text(
+            inner + 15,
+            callerY + 31,
+            small
+              ? 'Native caller runs probe'
+              : 'Native caller runs initializer + controlled probe',
+            'strong',
+          );
+          s += text(
+            inner,
+            callerY + 78,
+            small
+              ? 'Probe evidence → Rust report'
+              : 'Module-test evidence → Rust report',
+            'muted',
+          );
+        } else {
+          const mapperX = small ? inner : inner + half + 24;
+          const mapperY = small ? nodeY + 292 : nodeY;
+          s += library(
+            inner,
+            nodeY,
+            small ? full : half,
+            'lief',
+            'LIEF',
+            'Edit + rebuild file',
+            'Proposed · C++ binding',
+          );
+          s += path(
+            'M ' +
+              (inner + (small ? full : half) / 2) +
+              ' ' +
+              (nodeY + 98) +
+              ' V ' +
+              (nodeY + 122),
+            'lief',
+            true,
+          );
+          s += fileOutput(inner, nodeY + 122, small ? full : half);
+          s += library(
+            mapperX,
+            mapperY,
+            small ? full : half,
+            'mapper',
+            'Gum mapper',
+            'Relocate + bind',
+            'Optional native probe',
+          );
+          s += path(
+            'M ' +
+              (mapperX + (small ? full : half) / 2) +
+              ' ' +
+              (mapperY + 98) +
+              ' V ' +
+              (mapperY + 122),
+            'mapper',
+            true,
+          );
+          s += memoryOutput(mapperX, mapperY + 122, small ? full : half);
+          s += text(
+            inner,
+            nodeY + 229,
+            small
+              ? 'object + independent checks'
+              : 'Rebuilt bytes → object + independent checks → optional mapping',
+            'strong',
+          );
+          if (small)
+            s += text(
+              inner,
+              nodeY + 254,
+              'Then optional native mapping',
+              'muted',
+            );
+          const resultY = nativeY + (small ? 590 : 365);
+          s += text(
+            inner,
+            resultY,
+            small
+              ? 'Checks + probe evidence → Rust'
+              : 'Independent checks + native module-test evidence → Rust report',
+            'muted',
+          );
+        }
+        return { s: s, h: rebuild ? h + 30 : h };
+      }
+      function updateRoute() {
+        const browser = state.env === 'browser';
+        const browserSteps = {
+          tandem: [
+            'object: inventory',
+            'Rust: plan',
+            'Proposed transport',
+            'LIEF: rebuild',
+            'Reinspect',
+            'Optional native probe',
+          ],
+          inspect: [
+            'Native file ranges',
+            'Rust filesystem client',
+            'object: inspect',
+            'Rust report',
+          ],
+          rewrite: [
+            'object: inventory',
+            'Rust: edit plan',
+            'Proposed transport',
+            'LIEF: rebuilt bytes',
+            'Independent checks',
+          ],
+          probe: [
+            'Rust: probe request',
+            'Proposed transport',
+            'Gum: native image',
+            'Native caller: test',
+            'Module evidence',
+          ],
+        };
+        const steps = browser
+          ? browserSteps[state.flow]
+          : {
+              tandem: [
+                'object: inventory',
+                'Rust: plan',
+                'LIEF: rebuild',
+                'object + checks',
+                'Gum: optional probe',
+              ],
+              inspect: [
+                'Original bytes',
+                'object: inspect',
+                'Rust: facts + report',
+              ],
+              rewrite: [
+                'object: inventory',
+                'Rust: edit plan',
+                'LIEF: file bytes',
+                'Independent checks',
+              ],
+              probe: [
+                'object: inspect',
+                'Rust: probe request',
+                'Gum: native image',
+                'Caller: initialize + test',
+              ],
+            }[state.flow];
+        const status = browser
+          ? state.flow === 'inspect'
+            ? 'Implemented inspection path'
+            : state.flow === 'rewrite'
+              ? 'Proposed native rebuild path'
+              : state.flow === 'probe'
+                ? 'Proposed native execution path'
+                : 'Proposed tandem workflow'
+          : 'Selected route';
+        route.innerHTML =
+          '<span class="route-label">' +
+          status +
+          '</span>' +
+          steps
+            .map(function (step, i) {
+              return (
+                (i ? '<span class="arrow" aria-hidden="true">→</span>' : '') +
+                '<span>' +
+                esc(step) +
+                '</span>'
+              );
+            })
+            .join('');
+        detail.textContent = browser
+          ? {
+              inspect:
+                'The existing native service supplies selection and bounded reads; interpretation stays in Rust inside Wasm.',
+              rewrite:
+                'Dashed connection = a new native API and transport to implement. LIEF-in-Wasm is a separate, unqualified alternative.',
+              probe:
+                'Native code runs in the proposed native backend. Wasm receives evidence, never callable native initializer addresses.',
+              tandem:
+                'The proposed executor is separate from today’s read-only filesystem capability. Signing and OS-loader checks remain separate.',
+            }[state.flow]
+          : state.flow === 'tandem'
+            ? 'Rebuild and probe are proposed. Signing stays separate; a mapped-module test does not prove normal OS loading.'
+            : state.flow === 'rewrite'
+              ? 'LIEF reconstructs bytes. Reinspect final signed bytes too; reconstruction alone does not establish signature validity.'
+              : state.flow === 'probe'
+                ? 'Default shown: same-process loading. Remote targets require their own memory provider and symbol resolver.'
+                : 'object supplies selected facts. Rust owns their interpretation; inspection is not complete executable validation.';
+      }
+      function draw() {
+        const w = Math.max(
+          200,
+          Math.round(canvas.getBoundingClientRect().width),
+        );
+        lastWidth = w;
+        const map =
+          state.env === 'native'
+            ? nativeMap(w, w < 620)
+            : browserMap(w, w < 620);
+        canvas.innerHTML =
+          '<svg class="map" data-environment="' +
+          state.env +
+          '" data-operation="' +
+          state.flow +
+          '" viewBox="0 0 ' +
+          w +
+          ' ' +
+          map.h +
+          '" width="' +
+          w +
+          '" height="' +
+          map.h +
+          '" role="img" aria-labelledby="bb-title bb-desc"><title id="bb-title">' +
+          (state.env === 'native'
+            ? 'Native Rust application boundaries'
+            : 'Browser route: ' + state.flow) +
+          '</title><desc id="bb-desc">' +
+          (state.env === 'native'
+            ? 'The application process contains the shared Rust inspection and planning domain, object, and proposed native bindings to LIEF and Gum mapper. LIEF produces file bytes. Gum produces local native memory and initializer addresses. Remote mapping needs a separate target and target-aware adapters.'
+            : state.flow === 'inspect'
+              ? 'Existing inspection route: browser Rust filesystem client uses the WebSocket protocol to acquire selected native file ranges, then object and Rust produce a report.'
+              : 'Proposed ' +
+                state.flow +
+                ' route. React and jco call the Rust Wasm component. A dashed, unimplemented transport reaches a separate proposed native backend containing the selected LIEF or Gum adapter. Native operations do not execute in browser Wasm.') +
+          '</desc>' +
+          defs() +
+          map.s +
+          '</svg>';
+        root.querySelectorAll('[data-env]').forEach(function (button) {
+          button.setAttribute(
+            'aria-pressed',
+            String(button.dataset.env === state.env),
+          );
+        });
+        root.querySelectorAll('[data-flow]').forEach(function (button) {
+          button.setAttribute(
+            'aria-pressed',
+            String(button.dataset.flow === state.flow),
+          );
+        });
+        updateRoute();
+      }
+      root
+        .querySelectorAll('[data-env], [data-flow]')
+        .forEach(function (button) {
+          button.addEventListener('click', function () {
+            if (button.dataset.env) state.env = button.dataset.env;
+            if (button.dataset.flow) state.flow = button.dataset.flow;
+            draw();
+            if (window.openai && window.openai.setWidgetState)
+              window.openai
+                .setWidgetState({
+                  modelContent: {
+                    environment: state.env,
+                    operation: state.flow,
+                  },
+                  privateContent: state,
+                })
+                .catch(function () {});
+          });
+        });
+      window.addEventListener('openai:set_globals', function (event) {
+        restore(
+          event.detail &&
+            event.detail.globals &&
+            event.detail.globals.widgetState,
+        );
+        draw();
+      });
+      const observer = new ResizeObserver(function (entries) {
+        if (Math.round(entries[0].contentRect.width) !== lastWidth) draw();
+      });
+      observer.observe(canvas);
+      draw();
+    })();
+  </script>
+</div>
