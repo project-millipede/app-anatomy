@@ -7,6 +7,3 @@ publish.workspace = true
 [dependencies]
 binary-inspection = { path = "../../binary/inspection" }
 filesystem-data = { path = "../data" }
-
-[dev-dependencies]
-tempfile = "=3.27.0"
