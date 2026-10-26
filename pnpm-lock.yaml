@@ -193,6 +193,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@apple-code/archer':
+        specifier: workspace:*
+        version: link:../../packages/archer
       '@apple-code/browser':
         specifier: workspace:*
         version: link:../../packages/apple-code-browser

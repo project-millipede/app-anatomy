@@ -12,6 +12,7 @@
     "prepare": "pnpm styles:codegen"
   },
   "dependencies": {
+    "@apple-code/archer": "workspace:*",
     "@apple-code/browser": "workspace:*",
     "@ark-ui/react": "5.39.3",
     "@base-ui/react": "1.9.0",

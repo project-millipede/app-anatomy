@@ -1,0 +1,649 @@
+.page {
+  --explorer-incoming: light-dark(#246f66, #8bd2c5);
+  --explorer-outgoing: light-dark(#7859a4, #c8afea);
+  --explorer-external: light-dark(#8a5b1c, #e8bd79);
+  --explorer-canvas-min: 39rem;
+  --explorer-space: clamp(1rem, 2cqi, 1.75rem);
+  container-name: explorer;
+  container-type: inline-size;
+  min-inline-size: 0;
+  color: var(--acw-colors-text);
+  background: var(--acw-colors-background);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.page h1,
+.page h2,
+.page h3,
+.page p {
+  margin: 0;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem var(--explorer-space);
+  border-block-end: 1px solid var(--acw-colors-border);
+  background: var(--acw-colors-surface);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand strong,
+.brand span {
+  display: block;
+}
+
+.brand strong {
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+}
+
+.brand div > span {
+  color: var(--acw-colors-muted);
+  font-size: 0.6875rem;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  inline-size: 2.25rem;
+  aspect-ratio: 1;
+  border: 1px solid var(--acw-colors-border);
+  border-radius: 0.625rem;
+  color: var(--acw-colors-accent);
+  font-size: 1.25rem;
+}
+
+.headerMeta {
+  color: var(--acw-colors-muted);
+  font-size: 0.6875rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem var(--explorer-space);
+  border-block-end: 1px solid var(--acw-colors-border);
+  background: var(--acw-colors-surface);
+}
+
+.title {
+  min-inline-size: 0;
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.toolbar p {
+  margin-block-start: 0.25rem;
+  color: var(--acw-colors-muted);
+  font-size: 0.75rem;
+}
+
+.toolbarActions,
+.contextActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-inline-size: 0;
+}
+
+.layoutNote {
+  padding: 0.75rem var(--explorer-space);
+  border-block-end: 1px solid var(--acw-colors-border);
+  color: var(--acw-colors-muted);
+  background: var(--acw-colors-subtle);
+  font-size: 0.75rem;
+}
+
+/* The canvas receives most of the available width; side panels remain fluid. */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) minmax(0, 1.1fr);
+  min-inline-size: 0;
+  align-items: stretch;
+}
+
+.workspace > * {
+  min-inline-size: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  border-inline-end: 1px solid var(--acw-colors-border);
+  background: var(--acw-colors-surface);
+}
+
+.panelHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.625rem;
+  padding: 1.125rem 1rem 0.875rem;
+}
+
+.panelTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.muted {
+  color: var(--acw-colors-muted);
+}
+
+.treeLegend,
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.875rem;
+  color: var(--acw-colors-muted);
+  font-size: 0.625rem;
+}
+
+.treeLegend {
+  padding: 0 1rem 0.875rem;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.selectedDot,
+.incomingDot,
+.outgoingDot {
+  inline-size: 0.375rem;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--acw-colors-accent);
+}
+
+.incomingDot {
+  background: var(--explorer-incoming);
+}
+
+.outgoingDot {
+  background: var(--explorer-outgoing);
+}
+
+.treeBody {
+  flex: 1;
+  min-block-size: 12rem;
+  max-block-size: min(42rem, 75dvh);
+  overflow: auto;
+  padding: 0.25rem 0.75rem 1.25rem;
+  scrollbar-gutter: stable;
+}
+
+.treePlaceholderRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-block-size: 2rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--acw-colors-muted);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.treePlaceholderRow[data-selected] {
+  color: var(--acw-colors-accent);
+  background: var(--acw-colors-subtle);
+}
+
+.treeIndent {
+  margin-inline-start: 1rem;
+  border-inline-start: 1px solid var(--acw-colors-border);
+}
+
+.sidebarFooter {
+  display: grid;
+  gap: 0.75rem;
+  margin-inline: 1rem;
+  padding-block: 1rem;
+  border-block-start: 1px solid var(--acw-colors-border);
+  color: var(--acw-colors-muted);
+  font-size: 0.6875rem;
+}
+
+.canvasPanel {
+  min-inline-size: 0;
+  padding: 1.25rem var(--explorer-space);
+}
+
+.contextBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block-end: 1.5rem;
+}
+
+.path {
+  flex: 1 1 16ch;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.path > span {
+  display: block;
+}
+
+.path > span:first-child {
+  margin-block-end: 0.25rem;
+  color: var(--acw-colors-muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.055em;
+}
+
+.path > span,
+.path code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+}
+
+.canvasViewport {
+  overflow-x: auto;
+  padding: 0.25rem 0.25rem 0.75rem;
+  border-radius: 0.75rem;
+  scrollbar-gutter: stable;
+}
+
+.arrowSurface {
+  min-inline-size: var(--explorer-canvas-min);
+}
+
+/* This content budget preserves the four directions inside a narrow panel. */
+.bridgeGrid {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr);
+  grid-template-areas:
+    'north north north'
+    'west focus east'
+    'south south south';
+  column-gap: 2rem;
+  row-gap: 3rem;
+  min-inline-size: var(--explorer-canvas-min);
+  padding: 1rem 0.875rem;
+  border-radius: 0.75rem;
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--acw-colors-border) 80%, transparent) 0.05rem,
+    transparent 0.05rem
+  );
+  background-size: 1rem 1rem;
+}
+
+.boundary {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: stretch;
+  position: relative;
+  z-index: 0;
+  margin: -1rem -0.625rem;
+  border: 1px dashed var(--acw-colors-border);
+  border-radius: 0.75rem;
+  background: color-mix(
+    in srgb,
+    var(--explorer-outgoing) 4%,
+    var(--acw-colors-background)
+  );
+  pointer-events: none;
+}
+
+.boundaryLabel {
+  position: absolute;
+  inset-block-start: -0.625rem;
+  inset-inline-start: 1rem;
+  padding-inline: 0.5rem;
+  color: var(--acw-colors-muted);
+  background: var(--acw-colors-background);
+  font-size: 0.625rem;
+}
+
+.bridge,
+.focus {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  min-inline-size: 0;
+}
+
+.north {
+  grid-area: north;
+  justify-self: center;
+  inline-size: min(100%, 34ch);
+  color: var(--explorer-external);
+}
+
+.west {
+  grid-area: west;
+  color: var(--explorer-incoming);
+}
+
+.east {
+  grid-area: east;
+  color: var(--explorer-outgoing);
+}
+
+.south {
+  grid-area: south;
+  justify-self: center;
+  inline-size: min(100%, 46ch);
+  color: var(--explorer-external);
+}
+
+.focus {
+  grid-area: focus;
+}
+
+.bridgeHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-end: 0.75rem;
+}
+
+.bridgeHeading h3 {
+  color: var(--acw-colors-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.compass {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  inline-size: 1.5rem;
+  aspect-ratio: 1;
+  border: 1px solid var(--acw-colors-border);
+  border-radius: 50%;
+  background: var(--acw-colors-surface);
+  font-size: 0.625rem;
+}
+
+.bridgeDescription {
+  color: var(--acw-colors-muted);
+  font-size: 0.625rem;
+}
+
+.relationPlaceholder,
+.focusPlaceholder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  min-inline-size: 0;
+  min-block-size: 7.5rem;
+  padding: 0.875rem;
+  border: 1px solid var(--acw-colors-border);
+  border-radius: 0.625rem;
+  background: var(--acw-colors-surface);
+  color: var(--acw-colors-text);
+  overflow-wrap: anywhere;
+}
+
+.relationPlaceholder strong {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.relationPlaceholder p,
+.focusPlaceholder p {
+  color: var(--acw-colors-muted);
+  font-size: 0.6875rem;
+}
+
+.focusPlaceholder {
+  min-block-size: 10rem;
+  padding: 1rem;
+  border-color: var(--acw-colors-accent);
+  box-shadow: 0 0.25rem 1.125rem #00000006;
+}
+
+.focusPlaceholder strong {
+  font-size: 1.125rem;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.placeholderEyebrow {
+  color: var(--acw-colors-muted);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+.placeholderLines {
+  display: grid;
+  gap: 0.5rem;
+  inline-size: 100%;
+  padding-block: 0.25rem;
+}
+
+.placeholderLine {
+  display: block;
+  inline-size: 100%;
+  block-size: 0.375rem;
+  border-radius: 1rem;
+  background: var(--acw-colors-subtle);
+}
+
+.placeholderLine:nth-child(even) {
+  inline-size: 70%;
+}
+
+.legend {
+  margin-block-start: 1.25rem;
+  padding-block: 0.875rem;
+}
+
+.legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.legendSwatch {
+  inline-size: 1.25rem;
+  border-block-start: 2px solid var(--explorer-outgoing);
+}
+
+.incomingSwatch {
+  border-color: var(--explorer-incoming);
+}
+
+.outgoingSwatch {
+  border-color: var(--explorer-outgoing);
+}
+
+.externalSwatch {
+  border-color: var(--explorer-external);
+  border-block-start-style: dashed;
+}
+
+.status {
+  color: var(--acw-colors-muted);
+  font-size: 0.6875rem;
+}
+
+.inspector {
+  position: sticky;
+  inset-block-start: 0;
+  align-self: start;
+  min-inline-size: 0;
+  max-block-size: 100dvh;
+  overflow-y: auto;
+  border-inline-start: 1px solid var(--acw-colors-border);
+  background: var(--acw-colors-surface);
+  scrollbar-gutter: stable;
+}
+
+.inspectorHeader {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-block-end: 1px solid var(--acw-colors-border);
+  background: var(--acw-colors-subtle);
+}
+
+.inspectorHeader h2 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.inspectorHeader p {
+  color: var(--acw-colors-muted);
+  font-size: 0.6875rem;
+}
+
+.inspectorBody {
+  display: grid;
+  gap: 1.125rem;
+  padding: 1rem;
+}
+
+.inspectorSection {
+  display: grid;
+  gap: 0.625rem;
+  min-inline-size: 0;
+}
+
+.inspectorSection + .inspectorSection {
+  padding-block-start: 1.125rem;
+  border-block-start: 1px solid var(--acw-colors-border);
+}
+
+.inspectorSection h3 {
+  color: var(--acw-colors-muted);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.inspectorSection p {
+  color: var(--acw-colors-muted);
+  font-size: 0.6875rem;
+  overflow-wrap: anywhere;
+}
+
+.inspectorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-block-start: 1px solid var(--acw-colors-border);
+}
+
+.placeholder {
+  padding: 0.875rem;
+  border: 1px dashed var(--acw-colors-border);
+  border-radius: 0.5rem;
+  color: var(--acw-colors-muted);
+  background: var(--acw-colors-background);
+  font-size: 0.6875rem;
+  overflow-wrap: anywhere;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.875rem var(--explorer-space);
+  border-block-start: 1px solid var(--acw-colors-border);
+  color: var(--acw-colors-muted);
+  background: var(--acw-colors-surface);
+  font-size: 0.625rem;
+}
+
+/* Tree, canvas, and inspector text budgets no longer fit side by side here. */
+@container explorer (inline-size < 70rem) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--acw-colors-border);
+  }
+
+  .treeBody {
+    min-block-size: 0;
+    max-block-size: 12rem;
+  }
+
+  .sidebarFooter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .canvasPanel {
+    padding-inline: 1rem;
+  }
+
+  .inspector {
+    position: static;
+    max-block-size: none;
+    overflow: visible;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--acw-colors-border);
+  }
+
+  .inspectorBody {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 24ch), 1fr));
+  }
+
+  .inspectorSection + .inspectorSection {
+    padding-block-start: 0;
+    border-block-start: 0;
+  }
+}
+
+@container explorer (inline-size < 36rem) {
+  .header,
+  .toolbar {
+    padding-inline: 1rem;
+  }
+
+  .toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .headerMeta {
+    flex-basis: 100%;
+  }
+
+  .toolbarActions,
+  .contextActions {
+    inline-size: 100%;
+  }
+
+  .footer {
+    flex-direction: column;
+  }
+}

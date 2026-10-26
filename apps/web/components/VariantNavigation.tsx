@@ -3,11 +3,15 @@ import type { WorkbenchView } from '../features/workspace/types';
 import styles from './VariantNavigation.module.css';
 
 /**
- * Link between presentations without leaving the workbench page.
- * @param props The active presentation.
- * @returns Navigation that preserves page ownership during client transitions.
+ * Link to the Explorer and the three presentations of the native workbench.
+ * @param props The current page or workbench presentation.
+ * @returns View links that retain scroll only within the workbench page.
  */
-export function VariantNavigation({ view }: { view: WorkbenchView }) {
+export function VariantNavigation({
+  view,
+}: {
+  view: WorkbenchView | 'explorer';
+}) {
   return (
     <nav aria-label="Workbench versions" className={styles.navigation}>
       <span>View</span>
@@ -16,12 +20,13 @@ export function VariantNavigation({ view }: { view: WorkbenchView }) {
           ['base', '/', 'Base UI'],
           ['ark', '/?view=ark', 'Ark + Panda'],
           ['compare', '/?view=compare', 'Side by side'],
+          ['explorer', '/explorer', 'Explorer'],
         ] as const
       ).map(([value, href, label]) => (
         <Link
           key={href}
           href={href}
-          scroll={false}
+          scroll={view === 'explorer' || value === 'explorer'}
           aria-current={view === value ? 'page' : undefined}
         >
           {label}
