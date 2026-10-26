@@ -135,14 +135,21 @@ Base UI retains CSS Module controls. Ark uses scoped Panda tokens and button/tab
 recipes with CSS Modules for layout. The common reset is in the base CSS layer;
 Panda adds no reset or default theme. Both views belong to the same Next.js build.
 
-The layout-only Application Explorer preview has a dedicated `/explorer` route.
+The Application Explorer preview has a dedicated `/explorer` route.
 Its server layout supplies the Ark theme and navigation; its server page supplies
 metadata and renders the existing client preview. It mounts no `WorkbenchShell`,
 workbench model or native runtime. Its four illustrative connections use the
 local [Archer package](../../packages/archer/README.md), with a private store for
-each drawing surface. That store contains rendering edges and DOM refs. Tree and
-evidence widgets remain placeholders, and native inspection remains on the
-workbench page. No bundle graph or dependency resolution is added.
+each drawing surface. That store contains rendering edges and DOM refs.
+`ExplorerLayout` owns one Ark Tree View instance for the authored preview
+inventory. Its selection directly supplies the center name and path; no second
+React selection or expansion state is stored. `ExplorerFileTree` renders that
+instance. Nested connector gutters derive T/L endings from direct sibling
+position. Selection and keyboard focus decorate only the compact
+icon-and-name surface; disclosure controls and connectors occupy separate space.
+Evidence widgets remain placeholders, and native
+inspection remains on the workbench page. No bundle graph or dependency resolution
+is added.
 
 Navigating from the workbench to `/explorer` ends the workbench owner and its
 in-memory report. Returning creates a new owner that queries retained native

@@ -1,41 +1,106 @@
 'use client';
 
 import { useId } from 'react';
-import { Archer, type ArcherTypes } from '@apple-code/archer';
+import { useTreeView, type UseTreeViewReturn } from '@ark-ui/react/tree-view';
+import { Archer, type ArcherTypes, type ArrowStyle } from '@apple-code/archer';
 import { Button } from '../workspace/ark/Button';
+import { ExplorerFileTree } from './ExplorerFileTree';
+import {
+  defaultPreviewSelectionId,
+  previewInventory,
+  type PreviewNode,
+} from './previewInventory';
 import styles from './ExplorerLayout.module.css';
 
 const { ArcherSurface, ArcherElement } = Archer;
 
-const incomingStyle = { strokeColor: 'var(--explorer-incoming)' };
-const outgoingStyle = { strokeColor: 'var(--explorer-outgoing)' };
-const externalStyle = { strokeColor: 'var(--explorer-external)' };
-const unresolvedStyle = {
+const incomingStyle: ArcherTypes.LineStyle = {
+  strokeColor: 'var(--explorer-incoming)',
+};
+
+const outgoingStyle: ArcherTypes.LineStyle = {
+  strokeColor: 'var(--explorer-outgoing)',
+};
+
+const externalStyle: ArcherTypes.LineStyle = {
+  strokeColor: 'var(--explorer-external)',
+};
+
+const unresolvedStyle: ArcherTypes.LineStyle = {
   ...externalStyle,
   strokeDasharray: '5 4',
 };
-const defaultArrowStyle = { arrowLength: 6, strokeWidth: 1.5 };
 
-/** Structural Explorer preview; its authored arrows do not represent analysis. */
-export function ExplorerLayout() {
-  const instance = useId();
-  const centerId = `${instance}-selected-resource`;
-  const eastId = `${instance}-internal-target`;
-  const southId = `${instance}-external-reference`;
+const defaultArrowStyle: ArrowStyle = {
+  arrowLength: 6,
+  strokeWidth: 1.5,
+};
 
-  const relation = (
-    targetId: string,
-    sourceAnchor: ArcherTypes.TAnchorPosition,
-    targetAnchor: ArcherTypes.TAnchorPosition,
-    style: ArcherTypes.LineStyle,
-  ): ArcherTypes.Relation => ({
+/**
+ * Creates a preview connection using the default layout and a smooth path.
+ *
+ * @param targetId - The Archer ID of the target resource.
+ * @param sourceAnchor - The source side where the connection starts.
+ * @param targetAnchor - The target side where the connection ends.
+ * @param style - The line appearance for this connection.
+ * @returns A relation configured for the preview canvas.
+ */
+function createPreviewRelation(
+  targetId: string,
+  sourceAnchor: ArcherTypes.TAnchorPosition,
+  targetAnchor: ArcherTypes.TAnchorPosition,
+  style: ArcherTypes.LineStyle,
+): ArcherTypes.Relation {
+  return {
     targetId,
     sourceAnchor,
     targetAnchor,
     style,
     layout: 'default',
     pathStyle: 'smooth',
+  };
+}
+
+/**
+ * Resolves the selected preview node and its display path through the tree.
+ * Uses the selection prompt when no selected node can be found.
+ *
+ * @param tree - The preview tree's collection and current selected node IDs.
+ * @returns The selected node (if found) and its path or selection prompt.
+ */
+function getPreviewSelection({
+  collection,
+  selectedValue,
+}: Pick<UseTreeViewReturn<PreviewNode>, 'collection' | 'selectedValue'>) {
+  const [selectedNodeId] = selectedValue;
+  const selectedNode = selectedNodeId
+    ? collection.findNode(selectedNodeId)
+    : undefined;
+  const selectedPath = selectedNode
+    ? [...collection.getParentNodes(selectedNode.id), selectedNode]
+        .map((node) => node.name)
+        .join(' / ')
+    : 'Choose a preview resource';
+
+  return { selectedNode, selectedPath };
+}
+
+/** Interactive inventory preview; its authored arrows do not represent analysis. */
+export function ExplorerLayout() {
+  const instanceId = useId();
+  const tree = useTreeView({
+    collection: previewInventory,
+    selectionMode: 'single',
+    expandOnClick: false,
+    defaultSelectedValue: [defaultPreviewSelectionId],
+    defaultExpandedValue: previewInventory
+      .getParentNodes(defaultPreviewSelectionId)
+      .map((node) => node.id),
   });
+  const { selectedNode, selectedPath } = getPreviewSelection(tree);
+  const selectedResourceId = `${instanceId}-selected-resource`;
+  const internalTargetId = `${instanceId}-internal-target`;
+  const externalReferenceId = `${instanceId}-external-reference`;
 
   return (
     <main id="workbench" className={styles.page}>
@@ -69,69 +134,12 @@ export function ExplorerLayout() {
       </section>
 
       <div className={styles.layoutNote}>
-        Layout preview · File navigation and evidence panels are placeholders.
-        Connections below illustrate positioning only.
+        Interactive preview · The tree uses authored example nodes. Evidence
+        panels are placeholders; connections illustrate positioning only.
       </div>
 
       <div className={styles.workspace}>
-        <aside
-          className={styles.sidebar}
-          aria-label="File navigation placeholder"
-        >
-          <div className={styles.panelHeader}>
-            <h2 className={styles.panelTitle}>Files</h2>
-            <span className={styles.muted}>Inventory</span>
-          </div>
-          <div
-            className={styles.treeLegend}
-            aria-label="Planned tree highlights"
-          >
-            <span className={styles.legendItem}>
-              <i className={styles.selectedDot} /> Selected
-            </span>
-            <span className={styles.legendItem}>
-              <i className={styles.incomingDot} /> IN
-            </span>
-            <span className={styles.legendItem}>
-              <i className={styles.outgoingDot} /> OUT
-            </span>
-          </div>
-          <div className={styles.treeBody}>
-            <p className={styles.placeholderEyebrow}>
-              Ark Tree View placeholder
-            </p>
-            <div className={styles.treePlaceholderRow}>
-              <span aria-hidden="true">▾</span> Application
-            </div>
-            <div className={styles.treeIndent}>
-              <div className={styles.treePlaceholderRow}>
-                <span aria-hidden="true">▾</span> Contents
-              </div>
-              <div className={styles.treeIndent}>
-                <div className={styles.treePlaceholderRow}>
-                  <span aria-hidden="true">▸</span> Resources
-                </div>
-                <div className={styles.treePlaceholderRow}>
-                  <span aria-hidden="true">▾</span> Frameworks
-                </div>
-                <div className={styles.treeIndent}>
-                  <div className={styles.treePlaceholderRow} data-selected>
-                    Selected resource
-                  </div>
-                  <div className={styles.placeholderLines} aria-hidden="true">
-                    <span className={styles.placeholderLine} />
-                    <span className={styles.placeholderLine} />
-                    <span className={styles.placeholderLine} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className={styles.sidebarFooter}>
-            <p>Physical containment</p>
-            <Button disabled>Locate selection</Button>
-          </div>
-        </aside>
+        <ExplorerFileTree tree={tree} />
 
         <section
           className={styles.canvasPanel}
@@ -143,9 +151,9 @@ export function ExplorerLayout() {
             </Button>
             <div className={styles.path}>
               <span className={styles.placeholderEyebrow}>
-                Selected file / exact location
+                Preview selection / exact location
               </span>
-              <span>Application / … / Selected resource</span>
+              <span>{selectedPath}</span>
             </div>
             <div className={styles.contextActions}>
               <Button disabled>Architecture</Button>
@@ -184,9 +192,14 @@ export function ExplorerLayout() {
                     </div>
                   </div>
                   <ArcherElement
-                    id={`${instance}-external-source`}
+                    id={`${instanceId}-external-source`}
                     relations={[
-                      relation(centerId, 'bottom', 'top', externalStyle),
+                      createPreviewRelation(
+                        selectedResourceId,
+                        'bottom',
+                        'top',
+                        externalStyle,
+                      ),
                     ]}
                   >
                     <div className={styles.relationPlaceholder}>
@@ -216,9 +229,14 @@ export function ExplorerLayout() {
                     </div>
                   </div>
                   <ArcherElement
-                    id={`${instance}-internal-source`}
+                    id={`${instanceId}-internal-source`}
                     relations={[
-                      relation(centerId, 'right', 'left', incomingStyle),
+                      createPreviewRelation(
+                        selectedResourceId,
+                        'right',
+                        'left',
+                        incomingStyle,
+                      ),
                     ]}
                   >
                     <div className={styles.relationPlaceholder}>
@@ -236,20 +254,32 @@ export function ExplorerLayout() {
 
                 <section
                   className={styles.focus}
-                  aria-label="Selected resource placeholder"
+                  aria-label="Selected preview resource"
                 >
                   <ArcherElement
-                    id={centerId}
+                    id={selectedResourceId}
                     relations={[
-                      relation(eastId, 'right', 'left', outgoingStyle),
-                      relation(southId, 'bottom', 'top', unresolvedStyle),
+                      createPreviewRelation(
+                        internalTargetId,
+                        'right',
+                        'left',
+                        outgoingStyle,
+                      ),
+                      createPreviewRelation(
+                        externalReferenceId,
+                        'bottom',
+                        'top',
+                        unresolvedStyle,
+                      ),
                     ]}
                   >
                     <div className={styles.focusPlaceholder}>
                       <span className={styles.placeholderEyebrow}>
-                        Selected resource
+                        Selected preview resource
                       </span>
-                      <strong>One file at the center</strong>
+                      <strong>
+                        {selectedNode?.name ?? 'Choose a resource'}
+                      </strong>
                       <p>File details placeholder</p>
                       <div
                         className={styles.placeholderLines}
@@ -275,7 +305,7 @@ export function ExplorerLayout() {
                       </p>
                     </div>
                   </div>
-                  <ArcherElement id={eastId}>
+                  <ArcherElement id={internalTargetId}>
                     <div className={styles.relationPlaceholder}>
                       <span className={styles.placeholderEyebrow}>
                         Connection placeholder
@@ -302,7 +332,7 @@ export function ExplorerLayout() {
                       </p>
                     </div>
                   </div>
-                  <ArcherElement id={southId}>
+                  <ArcherElement id={externalReferenceId}>
                     <div className={styles.relationPlaceholder}>
                       <span className={styles.placeholderEyebrow}>
                         Connection placeholder
@@ -327,10 +357,7 @@ export function ExplorerLayout() {
               Bundle ingress
             </span>
             <span>
-              <i
-                className={`${styles.legendSwatch} ${styles.outgoingSwatch}`}
-              />{' '}
-              Bundle egress
+              <i className={styles.legendSwatch} /> Bundle egress
             </span>
             <span>
               <i

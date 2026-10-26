@@ -1,6 +1,7 @@
 import { defineConfig } from '@pandacss/dev';
 import { button } from './features/workspace/ark/recipes/button';
 import { tabs } from './features/workspace/ark/recipes/tabs';
+import { tree } from './features/explorer/recipes/tree';
 
 export default defineConfig({
   preflight: false,
@@ -30,6 +31,6 @@ export default defineConfig({
       },
     },
     recipes: { button },
-    slotRecipes: { tabs },
+    slotRecipes: { tabs, tree },
   },
 });

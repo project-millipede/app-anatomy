@@ -10,8 +10,10 @@ See [UI comparison](docs/architecture/base-ui-and-ark-panda-comparison.md) for t
 
 The Application Explorer has its own page at `/explorer` and a dedicated Ark
 layout: fluid file, canvas and inspector regions, with illustrative arrows drawn
-by the reused [Archer package](packages/archer/README.md). Tree navigation and
-evidence widgets remain placeholders; the arrows are not analysis results. This
+by the reused [Archer package](packages/archer/README.md). Ark Tree View provides
+single selection, expansion and keyboard navigation in an authored preview
+inventory. The center name and path follow that selection.
+Evidence widgets remain placeholders; the arrows are not analysis results. This
 page initializes no native runtime. Base UI, Ark and comparison views retain their
 native inspection controls and reports. Leaving the workbench for the Explorer
 ends the current owner; returning queries retained native selection and starts
