@@ -24,14 +24,62 @@ Avoid tests that primarily repeat:
 A test does not earn its place merely because it executes production code,
 increases coverage, or checks behavior that matters somewhere in the system.
 
-**It must establish something meaningful about our implementation.**
+**A test must provide evidence that the code satisfies an intended requirement.**
 
 This policy applies to new tests, reviews of existing tests, and cleanup during
-refactoring.
+refactoring. It also defines conventions for test structure, helpers, naming,
+documentation and cleanup. These conventions apply to unit, integration and
+lifecycle tests; use only the structure needed to explain the scenario.
 
-## 2. The ownership rule
+## 2. Review production behavior before testing it
 
-Before adding or retaining a test, identify who implements the behavior.
+### 2.1 Establish the intended behavior
+
+Before creating, retaining or refactoring a test, review the production business
+logic and the expected result or state. Establish the intended behavior from
+requirements, consumer contracts and domain rules. Existing code and assertions
+describe current behavior; they do not by themselves establish that it is correct.
+
+Ask why each relevant state or transition is needed, who depends on it, and
+whether it is externally meaningful or an internal mechanism. An internal state
+can be necessary, but its presence in the implementation is not its justification.
+
+Do not change expected results merely to make the implementation pass. If the
+requirement is unclear or disputed, identify the unresolved question before
+encoding an assumption as a permanent test expectation. A focused regression test
+can express a clear requirement that the current implementation violates.
+
+### 2.2 Challenge the production implementation
+
+Consider whether simpler production logic could satisfy the same requirement
+before building test machinery around the current design.
+
+| Current mechanism | Alternative to evaluate |
+| --- | --- |
+| Two stored values must remain synchronized | Derive one value from the other. |
+| State must be restored after failed acquisition | Complete acquisition before replacing the existing state. |
+| Several flags permit invalid combinations | Represent valid states directly through types and ownership. |
+| Multiple layers repeat validation or cleanup | Place each responsibility at its appropriate owner. |
+| Custom machinery repeats a dependency capability | Use the existing capability directly where it satisfies the contract. |
+
+These are questions to evaluate, not automatic replacements. Prefer the simplest
+correct implementation that preserves required behavior, including failure and
+lifecycle semantics. Simplicity means fewer concepts and interactions to
+understand, not merely fewer lines or moving complexity behind another wrapper.
+
+The review is required; redesign is not. Keep it proportional to the behavior in
+scope. Address defects or simplifications within the authorized task; otherwise,
+report the specific production concern. Reviewing production code does not itself
+authorize changing it or weakening an established contract.
+
+Once the intended behavior and any production concerns are clear, decide what
+evidence a test needs to provide. Complex test setup is a reason to revisit this
+assessment, not proof that either the test or production design is wrong.
+
+### 2.3 Identify the owner
+
+Identify which layer should implement the justified behavior and whether the
+current implementation places it there.
 
 | Owner | Testing approach |
 | --- | --- |
@@ -387,6 +435,58 @@ Check for other consumers first.
 A test removal is incomplete when its supporting machinery remains without a
 purpose.
 
+### 7.5 Keep helpers focused and close to their callers
+
+Before introducing elaborate fixtures or coordination, check whether the
+complexity comes from the required behavior, the production design or the chosen
+test boundary. Do not use helpers to conceal avoidable production complexity.
+
+Keep the production action and behavioral claim clear at the call site. Focused
+helpers can clarify repeated setup, coordination or assertions. Name each helper
+after what it creates or performs, such as `file_with_contents()`,
+`directory_with_entries()` or `assert_state_preserved()`.
+
+Use explicit inputs and return only the values and resource owners callers need.
+Avoid vague setup functions and configurable fixture frameworks whose options do
+not serve distinct scenarios.
+
+Keep helpers at the smallest shared scope:
+
+- One test module: keep the helper in that module.
+- Sibling test modules: place shared support in their common test module.
+- Wider reuse: share only when callers have the same fixture requirements.
+
+Similar-looking setup does not necessarily represent the same responsibility.
+Do not introduce a general test utility layer solely to eliminate repetition.
+Organize test modules by behavior or ownership when that improves navigation;
+small suites do not require a nested directory structure.
+
+### 7.6 Make setup and fixture ownership explicit
+
+Construct production objects through their ordinary APIs where practical. Keep
+important initial conditions visible at the call site. A preservation test must
+establish valid initial state and explain why the contract requires preserving it.
+
+Direct internal setup must represent a valid state, or an invalid state whose
+handling is explicitly part of the contract. Document any public path it bypasses
+so the test's scope remains clear.
+
+Use small, reproducible fixtures. Where directory structure matters, document it
+beside the helper:
+
+```text
+temporary directory/
+├── root-file
+└── child-directory/
+    └── child-file
+```
+
+Keep temporary-resource owners alive until all operations using their resources
+have finished. Returning a path alone may be insufficient if dropping its owner
+removes the resource. Prefer local ownership over hidden global test state.
+Ordinary scoped cleanup is sufficient unless release order matters; use explicit
+release or `drop` to express a required lifetime boundary.
+
 ## 8. Error handling tests
 
 ### 8.1 Preserve evidence where our code can lose it
@@ -488,9 +588,88 @@ Retain a permanent test only when it is:
 Document manual evidence accurately. Do not claim automated verification when a
 scenario still depends on user interaction.
 
-## 10. Test names must match their evidence
+### 9.4 Coordinate explicitly and terminate on failure
 
-Names and comments must describe what a test actually observes.
+Prefer channels, notifications or barriers over arbitrary sleeps. Reach the
+required state explicitly rather than assuming another task has run. Manually
+poll a future only when reaching a particular suspension point is part of the
+scenario.
+
+Bound waits that could otherwise hang under the regression being tested. A test
+timeout is a safeguard, not evidence about performance or a production deadline.
+An async timeout cannot interrupt synchronous code that blocks its executor
+thread; the test must retain a way to release that work.
+
+Design cleanup for both successful and failing observations. When an assertion
+could prevent blocked work from finishing, use this order:
+
+```text
+Observe and retain the result
+  → release blocked work
+  → complete cleanup
+  → assert the result
+```
+
+A timeout alone is insufficient if failure reporting prevents cleanup. Release
+held guards, signal waiting callbacks, close channels and join tasks as required
+by the scenario. Do not leave spawned work running beyond the test. If cleanup
+itself is the behavior under test, capture its observable effects at the relevant
+points before completing the remaining cleanup and asserting the evidence.
+
+### 9.5 Choose runtime settings for the behavior under test
+
+Explain unusual execution settings and enable only the facilities needed. In
+Tokio, async scheduling, blocking work and runtime drivers are separate concerns:
+
+| Setting | Controls |
+| --- | --- |
+| `.worker_threads(n)` | Scheduler workers for spawned async tasks on a multi-thread runtime. |
+| `.max_blocking_threads(n)` | The separate thread limit for blocking work, including `spawn_blocking(...)`. |
+| `.enable_time()` | The timer driver needed by operations such as `timeout(...)`. |
+
+`#[test]` does not create a Tokio runtime. `#[tokio::test]` creates one with its
+supported options. Use the macro when those options suffice; construct a runtime
+explicitly when a required setting, such as the blocking-pool limit, is not
+exposed by the macro in the dependency version being used.
+
+A current-thread runtime can still use the blocking pool. Conversely, a blocking
+call inside an async task occupies the thread polling it; Tokio does not move the
+call into that pool automatically. Neither worker setting limits all process
+threads.
+
+Before adding workers to a test, establish whether the blocking or coordination
+comes from required production behavior or from the fixture. Explain which
+execution arrangement makes the claimed behavior observable. A test's worker
+count does not establish a production thread-count requirement.
+
+## 10. Test structure, naming and documentation
+
+### 10.1 Keep each test focused on a clear scenario
+
+Make setup, the operation, observations and cleanup easy to identify. Order them
+so that failure reporting cannot prevent required cleanup; see section 9.4.
+
+Separate scenarios when their setup, behavior or expected outcomes require
+different explanations. Use a small table of cases when the same scenario applies
+to several inputs. Avoid chains in which later assertions depend on unrelated
+earlier operations.
+
+A coherent scenario may require several assertions. Each should help distinguish
+the intended behavior from a realistic mistake. Test names, comments and helpers
+cannot compensate for a weak claim; apply the review questions in section 12.
+
+### 10.2 Name tests after observable behavior
+
+Describe the condition and consequence, for example:
+
+- `failed_updates_preserve_existing_state`
+- `concurrent_requests_share_initialization`
+- `oversized_messages_are_rejected`
+
+Avoid vague names such as `works`, historical terminology and implementation
+jargon that does not explain the contract. Name the intended behavior and ensure
+that the assertions demonstrate it. Comments must not claim more than the test
+observes.
 
 | Claim | Insufficient evidence |
 | --- | --- |
@@ -505,6 +684,80 @@ When a test overclaims, make the evidence meaningful or remove the test.
 
 Renaming alone does not rescue a test with no useful remaining claim.
 
+### 10.3 Name variables by their role
+
+Use consistent terms in the test, its helpers, comments and diagrams.
+
+| Role | Example |
+| --- | --- |
+| Initial state | `initial_state` |
+| State after failure | `state_after_failure` |
+| Expected result | `expected_result` |
+| Running background task | `worker_task` |
+| Guard holding a lock | `state_guard` |
+| Temporary resource owner | `temporary_directory` |
+
+Distinguish a lock from its guard, a request from its response, and a resource
+from its identifier. Prefer role-specific names over `task`, `other` or `state`
+when several participants are involved. Short names remain appropriate where
+there is no ambiguity.
+
+### 10.4 Separate setup errors from behavioral assertions
+
+Use `Result` and `?` for routine fallible setup and cleanup when supported by the
+test framework. A helper whose operations return only I/O errors can use
+`std::io::Result`.
+
+Inspect expected failures explicitly. Neither `?` nor assertions may bypass the
+cleanup required by section 9.4.
+
+Use `expect(...)` when its message explains a meaningful invariant or required
+outcome:
+
+```rust
+.expect("background task should finish while the lock remains held")
+```
+
+Do not attribute every failure to one unproven cause. Include relevant actual
+values when they help identify which case failed.
+
+### 10.5 Explain purpose above the test and phases inside it
+
+Function-level comments should explain information the name cannot communicate
+clearly: important preconditions, relationships between participants, unusual
+execution requirements and the property established by the scenario.
+Straightforward tests may need no function comment.
+
+For a multi-stage test, number meaningful phases inline when this clarifies the
+sequence. Describe the scenario's actual action and purpose. For example, use
+"Acquire the state lock before starting the request" rather than "Prepare the
+test," and "Verify that failure preserved the original state" rather than "Check
+the result."
+
+Place each comment immediately before the statements it describes. Number phases
+rather than individual statements, and include explicit cleanup in the sequence.
+Follow the actual execution order and the cleanup requirements in section 9.4.
+
+Explain non-obvious ordering and lifetime constraints beside the relevant code.
+Avoid narrating ordinary statements or repeating the same numbered procedure in
+an additional example above the function. Comments describe the current contract,
+not the history of the implementation.
+
+### 10.6 Use diagrams for structure and interactions
+
+A fixture tree describes data structure. A sequence diagram describes interactions
+over time. Use either only when it makes the scenario easier to understand.
+
+Identify actual participants and keep their names consistent with the code. Show
+the events relevant to the claim, such as acquiring a lock, waiting, abandoning a
+request, completing a callback and releasing resources. Distinguish concurrent
+execution from sequential steps, and identify which participant holds a guard.
+
+Plain-text diagrams in Rustdoc belong in a fenced `text` block. Align participant
+columns and arrows, group execution contexts only when relevant, and explain any
+special symbols. Diagrams should clarify relationships without reproducing every
+statement or duplicating the numbered inline procedure.
+
 ## 11. Review decisions
 
 Use these categories when reviewing tests:
@@ -514,12 +767,14 @@ Use these categories when reviewing tests:
 | **Keep** | Tests a meaningful owned rule, operation, boundary or lifecycle. |
 | **Simplify** | The claim is useful, but fixtures or assertions add unnecessary complexity. |
 | **Remove** | Primarily tests upstream behavior, trivial forwarding, duplication or obsolete implementation details. |
-| **Investigate** | Ownership or unique value is unresolved. Retain temporarily with a specific review note. |
+| **Investigate** | Intended behavior, production design, ownership or test value is unresolved. Record the specific question before deciding what to change. |
 
 An investigation note must identify the unresolved question.
 
 Useful questions include:
 
+- What requirement justifies the expected state or result?
+- Could simpler production logic satisfy the same requirement?
 - Does another test already own this behavior?
 - Does the fixture reflect the production boundary?
 - Does the assertion demonstrate the claimed property?
@@ -529,19 +784,23 @@ Avoid vague TODOs that provide no direction.
 
 Review file by file. Do not assume every test in a file has the same value.
 
-## 12. Gate for new tests
+## 12. Before creating or refactoring a test
 
-Before adding a test, answer:
+Answer these questions in order:
 
-1. **What behavior does our code own?**
-2. **What realistic implementation mistake would this test detect?**
-3. **Which assertion demonstrates that mistake?**
-4. **Does an existing test establish the same rule?**
-5. **Is this the smallest appropriate layer?**
-6. **Is the fixture cost proportionate to the evidence gained?**
-7. **Would the test remain useful after a reasonable implementation refactor?**
+1. **What requirement justifies the expected behavior, result or state?**
+2. **Is the production logic correct, and could a simpler design satisfy the requirement?**
+3. **Which layer should own this behavior?**
+4. **What realistic implementation mistake would this test detect?**
+5. **Which assertion checks the behavior against an independently justified expectation?**
+6. **Does an existing test establish the same rule?**
+7. **Is this the smallest appropriate test boundary?**
+8. **Is the fixture cost proportionate to the evidence gained?**
+9. **Would the test remain useful after a reasonable implementation refactor?**
 
-If these answers are weak, improve an existing test or add no test.
+If the requirement or production design is unresolved, address that question
+before expanding the test. If the test's value is weak, improve existing coverage
+or add no test.
 
 Do not invent speculative failure scenarios solely to justify more coverage.
 
@@ -572,7 +831,7 @@ at that time; it does not establish that the source remained unchanged afterward
 
 ## 14. Guiding principle
 
-**Protect the decisions and adaptations implemented by our code.**
+**Validate intended behavior, challenge production complexity, and test the justified contract.**
 
 Keep tests that provide distinct evidence about meaningful behavior we own.
 

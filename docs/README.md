@@ -32,9 +32,9 @@ and signing studies contribute evidence for particular stages.
 These documents distinguish the implemented application from accepted future
 architecture. A selected direction does not establish completed implementation.
 
-- [Testing policy](architecture/testing-policy.md): baseline for test additions,
-  reviews and removals; behavior ownership, meaningful integration boundaries,
-  exclusions, fixture costs and duplicate coverage.
+- [Testing policy](architecture/testing-policy.md): review intended behavior and
+  production simplicity before creating or refactoring tests; coverage criteria,
+  exclusions, helpers, naming, documentation, runtime setup and cleanup.
 - [Rust reuse across execution environments](architecture/rust-runtime-independence/README.md):
   mandatory Rust-only non-UI workflow and API-defined component boundaries, with
   diagrams distinguishing exports, internal implementation and imports; permitted
