@@ -1,0 +1,91 @@
+.archerSurface {
+  height: 100%;
+  width: 100%;
+
+  /**
+     * CRUCIAL FOR LAYOUT.
+     * Establishes this as the containing block for absolutely positioned
+     * children (`.edgeLabelOverlay`, `.svgCanvas`), ensuring they are
+     * positioned relative to this surface.
+     */
+  position: relative;
+}
+
+.surfaceContent {
+  /**
+     * Ensures the inner content area fills the height of its parent
+     * (`.archerSurface`).
+     */
+  height: 100%;
+
+  /**
+     * Note: `width: 100%` is typically not needed as block-level elements (like
+     * <div>) naturally expand to the full available width of their parent.
+     */
+
+  /**
+     * User styles can be added via `surfaceStyle` props.
+     */
+
+  overflow: hidden;
+}
+
+.edgeLabelOverlay {
+  /**
+     * Positions this overlay relative to `.archerSurface`.
+     */
+  position: absolute;
+
+  /**
+     * Modern shorthand (for `top:0; right:0; bottom:0; left:0;`).
+     * Stretches the overlay to completely cover `.archerSurface`.
+     * Serves as a portal target for edge labels.
+     */
+  inset: 0;
+
+  /**
+     * Makes the overlay container transparent to mouse events, allowing
+     * interactions to pass through to layers below.
+     */
+  pointer-events: none;
+}
+
+.edgeLabelOverlay > * {
+  /**
+     * Re-enables mouse interactions for direct children (e.g., labels ported
+     * into this overlay), making them interactive by default.
+     */
+  pointer-events: auto;
+}
+
+.svgCanvas {
+  /**
+     * Positions this SVG canvas relative to `.archerSurface`.
+     */
+  position: absolute;
+
+  /**
+     * Aligns the top-left corner of the SVG with its containing block and
+     * stretches it to fill the container's dimensions.
+     * For SVGs, explicitly setting width and height alongside edge offsets
+     * ensures consistent sizing across browsers.
+     */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  /**
+     * Makes the SVG container transparent to mouse events, allowing
+     * interactions to pass through to layers below.
+     */
+  pointer-events: none;
+}
+
+.svgCanvas > * {
+  /**
+     * Re-enables mouse interactions for direct children (e.g., SVG shapes like
+     * <path>, <circle>), making them interactive by default.
+     */
+  pointer-events: auto;
+}

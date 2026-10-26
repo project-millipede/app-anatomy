@@ -135,20 +135,21 @@ The web package generates Panda's styling API during installation and before dev
 
 ## Package boundaries
 
-| Location                      | Responsibility                                                          |
-| ----------------------------- | ----------------------------------------------------------------------- |
-| `apps/web`                    | App Router routes, application ownership and Base UI/Ark presentation   |
-| `crates/binary/inspection`    | Ordinary Rust library; no WIT, Wasm, browser or filesystem dependencies |
-| `crates/workbench/operations` | Ordinary Rust filesystem client, selection and analysis workflow        |
-| `crates/filesystem/data`     | Shared directory-entry types for filesystem providers and consumers     |
-| `crates/filesystem/protocol`  | Shared bounded filesystem message encoding                              |
-| `crates/filesystem/native`    | Native filesystem operations and retained handles                       |
-| `crates/distribution/packaging` | Build-time executable packaging and native installer creation |
-| `crates/distribution/integration` | Reusable OS integration; currently single-instance file locking |
+| Location                          | Responsibility                                                                   |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| `apps/web`                        | App Router routes, application ownership and Base UI/Ark presentation            |
+| `crates/binary/inspection`        | Ordinary Rust library; no WIT, Wasm, browser or filesystem dependencies          |
+| `crates/workbench/operations`     | Ordinary Rust filesystem client, selection and analysis workflow                 |
+| `crates/filesystem/data`          | Shared directory-entry types for filesystem providers and consumers              |
+| `crates/filesystem/protocol`      | Shared bounded filesystem message encoding                                       |
+| `crates/filesystem/native`        | Native filesystem operations and retained handles                                |
+| `crates/distribution/packaging`   | Build-time executable packaging and native installer creation                    |
+| `crates/distribution/integration` | Reusable OS integration; currently single-instance file locking                  |
 | `crates/distribution/composition` | Installed `native-workbench` entry point, service startup and instance ownership |
-| `crates/services/filesystem`  | Native Workbench Service: selection, dialogs and filesystem requests    |
-| `crates/workbench/component`  | WIT contract and conversion to/from core Rust types                     |
-| `packages/apple-code-browser` | Component/session initialization and environment bindings               |
+| `crates/services/filesystem`      | Native Workbench Service: selection, dialogs and filesystem requests             |
+| `crates/workbench/component`      | WIT contract and conversion to/from core Rust types                              |
+| `packages/apple-code-browser`     | Component/session initialization and environment bindings                        |
+| `packages/archer`                 | Reused browser arrow drawing, geometry and surface-local rendering state         |
 
 Native Rust consumers can depend directly on `binary-inspection` and call `binary_inspection::inspect(&bytes)`. They receive an owned `BinaryReport` with typed container, image, platform and signature-command records; the input is borrowed only for the call. `AnalysisError` implements `Display` and `std::error::Error`, exposes a typed kind and retains upstream decoding errors as its source. No jco or Wasm runtime is required. The crate documentation contains native usage guidance.
 
