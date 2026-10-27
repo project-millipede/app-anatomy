@@ -16,7 +16,23 @@ export default defineConfig({
   prefix: { cssVar: 'acw' },
   cssVarRoot: '.ark-theme',
   theme: {
+    tokens: {
+      // Compact font scale shared by Explorer styles and recipes.
+      fontSizes: {
+        '3xs': { value: '0.5625rem' },
+        '2xs': { value: '0.625rem' },
+        xs: { value: '0.6875rem' },
+        sm: { value: '0.75rem' },
+        md: { value: '0.8125rem' },
+        lg: { value: '1.0625rem' },
+        xl: { value: '1.125rem' },
+        '2xl': { value: '1.25rem' },
+      },
+    },
     semanticTokens: {
+      borders: {
+        divider: { value: '1px solid {colors.border}' },
+      },
       colors: {
         background: { value: 'light-dark(#f5f7fa, #10141b)' },
         surface: { value: 'light-dark(#ffffff, #171e28)' },

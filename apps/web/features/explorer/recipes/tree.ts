@@ -80,7 +80,7 @@ export const tree = defineSlotRecipe({
       minWidth: 0,
       margin: 0,
       color: 'text',
-      fontSize: '0.8125rem',
+      fontSize: 'md',
       fontWeight: 600,
       overflowWrap: 'anywhere',
     },
@@ -88,7 +88,7 @@ export const tree = defineSlotRecipe({
       minWidth: 0,
       margin: 0,
       padding: '0.1875rem',
-      fontSize: '0.75rem',
+      fontSize: 'sm',
       lineHeight: 1.5,
     },
     node: {

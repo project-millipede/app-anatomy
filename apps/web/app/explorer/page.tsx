@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ExplorerLayout } from '../../features/explorer/ExplorerLayout';
+import { ApplicationExplorer } from '../../features/explorer/ApplicationExplorer';
 
 export const metadata: Metadata = {
   title: 'Application Explorer | Code Workbench',
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function ExplorerPage() {
-  return <ExplorerLayout />;
+  return <ApplicationExplorer />;
 }

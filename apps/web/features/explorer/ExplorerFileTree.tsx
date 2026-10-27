@@ -8,6 +8,7 @@ import {
 } from '@ark-ui/react/tree-view';
 import { tree as treeRecipe } from '../../styled-system/recipes';
 import type { PreviewNode } from './previewInventory';
+import { NavigationPane } from './layout/NavigationPane';
 import styles from './ExplorerLayout.module.css';
 
 const parts = treeRecipe();
@@ -19,19 +20,23 @@ export function ExplorerFileTree({
 }) {
   const hintId = useId();
   return (
-    <aside className={styles.sidebar} aria-label="File navigation">
-      <TreeView.RootProvider value={tree} className={parts.root}>
-        <div className={styles.panelHeader}>
-          <TreeView.Label asChild className={parts.label}>
-            <h2>Files</h2>
-          </TreeView.Label>
-          <span className={styles.muted}>Preview inventory</span>
-        </div>
-        <p id={hintId} className={styles.treeHint}>
-          Select a row to update the center card. Folder rows also open their
-          children. Chevrons expand or collapse without selecting.
-        </p>
-        <div className={styles.treeBody}>
+    <TreeView.RootProvider value={tree} className={parts.root}>
+      <NavigationPane
+        heading={
+          <div className={styles.treeHeading}>
+            <TreeView.Label asChild className={parts.label}>
+              <h2>Files</h2>
+            </TreeView.Label>
+            <span className={styles.muted}>Preview inventory</span>
+          </div>
+        }
+        description={
+          <p id={hintId} className={styles.treeHint}>
+            Select a row to update the center card. Folder rows also open their
+            children. Chevrons expand or collapse without selecting.
+          </p>
+        }
+        tree={
           <TreeView.Tree className={parts.tree} aria-describedby={hintId}>
             {tree.collection.rootNode.children?.map((node, index, siblings) => (
               <FileTreeNode
@@ -42,12 +47,14 @@ export function ExplorerFileTree({
               />
             ))}
           </TreeView.Tree>
-        </div>
-        <div className={styles.sidebarFooter}>
-          <p>Authored nodes · No files inspected</p>
-        </div>
-      </TreeView.RootProvider>
-    </aside>
+        }
+        footer={
+          <p className={styles.treeSummary}>
+            Authored nodes · No files inspected
+          </p>
+        }
+      />
+    </TreeView.RootProvider>
   );
 }
 

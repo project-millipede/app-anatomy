@@ -137,14 +137,34 @@ Panda adds no reset or default theme. Both views belong to the same Next.js buil
 
 The Application Explorer preview has a dedicated `/explorer` route.
 Its server layout supplies the Ark theme and navigation; its server page supplies
-metadata and renders the existing client preview. It mounts no `WorkbenchShell`,
-workbench model or native runtime. Its four illustrative connections use the
+metadata and renders `ApplicationExplorer` and `ExplorerFrame` as server
+components for static page chrome. A dedicated notice row shows the preview
+disclaimer above the workspace. The frame renders the client
+`ExplorerWorkspace` directly in its workspace row. The preview mounts no
+`WorkbenchShell`, workbench model or native runtime. Its four illustrative
+connections use the
 local [Archer package](../../packages/archer/README.md), with a private store for
 each drawing surface. That store contains rendering edges and DOM refs.
-`ExplorerLayout` owns one Ark Tree View instance for the authored preview
+`ExplorerWorkspace` owns one Ark Tree View instance for the authored preview
 inventory. Its selection directly supplies the center name and path; no second
 React selection or expansion state is stored. `ExplorerFileTree` renders that
-instance. Nested connector gutters derive T/L endings from direct sibling
+instance through `NavigationPane`. `ExplorerWorkspaceLayout` accepts explicit
+`navigation`, `canvas` and `inspector` slots and owns their three-pane grid. It
+belongs to the client dependency graph through its workspace owner; Ark objects
+and callbacks stay inside that client subtree.
+`ExplorerFrame`, `ExplorerWorkspaceLayout`, `NavigationPane`, `CanvasPane`,
+`InspectorPane`, `BridgeGrid` and `BridgeSection` own layout through named content
+slots; they do not own selection or a native runtime. `ExplorerRelationshipCanvas`
+retains the illustrative Archer connections. It composes `BridgeViewport`,
+`ArcherSurface` and `BridgeGrid` through ordinary JSX nesting. `BridgeViewport`
+owns the scrolling viewport and minimum-width wrapper; Archer's surface surrounds
+all grid endpoints and owns their registration and connector coordinates. Pane
+scrolling fits below the route's navigation. The navigation, canvas and inspector retain a
+`1 : 3 : 1` ratio at every width, with no container queries or breakpoint stacking.
+North and south share a width policy and matching flexible grid rows, so their
+complete bridge sections have equal, content-driven heights without fixed height
+values. Authored styles throughout the web app use natural letter spacing.
+Nested connector gutters derive T/L endings from direct sibling
 position. Selection and keyboard focus decorate only the compact
 icon-and-name surface; disclosure controls and connectors occupy separate space.
 Evidence widgets remain placeholders, and native

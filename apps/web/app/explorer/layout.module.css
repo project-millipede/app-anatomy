@@ -1,0 +1,10 @@
+/* Navigation may wrap; the frame receives the actual remaining height. */
+.route {
+  display: flex;
+  flex-direction: column;
+  block-size: 100dvh;
+}
+
+.route > nav {
+  flex: none;
+}
