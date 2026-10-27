@@ -206,7 +206,7 @@ not proof of graceful cleanup; Windows signal behavior requires separate qualifi
 
 ## Scope of the evidence
 
-Native tests cover short reads, EOF, native errors, resource identifier separation,
+Native tests cover short reads, EOF, native errors, stale resource identifier rejection,
 transactional acquisition and listing, dialog cancellation, persistent selection,
 and shutdown ordering. Socket tests cover multiple clients with
 absent or arbitrary Origin headers and rejection of malformed or oversized

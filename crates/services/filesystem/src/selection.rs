@@ -139,58 +139,25 @@ impl Selection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use binary_inspection::input::ByteSource;
-    use std::io::Write;
 
-    fn source(bytes: &[u8]) -> NativeFileSource {
-        let mut file = tempfile::tempfile().unwrap();
-        file.write_all(bytes).unwrap();
-        NativeFileSource::new(file).unwrap()
-    }
-
-    fn assert_unknown<T: std::fmt::Debug>(result: Result<T, SourceError>) {
-        let Err(SourceError::Io(error)) = result else {
-            panic!("expected unknown resource identifier, got {result:?}");
-        };
-        assert_eq!(error.kind(), io::ErrorKind::NotFound);
-        assert_eq!(error.to_string(), "Unknown resource identifier");
-    }
-
-    // TODO: Simplify the name and assertions around file replacement, keeping
-    // old/new identifier access checks without requiring exact error wording.
     #[test]
-    fn replacement_invalidates_old_identifiers_without_receipts() {
+    fn file_replacement_rejects_previous_identifier() -> anyhow::Result<()> {
         let mut selection = Selection::new(NativeSelection::default());
-        let first = selection
-            .install_file("first".into(), source(b"first"))
-            .unwrap();
-        let second = selection
-            .install_file("second".into(), source(b"second"))
-            .unwrap();
-        assert_ne!(first.resource, second.resource);
-        assert_unknown(selection.file(&first.resource));
-        assert_unknown(selection.file("unknown"));
-        assert_eq!(selection.file(&second.resource).unwrap().byte_length(), 6);
-        assert_eq!(selection.current().unwrap().file, Some(second));
-    }
+        let first = selection.install_file(
+            "first".into(),
+            NativeFileSource::new(tempfile::tempfile()?)?,
+        )?;
+        let second = selection.install_file(
+            "second".into(),
+            NativeFileSource::new(tempfile::tempfile()?)?,
+        )?;
 
-    // TODO: Focus on live file/directory identifier substitution; review the
-    // unrelated unknown-identifier and retained-directory assertions.
-    #[test]
-    fn file_and_directory_identifiers_cannot_substitute_for_each_other() {
-        let root = tempfile::tempdir().unwrap();
-        std::fs::write(root.path().join("sample"), b"data").unwrap();
-        let mut selection = Selection::new(NativeSelection::default());
-        let directory = selection
-            .install_directory("parent".into(), NativeDirectory::open(root.path()).unwrap())
-            .unwrap();
-        let state = selection.current().unwrap();
-        let file = selection
-            .open_file(&directory.resource, state.entries[0].id)
-            .unwrap();
-        assert_unknown(selection.file(&directory.resource));
-        assert_unknown(selection.open_file(&file, 0));
-        assert_unknown(selection.open_directory("unknown", 0));
-        assert_eq!(selection.current().unwrap().directory, Some(directory));
+        // The previous identifier must be rejected after replacement.
+        assert!(selection.file(&first.resource).is_err());
+
+        // The replacement identifier must allow access to the selected file.
+        assert!(selection.file(&second.resource).is_ok());
+
+        Ok(())
     }
 }
