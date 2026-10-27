@@ -8,6 +8,17 @@ An optional Ark UI + Panda CSS implementation is available alongside the Base UI
 
 See [UI comparison](docs/architecture/base-ui-and-ark-panda-comparison.md) for the styling and maintenance tradeoffs. Base UI remains installed and is the default view.
 
+The Application Explorer has its own page at `/explorer` and a dedicated Ark
+layout: fluid file, canvas and inspector regions, with illustrative arrows drawn
+by the reused [Archer package](packages/archer/README.md). Ark Tree View provides
+single selection, expansion and keyboard navigation in an authored preview
+inventory. The center name and path follow that selection.
+Evidence widgets remain placeholders; the arrows are not analysis results. This
+page initializes no native runtime. Base UI, Ark and comparison views retain their
+native inspection controls and reports. Leaving the workbench for the Explorer
+ends the current owner; returning queries retained native selection and starts
+without the earlier in-memory report.
+
 ## Primary requirement: portable ad-hoc signing
 
 The intended signing capability must work without Apple hardware, macOS, Xcode,
@@ -135,20 +146,21 @@ The web package generates Panda's styling API during installation and before dev
 
 ## Package boundaries
 
-| Location                      | Responsibility                                                          |
-| ----------------------------- | ----------------------------------------------------------------------- |
-| `apps/web`                    | App Router routes, application ownership and Base UI/Ark presentation   |
-| `crates/binary/inspection`    | Ordinary Rust library; no WIT, Wasm, browser or filesystem dependencies |
-| `crates/workbench/operations` | Ordinary Rust filesystem client, selection and analysis workflow        |
-| `crates/filesystem/data`     | Shared directory-entry types for filesystem providers and consumers     |
-| `crates/filesystem/protocol`  | Shared bounded filesystem message encoding                              |
-| `crates/filesystem/native`    | Native filesystem operations and retained handles                       |
-| `crates/distribution/packaging` | Build-time executable packaging and native installer creation |
-| `crates/distribution/integration` | Reusable OS integration; currently single-instance file locking |
+| Location                          | Responsibility                                                                   |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| `apps/web`                        | App Router routes, application ownership and Base UI/Ark presentation            |
+| `crates/binary/inspection`        | Ordinary Rust library; no WIT, Wasm, browser or filesystem dependencies          |
+| `crates/workbench/operations`     | Ordinary Rust filesystem client, selection and analysis workflow                 |
+| `crates/filesystem/data`          | Shared directory-entry types for filesystem providers and consumers              |
+| `crates/filesystem/protocol`      | Shared bounded filesystem message encoding                                       |
+| `crates/filesystem/native`        | Native filesystem operations and retained handles                                |
+| `crates/distribution/packaging`   | Build-time executable packaging and native installer creation                    |
+| `crates/distribution/integration` | Reusable OS integration; currently single-instance file locking                  |
 | `crates/distribution/composition` | Installed `native-workbench` entry point, service startup and instance ownership |
-| `crates/services/filesystem`  | Native Workbench Service: selection, dialogs and filesystem requests    |
-| `crates/workbench/component`  | WIT contract and conversion to/from core Rust types                     |
-| `packages/apple-code-browser` | Component/session initialization and environment bindings               |
+| `crates/services/filesystem`      | Native Workbench Service: selection, dialogs and filesystem requests             |
+| `crates/workbench/component`      | WIT contract and conversion to/from core Rust types                              |
+| `packages/apple-code-browser`     | Component/session initialization and environment bindings                        |
+| `packages/archer`                 | Reused browser arrow drawing, geometry and surface-local rendering state         |
 
 Native Rust consumers can depend directly on `binary-inspection` and call `binary_inspection::inspect(&bytes)`. They receive an owned `BinaryReport` with typed container, image, platform and signature-command records; the input is borrowed only for the call. `AnalysisError` implements `Display` and `std::error::Error`, exposes a typed kind and retains upstream decoding errors as its source. No jco or Wasm runtime is required. The crate documentation contains native usage guidance.
 

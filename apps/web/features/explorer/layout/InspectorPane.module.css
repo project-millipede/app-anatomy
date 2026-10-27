@@ -1,0 +1,29 @@
+.pane {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  border-inline-start: var(--acw-borders-divider);
+  background: var(--acw-colors-surface);
+}
+.header {
+  padding: 0.875rem 1rem;
+  border-block-end: var(--acw-borders-divider);
+  background: var(--acw-colors-subtle);
+}
+.sections {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.125rem;
+  padding: 1rem;
+}
+.sections > * + * {
+  padding-block-start: 1.125rem;
+  border-block-start: var(--acw-borders-divider);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-block-start: var(--acw-borders-divider);
+}

@@ -6,6 +6,19 @@ every accessibility or maintenance check has been completed.** The
 
 The workbench keeps Base UI available while evaluating Ark UI with Panda CSS. The comparison is an implementation experiment, not a decision to migrate the application.
 
+The Application Explorer layout iteration lives on its own `/explorer` page with
+a dedicated Ark layout. Its file tree and connection inspector are placeholders;
+four authored connection arrows exercise the reused
+[Archer renderer](../../packages/archer/README.md). They do not describe the
+selected native input. Base UI, Ark and comparison screens retain the existing
+native selection, listing, report and architecture controls around their shared
+workbench model.
+
+The preview uses proportional grid tracks and a container query derived from its
+content budget. Its central compass layout can scroll horizontally in a narrow
+container. Sidebar widths are not fixed pixel dimensions. No application state,
+resize effects or runtime owner is added by the preview.
+
 ## Views
 
 | URL              | View                                      |
@@ -13,8 +26,14 @@ The workbench keeps Base UI available while evaluating Ark UI with Panda CSS. Th
 | `/`              | Base UI with the existing CSS Modules     |
 | `/?view=ark`     | Ark UI with Panda component recipes       |
 | `/?view=compare` | Both implementations alongside each other |
+| `/explorer`      | Dedicated Ark Explorer layout preview     |
 
-Start the native service with `cargo run --locked -p filesystem-service` and the web app separately with `pnpm dev`, then select an input in either implementation. In comparison mode, both panes display one shared model: observed selection, current report, pending state, errors and architecture tab. A selection or inspection initiated in either pane updates both. Switching views preserves that model and its runtime; a full page refresh creates a new owner and queries native selection. The [system overview](system-overview.md#application-ownership) defines page composition and result retention. A narrow screen stacks the comparison views vertically. A failed state query shows uncertainty; selection controls remain available for another user-requested attempt.
+Start the native service with `cargo run --locked -p filesystem-service` and the web app separately with `pnpm dev`, then select an input in either implementation. In comparison mode, both panes display one shared model: observed selection, current report, pending state, errors and architecture tab. A selection or inspection initiated in either pane updates both. Switching between Base UI, Ark and comparison views preserves that model and its runtime; a full page refresh creates a new owner and queries native selection. The [system overview](system-overview.md#application-ownership) defines page composition and result retention. A narrow screen stacks the comparison views vertically. A failed state query shows uncertainty; selection controls remain available for another user-requested attempt.
+
+The Explorer page mounts no workbench shell, model or native runtime. Navigating
+there ends the current workbench owner. Returning to the workbench creates a new
+owner that queries retained native selection; the earlier in-memory report is
+discarded. The Explorer preview can render without a running native service.
 
 ## What we maintain
 
@@ -55,7 +74,8 @@ TypeScript handles presentation, interaction state and required environment bind
 
 - Inspect once and compare the same report in both implementations, including long filenames and multiple architecture slices.
 - Confirm that operations from either pane update both, including pending controls, selection, errors, report and architecture tab.
-- Verify that switching views, including browser Back and Forward, retains the model without another initialization query, while refresh queries the retained native selection. Distinguish an unavailable service from a confirmed empty owner.
+- Verify that switching between Base UI, Ark and comparison views, including browser Back and Forward, retains the model without another initialization query, while refresh queries the retained native selection. Distinguish an unavailable service from a confirmed empty owner.
+- Check the standalone Explorer route without native initialization, and verify that returning to the workbench queries retained selection with no previous report.
 - Try keyboard tab navigation, focus visibility and architecture-tab activation in both implementations.
 - Compare selected, disabled, loading and error states.
 - Check wide and narrow layouts and both color schemes.

@@ -89,7 +89,7 @@ to `base`, `ark` or `compare`; missing, unknown and repeated values select Base.
 It passes that value to the same unkeyed shell, which renders navigation and the
 chosen presentation with explicit model props. `/`, `/?view=ark` and
 `/?view=compare` are views of one page. The root layout supplies document structure
-and routed children; unknown routes do not mount the shell. The shell falls within
+and routed children; `/explorer` and unknown routes do not mount the shell. The shell falls within
 the normal page error and loading boundaries. No application React Context,
 global singleton or runtime store is required.
 
@@ -134,6 +134,47 @@ rejections remain separate from declared Rust results.
 Base UI retains CSS Module controls. Ark uses scoped Panda tokens and button/tab
 recipes with CSS Modules for layout. The common reset is in the base CSS layer;
 Panda adds no reset or default theme. Both views belong to the same Next.js build.
+
+The Application Explorer preview has a dedicated `/explorer` route.
+Its server layout supplies the Ark theme and navigation; its server page supplies
+metadata and renders `ApplicationExplorer` and `ExplorerFrame` as server
+components for static page chrome. A dedicated notice row shows the preview
+disclaimer above the workspace. The frame renders the client
+`ExplorerWorkspace` directly in its workspace row. The preview mounts no
+`WorkbenchShell`, workbench model or native runtime. Its four illustrative
+connections use the
+local [Archer package](../../packages/archer/README.md), with a private store for
+each drawing surface. That store contains rendering edges and DOM refs.
+`ExplorerWorkspace` owns one Ark Tree View instance for the authored preview
+inventory. Its selection directly supplies the center name and path; no second
+React selection or expansion state is stored. `ExplorerFileTree` renders that
+instance through `NavigationPane`. `ExplorerWorkspaceLayout` accepts explicit
+`navigation`, `canvas` and `inspector` slots and owns their three-pane grid. It
+belongs to the client dependency graph through its workspace owner; Ark objects
+and callbacks stay inside that client subtree.
+`ExplorerFrame`, `ExplorerWorkspaceLayout`, `NavigationPane`, `CanvasPane`,
+`InspectorPane`, `BridgeGrid` and `BridgeSection` own layout through named content
+slots; they do not own selection or a native runtime. `ExplorerRelationshipCanvas`
+retains the illustrative Archer connections. It composes `BridgeViewport`,
+`ArcherSurface` and `BridgeGrid` through ordinary JSX nesting. `BridgeViewport`
+owns the scrolling viewport and minimum-width wrapper; Archer's surface surrounds
+all grid endpoints and owns their registration and connector coordinates. Pane
+scrolling fits below the route's navigation. The navigation, canvas and inspector retain a
+`1 : 3 : 1` ratio at every width, with no container queries or breakpoint stacking.
+North and south share a width policy and matching flexible grid rows, so their
+complete bridge sections have equal, content-driven heights without fixed height
+values. Authored styles throughout the web app use natural letter spacing.
+Nested connector gutters derive T/L endings from direct sibling
+position. Selection and keyboard focus decorate only the compact
+icon-and-name surface; disclosure controls and connectors occupy separate space.
+Evidence widgets remain placeholders, and native
+inspection remains on the workbench page. No bundle graph or dependency resolution
+is added.
+
+Navigating from the workbench to `/explorer` ends the workbench owner and its
+in-memory report. Returning creates a new owner that queries retained native
+selection. Switching only the workbench's `view` query parameter keeps the existing
+owner and report as described above.
 
 ### Runtime lifecycle
 

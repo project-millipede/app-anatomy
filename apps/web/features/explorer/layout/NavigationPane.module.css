@@ -1,0 +1,26 @@
+.pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  border-inline-end: var(--acw-borders-divider);
+  background: var(--acw-colors-surface);
+}
+.heading {
+  padding: 1.25rem 1rem 0.75rem;
+}
+.description {
+  padding: 0 1rem 0.75rem;
+}
+/* Tree focus movement scrolls the focused row into view within this region. */
+.tree {
+  flex: 1;
+  padding: 0 0.625rem 1.25rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.footer {
+  margin-inline: 1rem;
+  padding-block: 1rem;
+  border-block-start: var(--acw-borders-divider);
+}

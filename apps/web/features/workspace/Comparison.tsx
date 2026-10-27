@@ -32,8 +32,8 @@ export function Comparison({ model }: { model: WorkbenchModel }) {
         </section>
       </div>
       <p className={styles.note}>
-        The palette and layout are intentionally matched. Compare focus, tabs
-        and selection here; use the full-width views to compare all controls.
+        Both views share native inspection. Use the Explorer page to review the
+        application layout preview and its illustrative connections.
       </p>
     </main>
   );

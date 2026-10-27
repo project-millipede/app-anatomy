@@ -1,0 +1,8 @@
+/* Fractions are shares of the available width, not fixed sizes. */
+.workspace {
+  display: grid;
+  grid-template-columns:
+    [tree] minmax(0, 1fr)
+    [canvas] minmax(0, 3fr)
+    [inspector] minmax(0, 1fr);
+}

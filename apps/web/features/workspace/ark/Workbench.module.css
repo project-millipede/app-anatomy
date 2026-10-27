@@ -13,7 +13,6 @@
 .wordmark {
   font-size: 0.875rem;
   font-weight: 750;
-  letter-spacing: 0.12em;
 }
 .caption {
   padding-left: 1.2rem;
@@ -32,7 +31,6 @@
 }
 .introduction h1 {
   font-size: 1.8rem;
-  letter-spacing: -0.035em;
   margin: 0 0 0.5rem;
   font-weight: 650;
 }
@@ -68,7 +66,6 @@
   justify-content: space-between;
   color: var(--acw-colors-muted);
   font-size: 0.75rem;
-  letter-spacing: 0.1em;
   font-weight: 650;
 }
 .sidebarHint {
@@ -116,7 +113,6 @@
 .empty h2 {
   font-size: 1.4rem;
   font-weight: 600;
-  letter-spacing: -0.025em;
 }
 .empty p {
   line-height: 1.7;
@@ -130,7 +126,6 @@
 .detailHeading h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  letter-spacing: -0.025em;
   overflow-wrap: anywhere;
   margin-bottom: 0.6rem;
 }

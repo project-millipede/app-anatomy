@@ -1,0 +1,60 @@
+/* The route owns viewport height; this frame fills the remaining space. */
+.frame {
+  --explorer-incoming: light-dark(#246f66, #8bd2c5);
+  --explorer-outgoing: light-dark(#7859a4, #c8afea);
+  --explorer-external: light-dark(#8a5b1c, #e8bd79);
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  background: var(--acw-colors-background);
+  color: var(--acw-colors-text);
+  font-size: var(--acw-font-sizes-md);
+  line-height: 1.5;
+}
+.header,
+.toolbar,
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1.5rem;
+  background: var(--acw-colors-surface);
+}
+.header,
+.toolbar,
+.notice {
+  border-block-end: var(--acw-borders-divider);
+}
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.title h1 {
+  margin: 0;
+  font-size: var(--acw-font-sizes-lg);
+  font-weight: 600;
+}
+.title p {
+  max-inline-size: 72ch;
+  margin: 0.25rem 0 0;
+  color: var(--acw-colors-muted);
+  font-size: var(--acw-font-sizes-sm);
+}
+.axisKey {
+  min-inline-size: 0;
+}
+.notice {
+  padding: 0.75rem 1.5rem;
+  background: var(--acw-colors-subtle);
+  color: var(--acw-colors-muted);
+  font-size: var(--acw-font-sizes-sm);
+}
+.footer {
+  border-block-start: var(--acw-borders-divider);
+  color: var(--acw-colors-muted);
+  font-size: var(--acw-font-sizes-2xs);
+}
