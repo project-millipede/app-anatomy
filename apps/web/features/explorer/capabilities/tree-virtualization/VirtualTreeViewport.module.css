@@ -1,0 +1,14 @@
+.viewport {
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.tree,
+.group {
+  position: relative;
+}
+
+.node {
+  position: absolute;
+}

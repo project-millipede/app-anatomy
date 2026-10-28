@@ -13,7 +13,8 @@ const row = {
   alignItems: 'flex-start',
   gap: '0.25rem',
   minWidth: 0,
-  minHeight: '2rem',
+  // Keep aligned with the viewport's rowHeight in ExplorerFileTree.
+  blockSize: '32px',
   paddingBlock: 'var(--tree-row-padding)',
   color: 'text',
   cursor: 'pointer',
@@ -87,7 +88,8 @@ export const tree = defineSlotRecipe({
     tree: {
       minWidth: 0,
       margin: 0,
-      padding: '0.1875rem',
+      // Keep aligned with the viewport's padding in ExplorerFileTree.
+      padding: '3px',
       fontSize: 'sm',
       lineHeight: 1.5,
     },

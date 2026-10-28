@@ -146,9 +146,12 @@ connections use the
 local [Archer package](../../packages/archer/README.md), with a private store for
 each drawing surface. That store contains rendering edges and DOM refs.
 `ExplorerWorkspace` owns one Ark Tree View instance for the authored preview
-inventory. Its selection directly supplies the center name and path; no second
-React selection or expansion state is stored. `ExplorerFileTree` renders that
-instance through `NavigationPane`. `ExplorerWorkspaceLayout` accepts explicit
+inventory through `useVirtualizedTree`. Its selection directly supplies the center
+name and path; no second React selection or expansion state is stored.
+`ExplorerFileTree` composes the pane and a virtual viewport. `ExplorerTreeNode`
+retains the Explorer-specific Ark markup, icons and folder-click policy, while
+`VirtualTreeViewport` owns windowing and scrolling through a node-rendering slot.
+`NavigationPane` supplies the available height. `ExplorerWorkspaceLayout` accepts explicit
 `navigation`, `canvas` and `inspector` slots and owns their three-pane grid. It
 belongs to the client dependency graph through its workspace owner; Ark objects
 and callbacks stay inside that client subtree.
@@ -164,8 +167,16 @@ scrolling fits below the route's navigation. The navigation, canvas and inspecto
 North and south share a width policy and matching flexible grid rows, so their
 complete bridge sections have equal, content-driven heights without fixed height
 values. Authored styles throughout the web app use natural letter spacing.
-Nested connector gutters derive T/L endings from direct sibling
-position. Selection and keyboard focus decorate only the compact
+The tree uses a fixed 32 CSS-pixel row height; the Panda recipe and viewport
+configuration must agree. Mounted nodes retain their real Ark ancestor branches; positioned
+child groups reserve the complete expanded extent without spacer nodes. Nested
+connector gutters derive T/L endings from complete sibling positions. The adapter
+caches expanded-row metadata by collection and expanded IDs, so focus and selection
+updates retain the index and item-key function. Range calculation retains actual
+DOM focus without a second focus model. Ark's own keyboard traversal remains
+independent and can still scan the collection. See the
+[tree virtualization contract](capabilities/explorer-tree-virtualization.md).
+Selection and keyboard focus decorate only the compact
 icon-and-name surface; disclosure controls and connectors occupy separate space.
 Evidence widgets remain placeholders, and native
 inspection remains on the workbench page. No bundle graph or dependency resolution

@@ -6,7 +6,7 @@ type NavigationPaneProps = {
   heading: ReactNode;
   /** Instructions for using the file tree. */
   description: ReactNode;
-  /** Physical file tree; this pane scrolls it within the remaining height. */
+  /** Physical file tree with a viewport filling the remaining height. */
   tree: ReactNode;
   /** Scope information below the tree. */
   footer: ReactNode;
@@ -17,7 +17,7 @@ type NavigationPaneProps = {
  * Ark's TreeView root must contain both its label and tree, so the tree
  * component may wrap this whole pane in that root.
  * @param props Content for each navigation region.
- * @returns The navigation landmark with a scrolling tree region.
+ * @returns The navigation landmark with a bounded region for the tree viewport.
  */
 export function NavigationPane({
   heading,

@@ -8,16 +8,22 @@ An optional Ark UI + Panda CSS implementation is available alongside the Base UI
 
 See [UI comparison](docs/architecture/base-ui-and-ark-panda-comparison.md) for the styling and maintenance tradeoffs. Base UI remains installed and is the default view.
 
-The Application Explorer has its own page at `/explorer` and a dedicated Ark
-layout: fluid file, canvas and inspector regions, with illustrative arrows drawn
-by the reused [Archer package](packages/archer/README.md). Ark Tree View provides
-single selection, expansion and keyboard navigation in an authored preview
-inventory. The center name and path follow that selection.
-Evidence widgets remain placeholders; the arrows are not analysis results. This
-page initializes no native runtime. Base UI, Ark and comparison views retain their
-native inspection controls and reports. Leaving the workbench for the Explorer
-ends the current owner; returning queries retained native selection and starts
-without the earlier in-memory report.
+The Application Explorer has its own page at `/explorer` and a dedicated Ark layout:
+
+- **Layout:** Fluid file, canvas and inspector regions.
+- **Tree navigation:** Ark Tree View provides single selection, expansion and
+  keyboard navigation in an authored preview inventory. The center name and path
+  follow Ark's selection.
+- **Virtualization:** TanStack Virtual windows expanded rows while preserving
+  nested Ark branches and the existing connector styling.
+- **Connections and evidence:** Illustrative arrows use the reused
+  [Archer package](packages/archer/README.md). Evidence widgets remain placeholders;
+  the arrows are not analysis results.
+- **Runtime:** The Explorer initializes no native runtime. Base UI, Ark and
+  comparison views retain their native inspection controls and reports.
+- **Navigation lifecycle:** Leaving the workbench for the Explorer ends the current
+  owner. Returning queries retained native selection and starts without the earlier
+  in-memory report.
 
 ## Primary requirement: portable ad-hoc signing
 

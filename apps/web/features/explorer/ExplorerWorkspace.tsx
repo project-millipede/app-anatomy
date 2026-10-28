@@ -1,6 +1,7 @@
 'use client';
 
-import { useTreeView, type UseTreeViewReturn } from '@ark-ui/react/tree-view';
+import type { UseTreeViewReturn } from '@ark-ui/react/tree-view';
+import { useVirtualizedTree } from './capabilities/tree-virtualization/useVirtualizedTree';
 import { ExplorerConnectionInspector } from './ExplorerConnectionInspector';
 import { ExplorerFileTree } from './ExplorerFileTree';
 import { ExplorerRelationshipCanvas } from './ExplorerRelationshipCanvas';
@@ -37,7 +38,7 @@ function getPreviewSelection({
 
 /** Own the preview selection and supply each named workspace pane. */
 export function ExplorerWorkspace() {
-  const tree = useTreeView({
+  const { tree, scrollToIndexRef } = useVirtualizedTree({
     collection: previewInventory,
     selectionMode: 'single',
     expandOnClick: false,
@@ -50,7 +51,9 @@ export function ExplorerWorkspace() {
 
   return (
     <ExplorerWorkspaceLayout
-      navigation={<ExplorerFileTree tree={tree} />}
+      navigation={
+        <ExplorerFileTree tree={tree} scrollToIndexRef={scrollToIndexRef} />
+      }
       canvas={
         <ExplorerRelationshipCanvas
           selectedName={selectedNode?.name}

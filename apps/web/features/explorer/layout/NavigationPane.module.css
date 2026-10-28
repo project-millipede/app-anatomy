@@ -12,12 +12,12 @@
 .description {
   padding: 0 1rem 0.75rem;
 }
-/* Tree focus movement scrolls the focused row into view within this region. */
+/* Allocate space; the supplied virtual viewport owns scrolling. */
 .tree {
+  display: flex;
   flex: 1;
+  min-block-size: 0;
   padding: 0 0.625rem 1.25rem;
-  overflow: auto;
-  overscroll-behavior: contain;
 }
 .footer {
   margin-inline: 1rem;
