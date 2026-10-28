@@ -7,3 +7,4 @@ allowBuilds:
   '@parcel/watcher': false
   esbuild: true
   sharp: false
+minimumReleaseAge: 0
