@@ -163,15 +163,15 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@bytecodealliance/jco': 1.36.0
+  '@bytecodealliance/jco': 1.40.0
 
 importers:
 
   .:
     devDependencies:
       '@bytecodealliance/jco':
-        specifier: 1.36.0
-        version: 1.36.0
+        specifier: 1.40.0
+        version: 1.40.0
       '@jsr/polymorph__websocket':
         specifier: 0.6.1
         version: 0.6.1
@@ -280,54 +280,54 @@ importers:
 
 packages:
 
-  '@andreiltd/componentize-qjs-binding-darwin-arm64@0.4.5':
-    resolution: {integrity: sha512-CW+ukVP778x2NAHAC1FvXb5KVSXmUlUQxhQTFtF0mAqqOVnYrQgy4DDNUa48EGthwtLdgLT1+eE71qmQiyMEqg==}
+  '@andreiltd/componentize-qjs-binding-darwin-arm64@0.5.0':
+    resolution: {integrity: sha512-JuFOac1TF2uo8IVD49EiChvOgUiKjN9euXFcQPcPnqW12Yqp2dWmyW1GQSFVoxtHJEh6AnvkJbpq1yaR/pW9RA==}
     engines: {node: '>=18.0.0'}
     cpu: [arm64]
     os: [darwin]
 
-  '@andreiltd/componentize-qjs-binding-darwin-x64@0.4.5':
-    resolution: {integrity: sha512-37uz97pCEuXNfoVuZMBbI6xUirSndxJyMzPa4UCQb9nJdZhzRujmrU79yiFl+5nDYQxcCjthhBVEKU3OxJNAdg==}
+  '@andreiltd/componentize-qjs-binding-darwin-x64@0.5.0':
+    resolution: {integrity: sha512-kvF5qv8WXsH0z3N7FkI8BiaPA52+/e6Mz6mDSMgOm0JDO7mNtvcuRZkENrTol38R+4R7fr2TOq06GOq1gLhIQA==}
     engines: {node: '>=18.0.0'}
     cpu: [x64]
     os: [darwin]
 
-  '@andreiltd/componentize-qjs-binding-linux-arm64-gnu@0.4.5':
-    resolution: {integrity: sha512-L5S0C6qIx3f+DnwN42HnDuMhV8NgfqaY+J1PaJAw468Ip/JN+h67tVAp4wUvs8xgTqj6UnGSBbSZVGYifK2XtA==}
+  '@andreiltd/componentize-qjs-binding-linux-arm64-gnu@0.5.0':
+    resolution: {integrity: sha512-7m4aCaM4eaPHO0/uI1nwSYcP9OwTiJBjw3IO6vle3ov3lipl+Jlqpu2nckxMM0tx5Q+RUnStIWWQhDsdJ35kmg==}
     engines: {node: '>=18.0.0'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@andreiltd/componentize-qjs-binding-linux-arm64-musl@0.4.5':
-    resolution: {integrity: sha512-bBaq8/tvQ6HweqBLKWkE5tsPEMf7g3l5EGtka3Z7AFDUOtFzkAkG67nW1OYiYT6/0pjwDYw7Mvya45f79PG28g==}
+  '@andreiltd/componentize-qjs-binding-linux-arm64-musl@0.5.0':
+    resolution: {integrity: sha512-+nWPAPfmjM4BPEt0axyEwQbG26BhkmnxdvEjkvUa+7kVeVjyWlw7B3By+N+257WYDhwaIhp2mFnWYaSR8deyDg==}
     engines: {node: '>=18.0.0'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@andreiltd/componentize-qjs-binding-linux-x64-gnu@0.4.5':
-    resolution: {integrity: sha512-Xec4O4sy/xHlhPPhf7GAV41D+AT7f9vxxjBpE7lUIElZNhX/kc+Ty6AQG50xbHsT5Mi4XQvSmtJJqhnB6xi8Vw==}
+  '@andreiltd/componentize-qjs-binding-linux-x64-gnu@0.5.0':
+    resolution: {integrity: sha512-eX+34TYDMRgKA1huyqax91PjG6HutJXcLqA+Dxa4hZEqL1xglHYUhhfVnVwgWrfMPejRTX8XiFKyvBqYP0DtqA==}
     engines: {node: '>=18.0.0'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@andreiltd/componentize-qjs-binding-linux-x64-musl@0.4.5':
-    resolution: {integrity: sha512-62+PgJ+tJOjgNvXzRuz3s76tPBaExCodeVhDIIXkGI/PNbulqTHiyYXRw4O3UX6/CO71Nux8onqnXxQkcXBlvg==}
+  '@andreiltd/componentize-qjs-binding-linux-x64-musl@0.5.0':
+    resolution: {integrity: sha512-5lRm08zbY6Bu78yTTSRnvYs1m4yXKISmNxXEPQO262Chp4JPMqnb2bYIrSwEmTVZWAEbqZuEEhHkX9p8kBpAMA==}
     engines: {node: '>=18.0.0'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@andreiltd/componentize-qjs-binding-win32-arm64-msvc@0.4.5':
-    resolution: {integrity: sha512-OZO/omsMQFpw3wJJs3XFN+iEu2ZQCWMK8BxkhmXVm1sddEHtgSTY2sT/zq69VZeXjC0zgN1HzlxHbNBq0OkcOQ==}
+  '@andreiltd/componentize-qjs-binding-win32-arm64-msvc@0.5.0':
+    resolution: {integrity: sha512-c8fXs5sc5dOUp+cCLzYFRNcae7v/nXll3+FEGD7alIBoHkboTcwGumAnEoZY325ko1y3wyV4d6FVSNkU6a8W8w==}
     engines: {node: '>=18.0.0'}
     cpu: [arm64]
     os: [win32]
 
-  '@andreiltd/componentize-qjs-binding-win32-x64-msvc@0.4.5':
-    resolution: {integrity: sha512-IlhlcNOEFky46ypfiD6l8MS45zosfhKWUclr10evQFw5Cpky+pji2RAGJRnBXdLQvH4Q3bZr6KYlIhxmtGRhkw==}
+  '@andreiltd/componentize-qjs-binding-win32-x64-msvc@0.5.0':
+    resolution: {integrity: sha512-xKxyDjKKpopKoEwY5lFjODqICv/LiPXtLsrSFB3TuXnF7XjcnzD2xhDCa2DnhjqNl7FOhOji19k6EO8H5nDB9A==}
     engines: {node: '>=18.0.0'}
     cpu: [x64]
     os: [win32]
@@ -436,26 +436,26 @@ packages:
     resolution: {integrity: sha512-yxvqQreNcOQdMsEKZomkSqThtkxrAz3f1Cmy8BsV0UHi9saa2/D1KDB14IAXPYwDq/maS6lCzS+MuMQx6QkUgA==}
     engines: {node: '>=20'}
 
-  '@bytecodealliance/jco-std@0.5.0':
-    resolution: {integrity: sha512-TLklLNHUbCtXH9nRDDhZuk8rPYW0kd5R0ClvwpIXCBOyESHZGIGU1y7V47Uggz3i0h5WG3+srOg3aKfyZT4IIg==}
+  '@bytecodealliance/jco-std@0.10.0':
+    resolution: {integrity: sha512-t0zGjGPmwvqQ6fsBG1Zy+lgChfRRhKXVAMjIKPIn8MPFYNxqSRALOSDOTurOyHemMz5jdH2b8d2FqF0mwOhxLA==}
     peerDependencies:
-      '@bytecodealliance/preview2-shim': ^0.25.0
+      '@bytecodealliance/preview2-shim': ^0.31.0
     peerDependenciesMeta:
       '@bytecodealliance/preview2-shim':
         optional: true
 
-  '@bytecodealliance/jco-transpile@0.17.0':
-    resolution: {integrity: sha512-mfSXL9a8drjGW/kr3V55cClJ8Rs3cs50GhsJ+wTHl3/gFPPw0Ej6z9KyYiuZ2veuf0WwrDWFuCKW7CyBpniLFw==}
+  '@bytecodealliance/jco-transpile@0.21.0':
+    resolution: {integrity: sha512-uzPsODpWcGAfiO5Yt4HSRFTrTJCb0PxMt6joHEb7f7IAqFz8wT5W/O0f0PqPkz+EctLd9PKOGylzCJRPu2B/8w==}
 
-  '@bytecodealliance/jco@1.36.0':
-    resolution: {integrity: sha512-VGJOWCIS0ey09JC9AkBUaBzv7FY9hkHiisM90eF5PfQ7GUoIytEIA3F2fQ9UhWkEMmtLZQOarzOgWMVlpFH6XQ==}
+  '@bytecodealliance/jco@1.40.0':
+    resolution: {integrity: sha512-yC3hSK09KL8ER5YwT7DL/RZkJJKR2JuhSNxcWSpWlq7zol79G7hkAvmA172uWAJ02N/3FcetTHgA1doZXFJB3g==}
     hasBin: true
 
-  '@bytecodealliance/preview2-shim@0.27.1':
-    resolution: {integrity: sha512-eIYEHwuPG7LlOFEBgP2lnO/+uKrLng8gIZu70WnoeB3bhYp2mvOgZg0vhWmSIYbXW3P8+hj+VNnk2lGXg/1vHQ==}
+  '@bytecodealliance/preview2-shim@0.31.0':
+    resolution: {integrity: sha512-9Gv4wn/DCz1NOqTZFcPSIko9jsTwmps67QZ6PPytypmmWLSz5AQf3Xn2EjItfudWwSh5d+9EPD3BrNlvqKWNtA==}
 
-  '@bytecodealliance/preview3-shim@0.8.1':
-    resolution: {integrity: sha512-9vGL5lSV9Cjxmkage9MCnR+EWyI2GSbqE7h/P6F/CIoDmTfXkSYoG8c0HAeCNfmTVQDqD8Bo3eeM+zNeWeeXcA==}
+  '@bytecodealliance/preview3-shim@0.12.0':
+    resolution: {integrity: sha512-qZ7rXS0++63x4O9YVsRhF+qlHdChoD61MGDiBpQWR5edmXxzguXTPttKFbyZSWHwisxBUSXKujBZNIIbU/MnLA==}
 
   '@bytecodealliance/weval@0.5.0':
     resolution: {integrity: sha512-lIR6+enn52gcdMQM8C3YaNoUlzm90TRkJrIgiVky/hED81ezDjhnq+6Z4w0eSFf9C6b2nmdKUFwbp6q1PhiuIQ==}
@@ -1080,6 +1080,10 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
+
+  '@noble/hashes@1.8.0':
+    resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
+    engines: {node: ^14.21.3 || >=16}
 
   '@oxc-minify/binding-android-arm-eabi@0.151.0':
     resolution: {integrity: sha512-Y1kwFf+GCq62PWojA4u5ME99T1quxdM+VPB67kIC1x0wLmfGAWAhS9cwKIxe/bW95loAxGIruvkYDVMCrvOBvw==}
@@ -2270,8 +2274,8 @@ packages:
     resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
     engines: {node: '>=20'}
 
-  componentize-qjs@0.4.5:
-    resolution: {integrity: sha512-/Brt+/Ps7DQ1mYuUsDISTQTFSaZfCSoRHkHnh9Dm5WHCO6arc/vzVdD8TXssfyNex2Iv3UR8NHdahsqABPDh0w==}
+  componentize-qjs@0.5.0:
+    resolution: {integrity: sha512-vsuvlO1XZ+BwpaBXmwBBkrqY3eCXONG57cMn8EVJJ3o5R8yjnfMfbgtEMq8RaA4EO0BHVVXtb3ts+1UYaI/qdw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -2914,6 +2918,10 @@ packages:
       jsdom:
         optional: true
 
+  web-streams-polyfill@4.2.0:
+    resolution: {integrity: sha512-0rYDzGOh9EZpig92umN5g5D/9A1Kff7k0/mzPSSCY8jEQeYkgRMoY7LhbXtUCWzLCMX0TUE9aoHkjFNB7D9pfA==}
+    engines: {node: '>= 8'}
+
   webidl-conversions@7.0.0:
     resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
     engines: {node: '>=12'}
@@ -2933,28 +2941,28 @@ packages:
 
 snapshots:
 
-  '@andreiltd/componentize-qjs-binding-darwin-arm64@0.4.5':
+  '@andreiltd/componentize-qjs-binding-darwin-arm64@0.5.0':
     optional: true
 
-  '@andreiltd/componentize-qjs-binding-darwin-x64@0.4.5':
+  '@andreiltd/componentize-qjs-binding-darwin-x64@0.5.0':
     optional: true
 
-  '@andreiltd/componentize-qjs-binding-linux-arm64-gnu@0.4.5':
+  '@andreiltd/componentize-qjs-binding-linux-arm64-gnu@0.5.0':
     optional: true
 
-  '@andreiltd/componentize-qjs-binding-linux-arm64-musl@0.4.5':
+  '@andreiltd/componentize-qjs-binding-linux-arm64-musl@0.5.0':
     optional: true
 
-  '@andreiltd/componentize-qjs-binding-linux-x64-gnu@0.4.5':
+  '@andreiltd/componentize-qjs-binding-linux-x64-gnu@0.5.0':
     optional: true
 
-  '@andreiltd/componentize-qjs-binding-linux-x64-musl@0.4.5':
+  '@andreiltd/componentize-qjs-binding-linux-x64-musl@0.5.0':
     optional: true
 
-  '@andreiltd/componentize-qjs-binding-win32-arm64-msvc@0.4.5':
+  '@andreiltd/componentize-qjs-binding-win32-arm64-msvc@0.5.0':
     optional: true
 
-  '@andreiltd/componentize-qjs-binding-win32-x64-msvc@0.4.5':
+  '@andreiltd/componentize-qjs-binding-win32-x64-msvc@0.5.0':
     optional: true
 
   '@ark-ui/react@5.39.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
@@ -3060,14 +3068,14 @@ snapshots:
 
   '@bytecodealliance/componentize-js@0.19.3':
     dependencies:
-      '@bytecodealliance/jco': 1.36.0
+      '@bytecodealliance/jco': 1.40.0
       '@bytecodealliance/wizer': 10.0.0
       es-module-lexer: 1.7.0
       oxc-parser: 0.76.0
 
   '@bytecodealliance/componentize-js@0.23.0':
     dependencies:
-      '@bytecodealliance/jco': 1.36.0
+      '@bytecodealliance/jco': 1.40.0
       '@bytecodealliance/weval': 0.5.0
       '@bytecodealliance/wizer': 10.0.0
       es-module-lexer: 1.7.0
@@ -3108,35 +3116,37 @@ snapshots:
       '@bytecodealliance/jco-node-fs-win32-arm64-msvc': 0.3.2
       '@bytecodealliance/jco-node-fs-win32-x64-msvc': 0.3.2
 
-  '@bytecodealliance/jco-std@0.5.0(@bytecodealliance/preview2-shim@0.27.1)':
+  '@bytecodealliance/jco-std@0.10.0(@bytecodealliance/preview2-shim@0.31.0)':
     dependencies:
+      '@noble/hashes': 1.8.0
       acorn: 8.17.0
       acorn-walk: 8.3.5
       minimatch: 10.2.6
       punycode: 2.3.1
       readable-stream: 4.7.0
       urlpattern-polyfill: 10.1.0
+      web-streams-polyfill: 4.2.0
       whatwg-url: 14.2.0
     optionalDependencies:
-      '@bytecodealliance/preview2-shim': 0.27.1
+      '@bytecodealliance/preview2-shim': 0.31.0
 
-  '@bytecodealliance/jco-transpile@0.17.0':
+  '@bytecodealliance/jco-transpile@0.21.0':
     dependencies:
-      '@bytecodealliance/preview2-shim': 0.27.1
-      '@bytecodealliance/preview3-shim': 0.8.1
+      '@bytecodealliance/preview2-shim': 0.31.0
+      '@bytecodealliance/preview3-shim': 0.12.0
       binaryen: 132.0.0
       oxc-minify: 0.151.0
 
-  '@bytecodealliance/jco@1.36.0':
+  '@bytecodealliance/jco@1.40.0':
     dependencies:
       '@bytecodealliance/componentize-js': 0.23.0
       '@bytecodealliance/componentize-js-0-19-3': '@bytecodealliance/componentize-js@0.19.3'
-      '@bytecodealliance/jco-std': 0.5.0(@bytecodealliance/preview2-shim@0.27.1)
-      '@bytecodealliance/jco-transpile': 0.17.0
-      '@bytecodealliance/preview2-shim': 0.27.1
+      '@bytecodealliance/jco-std': 0.10.0(@bytecodealliance/preview2-shim@0.31.0)
+      '@bytecodealliance/jco-transpile': 0.21.0
+      '@bytecodealliance/preview2-shim': 0.31.0
       binaryen: 132.0.0
       commander: 14.0.3
-      componentize-qjs: 0.4.5
+      componentize-qjs: 0.5.0
       mkdirp: 3.0.1
       regexpu-core: 6.4.0
       rolldown: 1.2.8
@@ -3144,14 +3154,14 @@ snapshots:
       typescript-compiler-api: typescript@6.0.3
       unenv: 2.0.0-rc.24
 
-  '@bytecodealliance/preview2-shim@0.27.1':
+  '@bytecodealliance/preview2-shim@0.31.0':
     dependencies:
       '@bytecodealliance/jco-node-fs': 0.3.2
 
-  '@bytecodealliance/preview3-shim@0.8.1':
+  '@bytecodealliance/preview3-shim@0.12.0':
     dependencies:
       '@bytecodealliance/jco-node-fs': 0.3.2
-      '@bytecodealliance/preview2-shim': 0.27.1
+      '@bytecodealliance/preview2-shim': 0.31.0
 
   '@bytecodealliance/weval@0.5.0':
     dependencies:
@@ -3587,6 +3597,8 @@ snapshots:
 
   '@next/swc-win32-x64-msvc@16.4.2':
     optional: true
+
+  '@noble/hashes@1.8.0': {}
 
   '@oxc-minify/binding-android-arm-eabi@0.151.0':
     optional: true
@@ -4738,16 +4750,16 @@ snapshots:
 
   commander@14.0.3: {}
 
-  componentize-qjs@0.4.5:
+  componentize-qjs@0.5.0:
     optionalDependencies:
-      '@andreiltd/componentize-qjs-binding-darwin-arm64': 0.4.5
-      '@andreiltd/componentize-qjs-binding-darwin-x64': 0.4.5
-      '@andreiltd/componentize-qjs-binding-linux-arm64-gnu': 0.4.5
-      '@andreiltd/componentize-qjs-binding-linux-arm64-musl': 0.4.5
-      '@andreiltd/componentize-qjs-binding-linux-x64-gnu': 0.4.5
-      '@andreiltd/componentize-qjs-binding-linux-x64-musl': 0.4.5
-      '@andreiltd/componentize-qjs-binding-win32-arm64-msvc': 0.4.5
-      '@andreiltd/componentize-qjs-binding-win32-x64-msvc': 0.4.5
+      '@andreiltd/componentize-qjs-binding-darwin-arm64': 0.5.0
+      '@andreiltd/componentize-qjs-binding-darwin-x64': 0.5.0
+      '@andreiltd/componentize-qjs-binding-linux-arm64-gnu': 0.5.0
+      '@andreiltd/componentize-qjs-binding-linux-arm64-musl': 0.5.0
+      '@andreiltd/componentize-qjs-binding-linux-x64-gnu': 0.5.0
+      '@andreiltd/componentize-qjs-binding-linux-x64-musl': 0.5.0
+      '@andreiltd/componentize-qjs-binding-win32-arm64-msvc': 0.5.0
+      '@andreiltd/componentize-qjs-binding-win32-x64-msvc': 0.5.0
 
   copy-to-clipboard@3.3.3:
     dependencies:
@@ -5399,6 +5411,8 @@ snapshots:
       '@types/node': 24.13.3
     transitivePeerDependencies:
       - msw
+
+  web-streams-polyfill@4.2.0: {}
 
   webidl-conversions@7.0.0: {}
 
