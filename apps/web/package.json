@@ -14,19 +14,19 @@
   "dependencies": {
     "@apple-code/archer": "workspace:*",
     "@apple-code/browser": "workspace:*",
-    "@ark-ui/react": "5.39.3",
-    "@base-ui/react": "1.9.0",
+    "@ark-ui/react": "^5.39.3",
+    "@base-ui/react": "^1.9.0",
     "@tanstack/react-virtual": "^3.14.23",
-    "next": "16.4.3",
-    "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "next": "^16.4.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@pandacss/dev": "^2.4.0",
     "@pandacss/preset-base": "^2.4.0",
-    "@types/node": "24.13.3",
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
-    "typescript": "7.0.2"
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2"
   }
 }

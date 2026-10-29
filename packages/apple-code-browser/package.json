@@ -12,10 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "7.0.2"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@jsr/polymorph__websocket": "0.6.1",
-    "@jsr/polyengine__protocol": "0.3.1"
+    "@jsr/polymorph__websocket": "^0.6.1",
+    "@jsr/polyengine__protocol": "^0.3.1"
   }
 }
