@@ -8,7 +8,7 @@
   background: var(--surface);
   font-size: 0.8125rem;
 }
-.navigation span {
+.navigation > span {
   color: var(--muted);
   padding: 0 0.5rem;
 }
@@ -25,4 +25,8 @@
 }
 .navigation a:hover {
   background: var(--subtle);
+}
+
+.utility {
+  margin-inline-start: auto;
 }

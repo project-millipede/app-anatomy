@@ -5,7 +5,6 @@ import { Dialog } from '@base-ui/react/dialog';
 import { Menu } from '@base-ui/react/menu';
 import { DirectoryListing } from '../workspace/base/DirectoryListing';
 import { ErrorMessage } from '../workspace/ErrorMessage';
-import { NativeServiceInstallationContent } from '../workspace/NativeServiceInstallation';
 import { OutcomeErrors } from '../workspace/OutcomeErrors';
 import type { WorkbenchModel } from '../workspace/types';
 import styles from './NativeExplorerActions.module.css';
@@ -60,25 +59,6 @@ export function NativeExplorerActions({ model }: { model: WorkbenchModel }) {
           </Menu.Positioner>
         </Menu.Portal>
       </Menu.Root>
-
-      <Dialog.Root>
-        <Dialog.Trigger className={styles.button}>Native access</Dialog.Trigger>
-        <Dialog.Portal>
-          <Dialog.Backdrop className={styles.backdrop} />
-          <Dialog.Popup className={styles.dialog}>
-            <div className={styles.dialogHeader}>
-              <Dialog.Title className={styles.title}>
-                Set up native access
-              </Dialog.Title>
-              <Dialog.Close className={styles.button}>Close</Dialog.Close>
-            </div>
-            <Dialog.Description className={styles.description}>
-              Download the macOS app and follow the installation steps below.
-            </Dialog.Description>
-            <NativeServiceInstallationContent />
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
 
       <Dialog.Root open={folderOpen} onOpenChange={setFolderOpen}>
         <Dialog.Portal>

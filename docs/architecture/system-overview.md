@@ -71,6 +71,11 @@ WIT `Session` and calls `querySelection`, `chooseFile`, `chooseFolder`, `openFil
 `openDirectory`, `inspect` and `inspectDependencies` directly. The last two select
 header-only or deeper dependency evidence without changing native selection.
 
+`VariantNavigation` mounts the self-contained `NativeServiceInstallation` once in
+each view, including comparison and Explorer. Its **Download Native Workbench**
+trigger opens a Base UI dialog with download and setup guidance. This presentation
+component owns no native session or runtime.
+
 The runtime’s `getSession()` lazily initializes and caches one component/session.
 `createNativeRuntime()` keeps that promise and host bindings in a private closure.
 Concurrent accessors share initialization; a failed initialization can be retried.
@@ -140,10 +145,11 @@ The Application Explorer has a dedicated `/explorer` route. Its server layout
 supplies the Ark theme and navigation; its server page supplies metadata and mounts
 client `ApplicationExplorer`. That page owner calls the existing `useNativeSession`
 and `useWorkbenchModel` hooks once and passes the model explicitly to
-`NativeExplorerWorkspace`. Native selection is the default source; the source
-control switches to the separate synthetic `ExplorerWorkspace`. Switching sources
-retains the native owner, model and report, without introducing a global runtime
-store. Source-specific tree, preview and paging state belongs to its presentation.
+`NativeExplorerWorkspace`. The existing Ark Tabs wrapper presents **Native file**
+(default) and **Synthetic preview**, using its `workspace` layout variant; report
+tabs retain their default layout. The native owner and model live above `Tabs.Root`,
+so switching tabs retains them and the report. Source-specific tree, preview and
+paging state belongs to its presentation.
 `ExplorerFrame` supplies the shared page chrome and source-specific evidence notice.
 The page mounts no `WorkbenchShell`; it owns a separate instance of the same
 runtime/model composition.
@@ -158,8 +164,9 @@ is inferred. `NativeExplorerInspector` displays per-declaration imports and the
 source image's runpaths, ID names and unassociated/special imports. The ordinary
 Rust ordinal grouping crosses WIT 0.7 as indices into the original import list;
 React does not group by library-name strings or decode symbol ordinals.
-**Open** and **Native access** live in the toolbar; **Inspect dependencies** is
-beside the canvas context. Native-service setup is in the access dialog.
+**Open** lives beside the source tabs in the native toolbar; **Inspect dependencies**
+is beside the canvas context. Direction labels remain in the canvas legend.
+Service setup uses the shared navigation's download dialog.
 
 Synthetic `ExplorerWorkspace` owns one Ark Tree View for the Rust-generated
 inventory through `useVirtualizedTree`. Its selection directly supplies the center
@@ -239,7 +246,7 @@ See the [upstream integration boundary](capabilities/explorer-relationships.md#u
 Navigating between the workbench and `/explorer` ends the previous page owner and
 its in-memory report. The new owner queries retained native selection and requires
 a new inspection to produce its own report. Switching only the workbench's `view`
-query parameter, or the Explorer's native/synthetic source control, keeps the
+query parameter, or the Explorer's source tabs, keeps the
 corresponding page's existing owner and model.
 
 ### Runtime lifecycle

@@ -8,17 +8,16 @@ An optional Ark UI + Panda CSS implementation is available alongside the Base UI
 
 See [UI comparison](docs/architecture/base-ui-and-ark-panda-comparison.md) for the styling and maintenance tradeoffs. Base UI remains installed and is the default view.
 
-The Application Explorer has its own Ark page at `/explorer`. It opens in
-**Native selection** mode and also offers the existing **Synthetic datasets** mode.
+The Application Explorer has its own Ark page at `/explorer`. Its source tabs open
+on **Native file** and also offer **Synthetic preview**.
 
 - **Native evidence:** Select a file or browse the native listing, then explicitly
   choose **Inspect dependencies**. The center and tree represent only the retained
   selected file; its exact filesystem path and application containment are unavailable.
   Declared libraries appear below it as **Target not evaluated** evidence, without
   acquired target nodes or an application boundary. The inspector shows Rust-grouped
-  imports, special/flat associations, runpaths and ID-dylib names. **Open** and
-  **Native access** are in the toolbar; **Inspect dependencies** is beside the
-  canvas context, and native-service setup is in the access dialog.
+  imports, special/flat associations, runpaths and ID-dylib names. **Open** is in
+  the native toolbar; **Inspect dependencies** is beside the canvas context.
 - **Synthetic exploration:** Authored inventories retain their linked tree roles,
   Rust-computed candidates, relationship preview and Focus/Back behavior. Synthetic
   facts do not become native input or runtime loading observations.
@@ -26,7 +25,7 @@ The Application Explorer has its own Ark page at `/explorer`. It opens in
   [Archer renderer](packages/archer/README.md). Synthetic inventories use the Ark
   tree with TanStack virtualization; native mode currently has at most one file node.
 - **Ownership:** The Explorer page reuses `useNativeSession` and `useWorkbenchModel`.
-  Switching its source mode retains that page's native runtime, model and report.
+  Switching source tabs retains that page's native runtime, model and report.
   Route navigation creates a fresh owner that queries retained native selection;
   it does not retain the previous page's in-memory report or automatically inspect.
 
@@ -111,8 +110,10 @@ The UI shows “Analysis in progress…” until the invocation returns its outc
 The application owns component/socket bindings independently of
 its presentations; see [application ownership](docs/architecture/system-overview.md#application-ownership)
 and the [runtime lifecycle](docs/architecture/system-overview.md#runtime-lifecycle).
-Native access requires starting the
-local Rust service. Requested ranges still enter Wasm memory. The
+The shared navigation provides **Download Native Workbench** in every view. Its
+Base UI dialog contains download and setup guidance and owns no native runtime.
+Native access requires starting the local Rust service. Requested ranges still
+enter Wasm memory. The
 [filesystem overview](docs/filesystem/README.md) compares native acquisition with
 browser filesystem APIs and distinguishes implemented support from future fidelity requirements.
 

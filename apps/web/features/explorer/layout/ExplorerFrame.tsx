@@ -2,14 +2,10 @@ import type { ReactNode } from 'react';
 import styles from './ExplorerFrame.module.css';
 
 type ExplorerFrameProps = {
-  /** Product identity at the start of the page header. */
-  brand: ReactNode;
-  /** Page-level actions at the end of the page header. */
-  headerActions: ReactNode;
   /** Page heading and its description. */
   title: ReactNode;
-  /** Key explaining the canvas axes, beside the title. */
-  axisKey: ReactNode;
+  /** Source selection and task actions beside the title. */
+  controls: ReactNode;
   /** Page-level scope notice above the workspace. */
   notice: ReactNode;
   /** Interactive workspace, which owns its named pane layout. */
@@ -24,23 +20,17 @@ type ExplorerFrameProps = {
  * @returns The explorer page with its named layout regions.
  */
 export function ExplorerFrame({
-  brand,
-  headerActions,
   title,
-  axisKey,
+  controls,
   notice,
   workspace,
   footer,
 }: ExplorerFrameProps) {
   return (
     <div className={styles.frame}>
-      <header className={styles.header}>
-        {brand}
-        <div className={styles.headerActions}>{headerActions}</div>
-      </header>
       <div className={styles.toolbar}>
         <div className={styles.title}>{title}</div>
-        <div className={styles.axisKey}>{axisKey}</div>
+        <div className={styles.controls}>{controls}</div>
       </div>
       <div className={styles.notice}>{notice}</div>
       {workspace}
