@@ -117,6 +117,9 @@ name = "app-anatomy-xtask"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "binary-inspection",
+ "object 0.40.0",
+ "serde_json",
 ]
 
 [[package]]
