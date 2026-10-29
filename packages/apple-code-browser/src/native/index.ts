@@ -6,6 +6,8 @@ export type {
 } from './runtime';
 export type {
   DirectoryEntry,
+  DirectoryEntryRef,
+  DirectoryListing,
   Failure,
   InspectionFailure,
   InspectionOutcome,

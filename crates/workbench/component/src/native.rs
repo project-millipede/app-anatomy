@@ -45,6 +45,13 @@ impl wire::GuestSession for NativeSession {
             DirectoryEntryKind::Directory,
         ))
     }
+    fn expand_directory(&self, directory: String, entry_id: u32) -> wire::SelectionOutcome {
+        selection_outcome(
+            self.session
+                .borrow_mut()
+                .expand_directory(&directory, entry_id),
+        )
+    }
     fn inspect(&self, resource: String) -> wire::InspectionOutcome {
         inspection_outcome(self.session.borrow_mut().inspect(&resource))
     }
