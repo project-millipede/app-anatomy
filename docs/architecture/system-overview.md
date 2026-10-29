@@ -171,8 +171,12 @@ The graph uses fixed presentation slots: all relationship cards are 224×112 CSS
 pixels, and the selected file stays 280×168 pixels. West/east share heading and
 row baselines; north/south share three horizontal slot columns. Each corridor
 shows at most three relationships, preserving Rust's evidence order, with explicit
-paging for additional records. Empty slots retain geometry without graph nodes.
-Long paths are clamped in cards and remain available in the inspector.
+paging for additional records. Slots are assigned after pagination: one visible
+card uses the middle slot, two use the first and middle slots, and three use all
+slots. This rule restarts on each page. Cards and matching ports share the same
+slot assignment, including the middle 50% port for a lone card. Empty slots retain
+geometry without graph nodes. Long paths are clamped in cards and remain available
+in the inspector.
 Each visible relationship has its own decorative center-edge port at the slot's
 25%, 50% or 75% offset. Cards and ports are mounted together from the same page;
 changing pages removes their Archer source declarations. A restored preview
