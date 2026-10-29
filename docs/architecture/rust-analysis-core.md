@@ -120,6 +120,14 @@ for this evidence.
 An empty import library name can mean special or flat lookup. Original flags and
 ordinals remain available; the core supplies an association label for presentation.
 An association with a recorded library name does not identify a provider file.
+
+[`DependencyEvidence::group_imports`](../../crates/binary/inspection/src/model.rs)
+returns import-index lists aligned with the library declarations plus an
+unassociated-index list. It uses upstream ordinary ordinals rather than comparing
+name strings, so duplicate declaration names remain distinct. Symbol-table
+associations require the image's `MH_TWOLEVEL` flag; special, flat, unspecified or
+absent-declaration associations remain unassociated. This projects recorded
+metadata and does not evaluate candidate files or runtime providers.
 This operation does not call the synthetic candidate evaluator, expand paths,
 acquire an inventory, traverse aliases or perform runtime binding. Reexports,
 per-location bind records and shared-cache analysis are not exposed by this API.
@@ -150,7 +158,7 @@ requests and is not limited to header-sized reads. It returns no partial report.
 
 ## Adapter and UI
 
-The WIT contract is `apple-code:analysis@0.6.0`, which exposes zero-argument native
+The WIT contract is `apple-code:analysis@0.7.0`, which exposes zero-argument native
 session construction, persistent selection and inspection outcomes.
 Its `macho-value` record carries `value: u32` and `name: option<string>` for CPU,
 file-type, platform and load-command values. The platform field is optional to
@@ -171,8 +179,13 @@ Rust-formatted messages. Both UI variants use one presentation module and
 one image-details component to display the supplied canonical names and numeric
 fallbacks. Dependency names cross as both original bytes and Rust-escaped display
 strings. Signed special ordinals and symbol flags retain their numeric values.
-The shared image details show declarations and paginated imported-symbol evidence;
-React does not infer target files or maintain Mach-O classification tables.
+The shared workbench image details show declarations and paginated imported-symbol
+evidence. Native `/explorer` uses the same page-owned session/model hooks and
+presents declarations around the selected file. WIT 0.7 carries per-library
+`import-indices` and `unassociated-import-indices` into the unchanged imports list;
+React consumes these Rust-computed groups without inferring target files or
+maintaining Mach-O classification tables. See the
+[Explorer source contract](capabilities/explorer-relationships.md#native-selected-file-presentation).
 
 ## Parsing dependencies
 
@@ -341,7 +354,9 @@ one.
 
 ## Dependency inspection qualification
 
-Validated on 2026-10-29:
+Historical qualification of the preceding dependency-evidence milestone, recorded
+on 2026-10-29 before native Explorer integration and WIT 0.7 grouping. The checks
+below do not establish the later native Explorer's live browser behavior:
 
 - Native workspace tests cover owned import associations, special/flat context,
   deeper member bounds, acquisition-error precedence and the selected-source
@@ -362,6 +377,39 @@ Validated on 2026-10-29:
   automation timed out; the browser ultimately reported a non-regular-file
   selection error. End-to-end dependency inspection through the live native remote
   and browser adapters remains unqualified. Header-only qualification is unchanged.
+
+## Native Explorer qualification
+
+Recorded on 2026-10-29 for the native Explorer and WIT 0.7 ordinal grouping:
+
+- The native remote example inspected the service's retained `date` selection:
+  135,392 bytes and two images, each with one library, 37 imports, no runpaths and
+  no ID-dylib names.
+- The live browser used real jco/Polymorph bindings to inspect retained `dd`:
+  x86_64 reported two libraries and 53 imports; arm64e reported two libraries and
+  52 imports. The x86_64 libSystem declaration at ordinal 2 grouped 52 symbols,
+  displayed on pages of 50 and two. Switching Native/Synthetic sources preserved
+  the native report and selected architecture.
+- The component library test, core `wasm32-unknown-unknown` compilation and workspace
+  formatting check passed. The two ordinary Rust grouping tests cover duplicate
+  declaration names and special/flat/missing associations independently of parsing.
+
+These adapter runs used different retained binaries; they do not establish
+identical-fixture equality across adapters. A live picker and new acquisition were
+not verified. No bundle inventory, dependent-file candidate evaluation or runtime
+binding was exercised.
+
+The native Explorer control layout was also checked in the in-app browser: the
+file tree starts below Files, Open groups file/folder actions, and Native access
+opens the installation dialog. Escape closes both menu and setup dialog and
+returns focus to their triggers. The moved Inspect dependencies action successfully
+re-inspected retained `date` without replacing the tree selection. The new folder
+listing dialog was reviewed and typechecked; its native-picker flow was not
+exercised in this check.
+
+`pnpm engine:build`, the native workspace and component tests, all 22 web tests,
+generated-preview freshness, workspace typecheck and the production web build
+passed. Changed-file formatting and diff whitespace checks passed.
 
 ## Synthetic Explorer APIs
 

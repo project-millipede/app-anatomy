@@ -6,34 +6,35 @@ every accessibility or maintenance check has been completed.** The
 
 The workbench keeps Base UI available while evaluating Ark UI with Panda CSS. The comparison is an implementation experiment, not a decision to migrate the application.
 
-The Application Explorer layout iteration lives on its own `/explorer` page with
-a dedicated Ark layout. Its file tree and connection inspector are placeholders;
-four authored connection arrows exercise the reused
-[Archer renderer](../../packages/archer/README.md). They do not describe the
-selected native input. Base UI, Ark and comparison screens retain the existing
-native selection, listing, report and architecture controls around their shared
-workbench model.
+The Application Explorer lives on its own `/explorer` page with a dedicated Ark
+layout. Native selected-file evidence is the default source; the synthetic mode
+retains authored inventories, Rust-computed candidates and linked tree interaction.
+Both use the reused [Archer renderer](../../packages/archer/README.md). Native
+library cards show declarations whose targets have not been evaluated; synthetic
+arrows retain their separate candidate/evidence meaning.
 
-The preview uses proportional grid tracks and a container query derived from its
-content budget. Its central compass layout can scroll horizontally in a narrow
-container. Sidebar widths are not fixed pixel dimensions. No application state,
-resize effects or runtime owner is added by the preview.
+The page reuses `useNativeSession` and `useWorkbenchModel` as its own owner, passing
+the model explicitly to native presentation. Native/synthetic source switches
+retain that runtime and model. Fixed corridor geometry and responsive pane layout
+are described in the [system overview](system-overview.md#application-ownership).
 
 ## Views
 
-| URL              | View                                      |
-| ---------------- | ----------------------------------------- |
-| `/`              | Base UI with the existing CSS Modules     |
-| `/?view=ark`     | Ark UI with Panda component recipes       |
-| `/?view=compare` | Both implementations alongside each other |
-| `/explorer`      | Dedicated Ark Explorer layout preview     |
+| URL              | View                                       |
+| ---------------- | ------------------------------------------ |
+| `/`              | Base UI with the existing CSS Modules      |
+| `/?view=ark`     | Ark UI with Panda component recipes        |
+| `/?view=compare` | Both implementations alongside each other  |
+| `/explorer`      | Native evidence and synthetic Ark Explorer |
 
 Start the native service with `cargo run --locked -p filesystem-service` and the web app separately with `pnpm dev`, then select an input in either implementation. In comparison mode, both panes display one shared model: observed selection, current report, pending state, errors and architecture tab. A selection or inspection initiated in either pane updates both. Switching between Base UI, Ark and comparison views preserves that model and its runtime; a full page refresh creates a new owner and queries native selection. The [system overview](system-overview.md#application-ownership) defines page composition and result retention. A narrow screen stacks the comparison views vertically. A failed state query shows uncertainty; selection controls remain available for another user-requested attempt.
 
-The Explorer page mounts no workbench shell, model or native runtime. Navigating
-there ends the current workbench owner. Returning to the workbench creates a new
-owner that queries retained native selection; the earlier in-memory report is
-discarded. The Explorer preview can render without a running native service.
+The Explorer page mounts no `WorkbenchShell`, but owns a separate instance of the
+same native session/model composition. Navigating between it and the workbench
+ends the previous owner and discards its in-memory report; the new owner queries
+retained native selection. Native dependency inspection remains explicit. Synthetic
+datasets remain available without successful service access, while native operations
+report connection failures through the shared model.
 
 ## What we maintain
 

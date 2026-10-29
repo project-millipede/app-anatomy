@@ -27,7 +27,7 @@ Component: Rust analyzer → Rust filesystem client → Polymorph WIT
 Native Rust application → NativeSelection → NativeFileSource → same analyzer
 ```
 
-The browser application uses the component contract `apple-code:analysis@0.6.0`.
+The browser application uses the component contract `apple-code:analysis@0.7.0`.
 Its selected operations compose ordinary Rust APIs; internal helpers are not
 additional exports. Report and inspection interfaces supply shared types, while
 native-session operations perform selection, navigation and inspection. Generated
@@ -136,19 +136,37 @@ Base UI retains CSS Module controls. Ark uses scoped Panda tokens and button/tab
 recipes with CSS Modules for layout. The common reset is in the base CSS layer;
 Panda adds no reset or default theme. Both views belong to the same Next.js build.
 
-The Application Explorer preview has a dedicated `/explorer` route.
-Its server layout supplies the Ark theme and navigation; its server page supplies
-metadata and renders `ApplicationExplorer` and `ExplorerFrame` as server
-components for static page chrome. A dedicated notice row shows the preview
-disclaimer above the workspace. The frame renders the client
-`ExplorerWorkspace` directly in its workspace row. The preview mounts no
-`WorkbenchShell`, workbench model or native runtime. Its relationship
-connections use the
-local [Archer package](../../packages/archer/README.md), with a private store for
-each drawing surface. That store contains rendering edges and DOM refs.
-`ExplorerWorkspace` owns one Ark Tree View instance for the Rust-generated synthetic
+The Application Explorer has a dedicated `/explorer` route. Its server layout
+supplies the Ark theme and navigation; its server page supplies metadata and mounts
+client `ApplicationExplorer`. That page owner calls the existing `useNativeSession`
+and `useWorkbenchModel` hooks once and passes the model explicitly to
+`NativeExplorerWorkspace`. Native selection is the default source; the source
+control switches to the separate synthetic `ExplorerWorkspace`. Switching sources
+retains the native owner, model and report, without introducing a global runtime
+store. Source-specific tree, preview and paging state belongs to its presentation.
+`ExplorerFrame` supplies the shared page chrome and source-specific evidence notice.
+The page mounts no `WorkbenchShell`; it owns a separate instance of the same
+runtime/model composition.
+
+Native mode queries retained selection on entry and requires an explicit
+**Inspect dependencies** invocation. Its tree contains only the selected file,
+identified by its resource ID and display name. The service supplies no exact
+filesystem path or acquired application inventory. Library declarations appear in
+the south corridor with **Target not evaluated** status and no file endpoints.
+No application boundary, incoming consumer, resolved provider or alias traversal
+is inferred. `NativeExplorerInspector` displays per-declaration imports and the
+source image's runpaths, ID names and unassociated/special imports. The ordinary
+Rust ordinal grouping crosses WIT 0.7 as indices into the original import list;
+React does not group by library-name strings or decode symbol ordinals.
+**Open** and **Native access** live in the toolbar; **Inspect dependencies** is
+beside the canvas context. Native-service setup is in the access dialog.
+
+Synthetic `ExplorerWorkspace` owns one Ark Tree View for the Rust-generated
 inventory through `useVirtualizedTree`. Its selection directly supplies the center
 name and path; no second React selection or expansion state is stored.
+Relationship connections in both modes use the local
+[Archer package](../../packages/archer/README.md), with a private rendering store
+for each drawing surface containing only edges and DOM refs.
 `ExplorerFileTree` composes the pane and a virtual viewport. `ExplorerTreeNode`
 retains the Explorer-specific Ark markup, icons and folder-click policy, while
 `VirtualTreeViewport` owns windowing and scrolling through a node-rendering slot.
@@ -203,26 +221,26 @@ independent and can still scan the collection. See the
 [tree virtualization contract](capabilities/explorer-tree-virtualization.md).
 Selection and keyboard focus decorate the icon/name/badge surface filling the
 remaining row width; disclosure controls and connectors occupy separate space.
-The inspector presents synthetic evidence, candidate attempts and alias chains.
-Ordinary Rust APIs compute bounded candidates and neighborhoods; a build-time
-xtask exports preview data. React owns relationship preview, candidate choice and
-navigation history while Ark retains the sole center selection. Native inspection
-remains on the workbench page. The [synthetic relationship contract](capabilities/explorer-relationships.md)
-describes supported references and evidence limits; this preview neither acquires
-a real bundle nor runs a live Wasm resolver.
+The synthetic inspector presents authored evidence, candidate attempts and alias
+chains. Ordinary Rust APIs compute bounded candidates and neighborhoods; a
+build-time xtask exports preview data. React owns synthetic relationship preview,
+candidate choice and navigation history while Ark retains the sole center selection.
+Native presentation uses the dependency report directly and never calls that
+candidate evaluator. The [relationship contract](capabilities/explorer-relationships.md)
+describes both source modes, supported references and evidence limits.
 
-The workbench now has a separate **Inspect dependencies** action for upstream-declared
-libraries and static import/library associations. It shares the selected-file
-workflow and runtime; **Inspect headers** keeps the existing header-only scope.
-File-candidate evaluation remains a
-separate capability requiring inventory and explicit context; actual runtime
-provider selection, symbol lookup and binding stay outside the current Explorer.
+The workbench and native Explorer both use the explicit **Inspect dependencies**
+action for upstream-declared libraries and static import/library associations.
+**Inspect headers** on the workbench retains its header-only scope. File-candidate
+evaluation remains a separate capability requiring inventory and explicit context;
+actual runtime provider selection, symbol lookup and binding are not implemented.
 See the [upstream integration boundary](capabilities/explorer-relationships.md#upstream-reuse-and-integration-boundary).
 
-Navigating from the workbench to `/explorer` ends the workbench owner and its
-in-memory report. Returning creates a new owner that queries retained native
-selection. Switching only the workbench's `view` query parameter keeps the existing
-owner and report as described above.
+Navigating between the workbench and `/explorer` ends the previous page owner and
+its in-memory report. The new owner queries retained native selection and requires
+a new inspection to produce its own report. Switching only the workbench's `view`
+query parameter, or the Explorer's native/synthetic source control, keeps the
+corresponding page's existing owner and model.
 
 ### Runtime lifecycle
 

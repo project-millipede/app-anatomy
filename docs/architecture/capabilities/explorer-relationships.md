@@ -1,14 +1,21 @@
-# Explorer synthetic relationships
+# Explorer relationship sources
 
 ## Responsibility and evidence
 
-The `/explorer` preview renders synthetic application inventories and relationship
-results computed by ordinary Rust APIs in `binary-inspection::explorer`. The
-Rust library validates inventory identity and containment, expands supported
-references, follows represented aliases and produces direct neighborhoods. It
-has no filesystem, WIT, serialization, networking or JavaScript dependency.
+The `/explorer` page defaults to native selected-file evidence and separately
+retains the synthetic inventory experiment. `ApplicationExplorer` owns one instance
+of the existing native session/model hooks across source switches. Native reports
+come from explicit **Inspect dependencies** invocations; synthetic candidate
+queries consume authored facts. Neither presentation performs binary analysis or
+filesystem-client protocol work in TypeScript.
 
-The preview borrows pinned `object` types for Mach-O dependency flags, command
+The synthetic mode renders inventories and relationship results computed by
+ordinary Rust APIs in `binary-inspection::explorer`. That library validates
+inventory identity and containment, expands supported references, follows
+represented aliases and produces direct neighborhoods. It has no filesystem, WIT,
+serialization, networking or JavaScript dependency.
+
+The synthetic preview borrows pinned `object` types for Mach-O dependency flags, command
 identifiers, versions and CPU identity. Owned application records retain original reference
 bytes, provenance and separate entry/image/relationship identities. A filesystem
 alias and its target remain separate entries even when their basenames match.
@@ -67,6 +74,44 @@ Declaration display does not require a general loader subsystem. Upstream's
 [documented scope](https://github.com/gimli-rs/object/blob/4201cd4cd8026aed31377ce4193367b8c520d522/README.md#L61-L63)
 excludes reproducing platform-loader behavior.
 
+## Native selected-file presentation
+
+On entry, the page's model queries the service's retained selection. Selecting a
+native file or browsing a directory uses the existing native controls and Rust
+workflow. Inspection is explicit; entering the route or switching source modes
+does not trigger dependency analysis. The runtime, pending operation, native model
+and its report survive a source-mode switch. Route navigation disposes the old
+page owner; a new owner queries selection and begins without its previous report.
+The toolbar provides **Open** and **Native access**; dependency inspection is
+beside the canvas context, and service setup is in the native-access dialog.
+
+The native tree has at most one selected-file node. Resource IDs identify it;
+display names do not supply an exact filesystem path or application containment.
+Directory listings remain navigation controls, not an acquired bundle graph.
+There is no authored application boundary in native mode.
+
+Declared libraries use the south corridor with **Target not evaluated** status.
+These cards represent declarations, not external-file findings, missing providers
+or evaluated candidates. They have no acquired target endpoints to reveal or focus.
+The inspector shows source runpaths and ID-dylib names, per-declaration imports,
+and special/flat/otherwise unassociated imports.
+
+[`DependencyEvidence::group_imports`](../../../crates/binary/inspection/src/model.rs)
+produces per-declaration indices into the original imports list using upstream
+ordinary ordinals. Symbol-table ordinals require `MH_TWOLEVEL`; explicit dyld-bind
+ordinals retain their own context. Duplicate library names stay separate. Special,
+flat, unspecified and absent-declaration associations remain in the unassociated
+index list. WIT `apple-code:analysis@0.7.0` carries these lists as
+`declared-library.import-indices` and
+`dependency-evidence.unassociated-import-indices`. The original imports and flags
+remain available; React consumes the supplied indices without reinterpreting them.
+
+This mode does not call the candidate evaluator, acquire a real bundle inventory,
+resolve runpaths against disk or perform runtime symbol binding. The
+[native Explorer qualification](../rust-analysis-core.md#native-explorer-qualification)
+records retained-file runs through the native remote and live browser adapters;
+live picker acquisition remains unverified.
+
 ## Existing synthetic candidate computation
 
 A resolution context supplies a main executable, referring image and ordered
@@ -114,10 +159,12 @@ fresh artifact. TypeScript infers payload types from the JSON import and looks u
 Rust-computed projections; it does not expand references or compute compatibility
 or candidates.
 
-The preview mounts no native runtime, workbench session or service connection.
-Browser rendering of these results is not a live Wasm execution qualification.
+The synthetic presentation does not invoke native inspection or a live Wasm
+resolver. The page-owned native runtime/model remains mounted across source
+switches. Rendering the generated candidate results is not a live resolver
+execution qualification.
 
-## Presentation ownership
+## Synthetic presentation ownership
 
 `ExplorerWorkspace` owns one Ark tree. Its selected value remains the sole center
 selection, and Ark owns expansion and keyboard focus. React owns the selected
@@ -149,18 +196,20 @@ own row geometry, nested mounting, Ark keyboard behavior and viewport scrolling.
 Native tests establish application-owned candidate and projection rules against
 independent expectations. UI tests and real-browser checks establish linked
 presentation behavior. The ordinary library can compile for browser Wasm, but
-this preview does not add a component export or execute resolution inside Wasm.
+the synthetic candidate preview does not execute resolution inside Wasm. Native
+mode invokes the separately implemented dependency-evidence component operation.
 
 `inspect_dependencies` and `inspect_dependencies_source` expose upstream dependency
 declarations and import/library associations through the selected binary's
 bounded-input path. `Session::inspect_dependencies` and WIT `inspect-dependencies`
 compose that ordinary Rust operation. Header inspection remains a separate scope.
-The workbench report displays this evidence; `/explorer` remains the synthetic
-preview and does not acquire real graph endpoints. See the
+The workbench report and native Explorer display this evidence. The Explorer's
+native mode still does not acquire dependent-file graph endpoints. See the
 [dependency API contract](../rust-analysis-core.md#dependency-evidence) for read scope,
-owned evidence and unsupported capabilities. The separate
-[dependency qualification record](../rust-analysis-core.md#dependency-inspection-qualification)
-distinguishes native execution from compilation and presentation checks.
+owned evidence and unsupported capabilities. The current
+[native Explorer qualification](../rust-analysis-core.md#native-explorer-qualification)
+and preceding historical dependency record distinguish adapter execution from
+compilation and presentation checks.
 
 Whole-bundle acquisition is a separate extension: current native entry IDs are
 listing-scoped; opening a directory replaces selection; symlink targets and a
@@ -170,6 +219,9 @@ reads. Optional candidate queries can consume the acquired facts and explicit
 context separately.
 
 ### Synthetic preview validation recorded on 2026-10-29
+
+This is the historical synthetic milestone before native-source integration;
+its checks do not qualify the subsequent native Explorer workflow.
 
 - Native workspace tests passed, including 11 Explorer rule tests. The
   `binary-inspection` suite also passed its two doctests and Clippy with warnings
@@ -195,7 +247,10 @@ Screen-reader behavior and other browser engines were not qualified. Real native
 bundle acquisition and execution of the new resolver through a live Wasm
 component remain future capabilities.
 
-### Fixed corridor layout
+### Synthetic fixed corridor layout and historical qualification
+
+This records the synthetic layout increment before native-source integration.
+The browser checks below apply to that increment, not to native file acquisition.
 
 The linked-tree-bridge-workspace prototype remains the interaction reference.
 The Explorer uses fixed readable sidebars around a fluid canvas and compact page
