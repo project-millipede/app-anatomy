@@ -400,10 +400,11 @@ native filesystem or client APIs. Optional networking probes accept explicit end
   borrowed [`NativeFileSource`](../../../crates/filesystem/native/src/file.rs)
   implements the analyzer input contract. The
   [direct composition example](../../../crates/filesystem/native/examples/inspect_selection.rs)
-  repeats inspection using the retained owner without networking or WIT.
+  repeats inspection using the retained owner without networking or WIT. Its
+  optional `--dependencies` flag invokes the deeper ordinary Rust dependency API.
 - The [native component adapter](../../../crates/workbench/component/src/native.rs)
   composes the ordinary Rust filesystem client and its bounded input source with
-  the same `inspect_source` entry point. Its private
+  the same `inspect_source` and `inspect_dependencies_source` entry points. Its private
   [`websocket` module](../../../crates/workbench/component/src/websocket.rs)
   invokes Polymorph networking operations; the browser provider owns connection
   timing. The facade owns WIT resources and result conversion.

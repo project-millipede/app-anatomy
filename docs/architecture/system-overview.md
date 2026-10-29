@@ -1,6 +1,6 @@
 # System overview
 
-**Status: implemented bounded Mach-O header analysis with native filesystem input.**
+**Status: implemented bounded Mach-O header and dependency inspection with native filesystem input.**
 The [Rust core](rust-analysis-core.md) owns parsing contracts, the
 [filesystem communication flow](rust-runtime-independence/filesystem-communication-flow.md)
 owns networking and resource semantics, and the
@@ -27,7 +27,7 @@ Component: Rust analyzer → Rust filesystem client → Polymorph WIT
 Native Rust application → NativeSelection → NativeFileSource → same analyzer
 ```
 
-The browser application uses the component contract `apple-code:analysis@0.5.0`.
+The browser application uses the component contract `apple-code:analysis@0.6.0`.
 Its selected operations compose ordinary Rust APIs; internal helpers are not
 additional exports. Report and inspection interfaces supply shared types, while
 native-session operations perform selection, navigation and inspection. Generated
@@ -68,7 +68,8 @@ phase notifications.
 `createNativeRuntime()` and passes the `getNativeSession` accessor to
 `useWorkbenchModel`. The model obtains the generated
 WIT `Session` and calls `querySelection`, `chooseFile`, `chooseFolder`, `openFile`,
-`openDirectory` and `inspect` directly.
+`openDirectory`, `inspect` and `inspectDependencies` directly. The last two select
+header-only or deeper dependency evidence without changing native selection.
 
 The runtime’s `getSession()` lazily initializes and caches one component/session.
 `createNativeRuntime()` keeps that promise and host bindings in a private closure.
@@ -210,8 +211,10 @@ remains on the workbench page. The [synthetic relationship contract](capabilitie
 describes supported references and evidence limits; this preview neither acquires
 a real bundle nor runs a live Wasm resolver.
 
-Native Explorer integration will first present upstream-declared dependencies
-and static import/library associations. File-candidate evaluation remains a
+The workbench now has a separate **Inspect dependencies** action for upstream-declared
+libraries and static import/library associations. It shares the selected-file
+workflow and runtime; **Inspect headers** keeps the existing header-only scope.
+File-candidate evaluation remains a
 separate capability requiring inventory and explicit context; actual runtime
 provider selection, symbol lookup and binding stay outside the current Explorer.
 See the [upstream integration boundary](capabilities/explorer-relationships.md#upstream-reuse-and-integration-boundary).
@@ -255,8 +258,7 @@ Complete application traversal, metadata fidelity and source consistency still
 require the [filesystem acceptance checks](../filesystem/requirements.md).
 
 Next stages include signatures/certificates, bundle and resource graphs,
-upstream dependency declarations and import associations, variant comparisons,
-then native verification and controlled rebuild execution. File-candidate
+variant comparisons, then native verification and controlled rebuild execution. File-candidate
 evaluation is a separate extension when product interactions require it. Their
 directories and APIs will be introduced when implemented, rather than adding
 nonfunctional exports now.
@@ -265,6 +267,6 @@ Before that full native executor, the proposed [early LIEF rewriting experiment]
 
 Future transformation work follows the [shared portability requirements](../portability/requirements.md).
 
-Signature-command records retain their command and payload byte ranges. Neither command presence nor a successfully bounded range establishes cryptographic integrity, certificate trust or runtime eligibility. The report explicitly identifies its scope as header analysis.
+Signature-command records retain their command and payload byte ranges. Neither command presence nor a successfully bounded range establishes cryptographic integrity, certificate trust or runtime eligibility. Each report identifies its scope as header-only or dependency inspection; neither scope verifies signatures.
 
-Rust tests cover parsing, protocol size limits and structured diagnostics; component and browser-binding tests cover the JSPI requirement, shared session initialization and message/error conversion. The parsing checks establish header behavior only. No claim is made that all Mach-O formats, valid application structures, OS trust policies or signature formats are supported.
+Rust tests cover parsing, protocol size limits and structured diagnostics; component and browser-binding tests cover the JSPI requirement, shared session initialization and message/error conversion. Header and dependency tests exercise the separate read scopes and owned evidence conversion. No claim is made that all Mach-O formats, valid application structures, OS trust policies or signature formats are supported.

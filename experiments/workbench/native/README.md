@@ -34,7 +34,10 @@ for the shared structures and component projection.
 `Session::inspect` feeds bounded remote reads into the existing
 `binary_inspection::inspect_source` API and returns one `Inspect` step containing
 the report or original failure. The call has no progress notifications or analysis
-cancellation checks.
+cancellation checks. `Session::inspect_dependencies` uses the same ownership and
+read workflow with `binary_inspection::inspect_dependencies_source`. Add
+`--dependencies` after the endpoint to request declared libraries and import
+associations; this does not evaluate provider-file candidates.
 
 The service retains selection across inspection and disconnect until
 successful replacement or shutdown. There is no frontend deselection or remote
@@ -43,6 +46,7 @@ retained source repeatedly without this client:
 
 ```sh
 cargo run --locked -p filesystem-native --example inspect_selection -- /path/to/file
+cargo run --locked -p filesystem-native --example inspect_selection -- /path/to/file --dependencies
 ```
 
 The main [`workbench-component`](../../../crates/workbench/component/wit/native.wit)
@@ -56,6 +60,10 @@ The selected browser path uses jco and the published Polymorph provider.
 See [async helpers and runtime ownership](../../../docs/architecture/rust-runtime-independence/filesystem-communication-flow.md#async-helpers-and-runtime-ownership)
 for the `futures-rs` dependency, the helpers used here, and the distinction between
 component execution and native Tokio networking.
+
+The dependency operation has been executed through the direct native adapter.
+The remote example is compiled but its new dependency operation still needs a live
+retained-file run; see the [qualification record](../../../docs/architecture/rust-analysis-core.md#dependency-inspection-qualification).
 
 ## Shared protocol
 
