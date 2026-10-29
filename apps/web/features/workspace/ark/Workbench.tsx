@@ -24,6 +24,7 @@ export function Workbench({ model, embedded = false }: WorkbenchProps) {
     chooseNativeDirectory,
     openNativeEntry,
     inspectNative,
+    inspectNativeDependencies,
     report,
     selectedSliceIndex,
     selectSlice,
@@ -49,8 +50,8 @@ export function Workbench({ model, embedded = false }: WorkbenchProps) {
           <div className={styles.introduction}>
             <h1>Binary workspace</h1>
             <p>
-              Select a native Mach-O file to explore its architecture and
-              platform.
+              Select a native Mach-O file to explore its architecture, platform
+              and declared dependencies.
             </p>
           </div>
         )}
@@ -60,6 +61,7 @@ export function Workbench({ model, embedded = false }: WorkbenchProps) {
           chooseNativeFile={chooseNativeFile}
           chooseNativeDirectory={chooseNativeDirectory}
           inspectNative={inspectNative}
+          inspectNativeDependencies={inspectNativeDependencies}
         />
         <OutcomeErrors outcome={outcome} className={styles.error} />
         {hostError !== null && (
@@ -79,11 +81,11 @@ export function Workbench({ model, embedded = false }: WorkbenchProps) {
               />
             )}
             <div className={styles.scope}>
-              <strong>First milestone</strong>
+              <strong>Analysis scope</strong>
               <p>
-                The native reader supplies requested ranges for Rust analysis in
-                Wasm. Full application-bundle analysis and signing are not
-                supported yet.
+                Native selection supplies bounded reads for Rust header and
+                dependency inspection. Application-wide target resolution and
+                signing are not available.
               </p>
             </div>
           </aside>

@@ -24,8 +24,8 @@ export function ReportViewer({
           </span>
           <h2>A closer look at your binaries</h2>
           <p>
-            Select a native file or browse a native folder, then choose Analyze
-            native file.
+            Select a native file or browse a native folder, then choose Inspect
+            headers or Inspect dependencies.
           </p>
           <p className={styles.note}>
             Signature metadata does not establish signature validity or

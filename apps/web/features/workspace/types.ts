@@ -79,6 +79,12 @@ export type NativeInteraction = {
    * @returns Completion, or immediately when busy or no file has been observed.
    */
   inspectNative(): Promise<void>;
+  /**
+   * Inspect declared dependencies of the observed file through the same Rust session.
+   *
+   * @returns Completion, or immediately when busy or no file has been observed.
+   */
+  inspectNativeDependencies(): Promise<void>;
 };
 
 /** Observed file, pending state and actions used by the native-access controls. */
@@ -89,6 +95,7 @@ export type NativeControlsProps = Pick<
   | 'chooseNativeFile'
   | 'chooseNativeDirectory'
   | 'inspectNative'
+  | 'inspectNativeDependencies'
 >;
 
 /** Entry presentation and selection intent; directory ownership remains in Rust. */

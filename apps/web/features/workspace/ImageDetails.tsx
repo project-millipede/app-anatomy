@@ -1,4 +1,5 @@
 import type { Image } from '@apple-code/browser';
+import { DependencyDetails } from './DependencyDetails';
 import {
   cpuLabel,
   endiannessLabels,
@@ -47,6 +48,9 @@ export function ImageDetails({
           </dd>
         </div>
       </dl>
+      {image.dependencies && (
+        <DependencyDetails evidence={image.dependencies} />
+      )}
       <h3>Platform evidence</h3>
       {image.platforms.length === 0 ? (
         <p className={styles.note}>
