@@ -13,6 +13,7 @@ export function NativeControls({
   chooseNativeFile,
   chooseNativeDirectory,
   inspectNative,
+  inspectNativeDependencies,
 }: NativeControlsProps) {
   return (
     <section className={styles.nativeAccess} aria-label="Native file access">
@@ -41,7 +42,14 @@ export function NativeControls({
           disabled={operationPending || !selectedFile}
           onClick={inspectNative}
         >
-          Analyze native file
+          Inspect headers
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={operationPending || !selectedFile}
+          onClick={inspectNativeDependencies}
+        >
+          Inspect dependencies
         </Button>
       </div>
     </section>

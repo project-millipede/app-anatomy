@@ -1,0 +1,98 @@
+.section {
+  --dependency-border: var(--acw-colors-border, var(--border));
+  --dependency-muted: var(--acw-colors-muted, var(--muted));
+  --dependency-background: var(--acw-colors-background, var(--background));
+  margin-block: 1.75rem;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.section > section {
+  margin-block-start: 1.5rem;
+}
+.section h3,
+.section h4 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.section h4 {
+  margin-block: 0 0.75rem;
+}
+.note,
+.rawBytes,
+.importMetadata,
+.metadata dt {
+  color: var(--dependency-muted);
+}
+.library,
+.symbols > li {
+  padding: 0.875rem;
+  margin-block-end: 0.75rem;
+  border: 1px solid var(--dependency-border);
+  border-radius: 0.4rem;
+  background: var(--dependency-background);
+}
+.recordedName {
+  display: block;
+  color: inherit;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.rawBytes,
+.importMetadata {
+  margin-block-start: 0.375rem;
+  font-size: 0.75rem;
+}
+.rawBytes summary,
+.importMetadata summary {
+  cursor: pointer;
+}
+.rawBytes > code {
+  display: block;
+  padding-block-start: 0.375rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 0.75rem 1rem;
+  margin-block: 0.75rem 0;
+}
+.metadata dd {
+  margin: 0.125rem 0 0;
+  color: var(--acw-colors-text, var(--text));
+}
+.metadata dt {
+  font-size: 0.75rem;
+}
+.names,
+.symbols {
+  padding-inline-start: 1.5rem;
+}
+.names > li {
+  padding-block: 0.375rem;
+}
+.association {
+  margin-block: 0.5rem 0;
+}
+.pagination,
+.pagination > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pagination {
+  justify-content: space-between;
+  margin-block-end: 0.75rem;
+}
+.pageButton {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--dependency-border);
+  border-radius: 0.375rem;
+  background: var(--acw-colors-surface, var(--surface));
+  color: inherit;
+  font-size: 0.75rem;
+}

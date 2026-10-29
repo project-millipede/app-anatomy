@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AsyncSession,
+  InspectionOutcome,
   SelectionOutcome,
   SelectionState,
 } from '@apple-code/browser/native';
@@ -182,43 +183,61 @@ export function useWorkbenchModel(
   );
 
   /**
-   * Analyze the observed file through Rust, replacing the displayed result.
-   * @returns Completion of UI handling, or immediately when busy or without a file.
+   * Present an inspection outcome for the observed file using the shared guard.
+   * @param request Generated-session operation to invoke for the retained resource.
+   * @returns Completion, or immediately when busy or without an observed file.
    */
-  const inspectNative = useCallback(async () => {
-    if (!selectedFile) return;
-    const operation = beginOperation();
-    if (!operation) return;
-    const { name, resource } = selectedFile;
-    setReport(null);
-    setSelectedSliceIndex(0);
-    try {
-      const session = await getNativeSession();
-      if (!session || activeOperation.current !== operation) return;
-      // Rust validates the observed resource; presentation never substitutes another file.
-      const outcome = await session.inspect(resource);
-      if (activeOperation.current !== operation) return;
-      setOutcome(outcome);
-      for (const step of outcome.steps) {
-        if (step.result.tag !== 'ok') continue;
-        setReport({
-          resource,
-          name,
-          analysis: step.result.val,
-        });
-        return;
+  const runInspection = useCallback(
+    async (
+      request: (
+        session: AsyncSession,
+        resource: string,
+      ) => Promise<InspectionOutcome>,
+    ) => {
+      if (!selectedFile) return;
+      const operation = beginOperation();
+      if (!operation) return;
+      const { name, resource } = selectedFile;
+      setReport(null);
+      setSelectedSliceIndex(0);
+      try {
+        const session = await getNativeSession();
+        if (!session || activeOperation.current !== operation) return;
+        // Rust validates the resource; presentation never substitutes another file.
+        const outcome = await request(session, resource);
+        if (activeOperation.current !== operation) return;
+        setOutcome(outcome);
+        for (const step of outcome.steps) {
+          if (step.result.tag !== 'ok') continue;
+          setReport({ resource, name, analysis: step.result.val });
+          return;
+        }
+      } catch (caught) {
+        if (activeOperation.current !== operation) return;
+        setHostError(
+          caught instanceof Error
+            ? caught.message
+            : 'Host execution failed without an error message.',
+        );
+      } finally {
+        finishOperation(operation);
       }
-    } catch (caught) {
-      if (activeOperation.current !== operation) return;
-      setHostError(
-        caught instanceof Error
-          ? caught.message
-          : 'Host execution failed without an error message.',
-      );
-    } finally {
-      finishOperation(operation);
-    }
-  }, [beginOperation, finishOperation, getNativeSession, selectedFile]);
+    },
+    [beginOperation, finishOperation, getNativeSession, selectedFile],
+  );
+
+  const inspectNative = useCallback(
+    () => runInspection((session, resource) => session.inspect(resource)),
+    [runInspection],
+  );
+
+  const inspectNativeDependencies = useCallback(
+    () =>
+      runInspection((session, resource) =>
+        session.inspectDependencies(resource),
+      ),
+    [runInspection],
+  );
 
   return {
     operationPending,
@@ -232,6 +251,7 @@ export function useWorkbenchModel(
     chooseNativeDirectory,
     openNativeEntry,
     inspectNative,
+    inspectNativeDependencies,
     selectSlice: setSelectedSliceIndex,
   };
 }
