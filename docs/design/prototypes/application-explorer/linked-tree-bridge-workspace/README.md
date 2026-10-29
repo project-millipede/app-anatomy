@@ -51,3 +51,11 @@ Validation covers the initial role highlights, collapsed counts, automatic
 preview reveal, external references, focus/Back and architecture changes in a
 desktop browser, plus script syntax and local links. Dense inventories and
 narrow-screen usability remain subjects for further design evaluation.
+
+## Application implementation
+
+The `/explorer` application preview develops this interaction using Rust-owned
+synthetic inventories and computed candidate neighborhoods. Its
+[relationship contract](../../../../architecture/capabilities/explorer-relationships.md)
+documents that implementation and its limits. This standalone design copy remains
+a fixed authored illustration; it is not the source of domain semantics.

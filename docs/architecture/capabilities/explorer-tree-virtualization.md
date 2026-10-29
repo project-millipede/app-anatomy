@@ -4,8 +4,9 @@
 
 Bound mounted rows for large expanded inventories while preserving Ark Tree View
 as the sole collection, selection, expansion and keyboard owner. This is
-presentation and UI lifecycle behavior. The authored preview does not acquire
-files or implement Rust analysis, filesystem protocol or workflow semantics.
+presentation and UI lifecycle behavior. The preview does not acquire files or implement filesystem protocol or analysis
+semantics in TypeScript. Its synthetic relationship projections come from Rust;
+see the [relationship contract](explorer-relationships.md).
 
 - `ExplorerWorkspace` owns one Ark tree through `useVirtualizedTree` and derives
   the selected canvas name/path from that same model.

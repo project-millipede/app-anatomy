@@ -141,11 +141,11 @@ metadata and renders `ApplicationExplorer` and `ExplorerFrame` as server
 components for static page chrome. A dedicated notice row shows the preview
 disclaimer above the workspace. The frame renders the client
 `ExplorerWorkspace` directly in its workspace row. The preview mounts no
-`WorkbenchShell`, workbench model or native runtime. Its four illustrative
+`WorkbenchShell`, workbench model or native runtime. Its relationship
 connections use the
 local [Archer package](../../packages/archer/README.md), with a private store for
 each drawing surface. That store contains rendering edges and DOM refs.
-`ExplorerWorkspace` owns one Ark Tree View instance for the authored preview
+`ExplorerWorkspace` owns one Ark Tree View instance for the Rust-generated synthetic
 inventory through `useVirtualizedTree`. Its selection directly supplies the center
 name and path; no second React selection or expansion state is stored.
 `ExplorerFileTree` composes the pane and a virtual viewport. `ExplorerTreeNode`
@@ -158,7 +158,7 @@ and callbacks stay inside that client subtree.
 `ExplorerFrame`, `ExplorerWorkspaceLayout`, `NavigationPane`, `CanvasPane`,
 `InspectorPane`, `BridgeGrid` and `BridgeSection` own layout through named content
 slots; they do not own selection or a native runtime. `ExplorerRelationshipCanvas`
-retains the illustrative Archer connections. It composes `BridgeViewport`,
+renders Rust-computed direct relationships through Archer. It composes `BridgeViewport`,
 `ArcherSurface` and `BridgeGrid` through ordinary JSX nesting. `BridgeViewport`
 owns the scrolling viewport and minimum-width wrapper; Archer's surface surrounds
 all grid endpoints and owns their registration and connector coordinates. Pane
@@ -178,9 +178,13 @@ independent and can still scan the collection. See the
 [tree virtualization contract](capabilities/explorer-tree-virtualization.md).
 Selection and keyboard focus decorate only the compact
 icon-and-name surface; disclosure controls and connectors occupy separate space.
-Evidence widgets remain placeholders, and native
-inspection remains on the workbench page. No bundle graph or dependency resolution
-is added.
+The inspector presents synthetic evidence, candidate attempts and alias chains.
+Ordinary Rust APIs compute bounded candidates and neighborhoods; a build-time
+xtask exports preview data. React owns relationship preview, candidate choice and
+navigation history while Ark retains the sole center selection. Native inspection
+remains on the workbench page. The [synthetic relationship contract](capabilities/explorer-relationships.md)
+describes supported references and evidence limits; this preview neither acquires
+a real bundle nor runs a live Wasm resolver.
 
 Navigating from the workbench to `/explorer` ends the workbench owner and its
 in-memory report. Returning creates a new owner that queries retained native
