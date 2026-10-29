@@ -140,28 +140,9 @@ async fn failed_directory_navigation_preserves_selection() -> anyhow::Result<()>
     Ok(())
 }
 
-/// Verify that successful directory navigation replaces the selection and
-/// invalidates the previous file and directory identifiers.
-///
-/// ```text
-/// Select the fixture's root directory (level 0)
-///   directory = root, file = none
-///       │
-///       ├─ Open "level-1-file" as a file → succeeds
-///       │    directory = root, file = level-1-file
-///       │
-///       ├─ Open "level-1-directory" as a directory → succeeds
-///       │    directory = level-1-directory, file = none
-///       │
-///       ├─ Query selection
-///       │    directory = level-1-directory, file = none
-///       │    entries = [level-2-file]
-///       │
-///       └─ Use the previous file and root-directory identifiers → fails
-///            The child-directory selection remains unchanged.
-/// ```
+/// Successful cursor navigation clears the selected file while retaining the root.
 #[tokio::test]
-async fn successful_directory_navigation_replaces_selection() -> anyhow::Result<()> {
+async fn successful_directory_navigation_keeps_root_resources() -> anyhow::Result<()> {
     // 1. Establish the initial file and directory selection.
     let root_directory = directory_with_entries()?;
     let handler = handler_with_directory_and_file(root_directory.path())?;
@@ -217,7 +198,7 @@ async fn successful_directory_navigation_replaces_selection() -> anyhow::Result<
     };
     assert_eq!(level_2_file_entry.name, "level-2-file");
 
-    // 4. Verify that requests using the previous resource identifiers fail.
+    // 4. The old file was replaced, but its root directory remains addressable.
     let response = handler
         .dispatch(Request::ByteLength {
             resource: initial_file_id,
@@ -228,23 +209,96 @@ async fn successful_directory_navigation_replaces_selection() -> anyhow::Result<
         "{response:?}"
     );
 
-    // Use an entry from the current child listing. Otherwise, an invalid entry
-    // could explain the failure even if the old directory identifier were accepted.
+    assert_eq!(
+        child_selection.root.as_ref().unwrap().resource,
+        root_directory_id
+    );
     let response = handler
-        .dispatch(Request::OpenFile {
+        .dispatch(Request::ListDirectory {
             resource: root_directory_id,
-            entry_id: level_2_file_entry.id,
         })
         .await?;
-    assert!(
-        matches!(&response, Response::Failed(FileError::Io { .. })),
-        "{response:?}"
-    );
-
-    // Rejected requests must leave the child selection unchanged.
+    let Response::Directory(root_listing) = response else {
+        panic!("expected retained root listing, got {response:?}");
+    };
+    assert_eq!(root_listing.entries, initial_selection.entries);
+    assert_eq!(root_listing.parent, None);
     assert_eq!(
         handler.dispatch(Request::CurrentSelection).await?,
         Response::Selection(child_selection)
     );
+    Ok(())
+}
+
+#[tokio::test]
+async fn lazy_expansion_keeps_selection_and_addresses_files_in_loaded_siblings()
+-> anyhow::Result<()> {
+    // 1. Select a root/file and add another sibling directory before capture.
+    let root = directory_with_entries()?;
+    std::fs::create_dir(root.path().join("sibling"))?;
+    std::fs::write(root.path().join("sibling/file"), b"sibling bytes")?;
+    let handler = handler_with_directory_and_file(root.path())?;
+    let Response::Selection(before) = handler.dispatch(Request::CurrentSelection).await? else {
+        panic!("expected selection");
+    };
+    let root_resource = before.root.as_ref().unwrap().resource.clone();
+    let child_entry = before
+        .entries
+        .iter()
+        .find(|entry| entry.name == "level-1-directory")
+        .unwrap()
+        .id;
+    let sibling_entry = before
+        .entries
+        .iter()
+        .find(|entry| entry.name == "sibling")
+        .unwrap()
+        .id;
+
+    // 2. Lazy acquisition returns stable child capabilities without changing selection.
+    let child_request = Request::ExpandDirectory {
+        resource: root_resource.clone(),
+        entry_id: child_entry,
+    };
+    let child_response = handler.dispatch(child_request.clone()).await?;
+    assert_eq!(handler.dispatch(child_request).await?, child_response);
+    let Response::Directory(child) = child_response else {
+        panic!("expected child listing");
+    };
+    let Response::Directory(sibling) = handler
+        .dispatch(Request::ExpandDirectory {
+            resource: root_resource.clone(),
+            entry_id: sibling_entry,
+        })
+        .await?
+    else {
+        panic!("expected sibling listing");
+    };
+    assert_ne!(child.directory.resource, sibling.directory.resource);
+    assert_eq!(child.parent.as_ref().unwrap().directory, root_resource);
+    assert_eq!(
+        handler.dispatch(Request::CurrentSelection).await?,
+        Response::Selection(before)
+    );
+
+    // 3. Select a file from each retained sibling, preserving the same root identity.
+    for listing in [child, sibling] {
+        let entry_id = listing.entries[0].id;
+        let response = handler
+            .dispatch(Request::OpenFile {
+                resource: listing.directory.resource.clone(),
+                entry_id,
+            })
+            .await?;
+        assert!(matches!(response, Response::OpenedFile(_)));
+        let Response::Selection(selected) = handler.dispatch(Request::CurrentSelection).await?
+        else {
+            panic!("expected file selection");
+        };
+        assert_eq!(selected.root.as_ref().unwrap().resource, root_resource);
+        let origin = selected.file_entry.unwrap();
+        assert_eq!(origin.directory, listing.directory.resource);
+        assert_eq!(origin.entry_id, entry_id);
+    }
     Ok(())
 }

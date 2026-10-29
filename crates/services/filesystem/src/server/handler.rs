@@ -167,6 +167,12 @@ fn operate(selection: &mut Selection, request: Request) -> Result<Response, Sour
         Request::OpenDirectory { resource, entry_id } => {
             Response::OpenedDirectory(selection.open_directory(&resource, entry_id)?)
         }
+        Request::ListDirectory { resource } => {
+            Response::Directory(selection.list_directory(&resource)?)
+        }
+        Request::ExpandDirectory { resource, entry_id } => {
+            Response::Directory(selection.expand_directory(&resource, entry_id)?)
+        }
         Request::ChooseFile | Request::ChooseFolder => {
             unreachable!("picker requests are dispatched asynchronously")
         }

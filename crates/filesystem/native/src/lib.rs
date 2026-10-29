@@ -5,8 +5,10 @@
 //! [`NativeDirectory`] stores a selected directory path and an immediate listing;
 //! child opens use ordinary native path resolution. This crate does not interpret
 //! binaries or enforce directory confinement.
-//! [`NativeSelection`] retains acquired resources and their presentation data
-//! across reads and analyses, replacing them only after successful acquisition.
+//! [`NativeSelection`] retains a selected file, a stable root and at most
+//! [`MAX_RETAINED_DIRECTORIES`] captured directories. Immediate child loading is
+//! lazy and preserves the file and loaded siblings. External replacement occurs
+//! only after successful acquisition; ordinary Rust APIs need no remote service.
 //! It has no WIT, Wasm, browser or transport dependency.
 //!
 //! The source is available on Unix and Windows. Its synchronous operations do
@@ -29,7 +31,10 @@ mod directory;
 mod selection;
 
 #[cfg(any(unix, windows))]
-pub use selection::NativeSelection;
+pub use selection::{
+    DirectoryId, MAX_RETAINED_DIRECTORIES, NativeDirectoryEntryRef, NativeDirectoryInfo,
+    NativeSelection,
+};
 
 #[cfg(any(unix, windows))]
 pub use file::NativeFileSource;
