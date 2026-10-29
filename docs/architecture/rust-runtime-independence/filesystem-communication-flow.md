@@ -198,7 +198,17 @@ stale request cannot target the replacement; an admitted read completes against
 its original handle. No remote
 cleanup or frontend deselection operation exists.
 
-A selected folder establishes a stable root. Rust native ownership retains up to
+Explorer acquisition uses `ChooseApplication` or `ChooseBinary`. Native Rust
+acquires and validates the replacement before installation; application-layout
+policy and binary-header interpretation belong to `binary-inspection`. The service
+publishes an explicit subject scope, retained across internal file navigation.
+`ChooseFile` and `ChooseFolder` retain their generic Base/Ark behavior. A new empty
+owner reports `Some(Empty)`; missing scope remains a legacy-provider observation,
+and the client rejects new acquisition operations with an update instruction.
+The component's WIT 0.9 methods adapt ordinary operations APIs without repeating
+validation in TypeScript.
+
+A selected application or generic folder establishes a stable root. Rust native ownership retains up to
 64 captured directory listings, including that root. `ListDirectory` returns one
 retained listing without I/O; `ExpandDirectory` captures one immediate child and
 returns its stable identity, parent entry and bounded contents. Repeated expansion

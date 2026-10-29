@@ -4,7 +4,8 @@ use std::io;
 
 use binary_inspection::input::SourceError;
 use filesystem_native::{
-    DirectoryId, NativeDirectory, NativeDirectoryEntryRef, NativeFileSource, NativeSelection,
+    DirectoryId, NativeApplication, NativeBinary, NativeDirectory, NativeDirectoryEntryRef,
+    NativeFileSource, NativeSelection,
 };
 use filesystem_protocol::{DirectoryEntryRef, DirectoryListing, SelectedResource, SelectionState};
 
@@ -65,6 +66,7 @@ impl Selection {
                 .root_directory()
                 .map(|id| self.selected_directory(native, id)),
             file_entry: native.file_entry().map(|entry| self.entry_ref(entry)),
+            scope: Some(native.scope()),
         })
     }
 
@@ -98,6 +100,34 @@ impl Selection {
         self.file_id = None;
         self.directories.clear();
         self.native = None;
+    }
+
+    /// Install an application only through its validated native acquisition wrapper.
+    pub fn install_application(
+        &mut self,
+        application: NativeApplication,
+    ) -> Result<SelectedResource, SourceError> {
+        let native = self.native.as_mut().ok_or(SourceError::Cancelled)?;
+        let name = application.name().to_owned();
+        let id = native.install_application(application)?;
+        self.directories.clear();
+        let resource = self.publish_directory(id);
+        self.file_id = None;
+        Ok(SelectedResource { name, resource })
+    }
+
+    /// Install a standalone binary only through its validated native wrapper.
+    pub fn install_binary(
+        &mut self,
+        binary: NativeBinary,
+    ) -> Result<SelectedResource, SourceError> {
+        let native = self.native.as_mut().ok_or(SourceError::Cancelled)?;
+        let name = binary.name().to_owned();
+        native.install_binary(binary);
+        let resource = resource_identifier();
+        self.file_id = Some(resource.clone());
+        self.directories.clear();
+        Ok(SelectedResource { name, resource })
     }
 
     /// Recheck after acquisition; shutdown may have invalidated the dialog.

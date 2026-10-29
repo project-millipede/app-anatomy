@@ -3,7 +3,9 @@
 use std::{fs::File, path::Path, sync::Arc};
 
 use binary_inspection::input::{ByteSource, SourceError};
-use filesystem_native::{NativeDirectory, NativeFileSource, NativeSelection};
+use filesystem_native::{
+    NativeApplication, NativeBinary, NativeDirectory, NativeFileSource, NativeSelection,
+};
 use filesystem_protocol::{FileError, Request, Response, SelectedResource};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 
@@ -21,6 +23,8 @@ pub(super) struct Handler {
 
 /// An opened native resource that has not replaced the retained selection.
 enum AcquiredResource {
+    Application(NativeApplication),
+    Binary(NativeBinary),
     File {
         name: String,
         source: NativeFileSource,
@@ -51,6 +55,8 @@ impl Handler {
         let result = match request {
             Request::ChooseFile => self.choose(PickMode::File).await?,
             Request::ChooseFolder => self.choose(PickMode::Folder).await?,
+            Request::ChooseApplication => self.choose(PickMode::Application).await?,
+            Request::ChooseBinary => self.choose(PickMode::Binary).await?,
             request => {
                 // Await the mutex before submitting blocking work: waiting requests
                 // must not occupy blocking workers. Dropping this future while waiting
@@ -122,6 +128,8 @@ fn acquire_resource(mode: PickMode, path: &Path) -> Result<AcquiredResource, Sou
         .to_string_lossy()
         .into_owned();
     Ok(match mode {
+        PickMode::Application => AcquiredResource::Application(NativeApplication::open(path)?),
+        PickMode::Binary => AcquiredResource::Binary(NativeBinary::open(path)?),
         PickMode::File => AcquiredResource::File {
             name,
             source: NativeFileSource::new(File::open(path)?)?,
@@ -137,6 +145,8 @@ impl AcquiredResource {
     /// Consume this resource, replacing the previous selection on success.
     fn install(self, selection: &mut Selection) -> Result<SelectedResource, SourceError> {
         match self {
+            Self::Application(application) => selection.install_application(application),
+            Self::Binary(binary) => selection.install_binary(binary),
             Self::File { name, source } => selection.install_file(name, source),
             Self::Directory { name, directory } => selection.install_directory(name, directory),
         }
@@ -147,6 +157,8 @@ fn selected(mode: PickMode, resource: Option<SelectedResource>) -> Response {
     match mode {
         PickMode::File => Response::SelectedFile(resource),
         PickMode::Folder => Response::SelectedDirectory(resource),
+        PickMode::Application => Response::SelectedApplication(resource),
+        PickMode::Binary => Response::SelectedBinary(resource),
     }
 }
 
@@ -173,7 +185,10 @@ fn operate(selection: &mut Selection, request: Request) -> Result<Response, Sour
         Request::ExpandDirectory { resource, entry_id } => {
             Response::Directory(selection.expand_directory(&resource, entry_id)?)
         }
-        Request::ChooseFile | Request::ChooseFolder => {
+        Request::ChooseFile
+        | Request::ChooseFolder
+        | Request::ChooseApplication
+        | Request::ChooseBinary => {
             unreachable!("picker requests are dispatched asynchronously")
         }
     })

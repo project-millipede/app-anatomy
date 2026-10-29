@@ -12,6 +12,7 @@ export function nativeCanvasPresentation(
   file: SelectedResource | undefined,
   report: Report | null,
   sliceIndex: number,
+  application?: SelectedResource,
 ): {
   dataset: CanvasDataset;
   entry: CanvasEntry | undefined;
@@ -19,7 +20,14 @@ export function nativeCanvasPresentation(
 } {
   const entry: CanvasEntry | undefined = file
     ? { id: file.resource, name: file.name, kind: 'file', parentId: null }
-    : undefined;
+    : application
+      ? {
+          id: application.resource,
+          name: application.name,
+          kind: 'directory',
+          parentId: null,
+        }
+      : undefined;
   // A report belongs to an observed resource, not to its display name.
   const images =
     report?.resource === file?.resource ? (report?.analysis.images ?? []) : [];
@@ -36,14 +44,23 @@ export function nativeCanvasPresentation(
   return {
     entry,
     dataset: {
-      id: file?.resource ?? 'native-empty',
+      id: application?.resource ?? file?.resource ?? 'native-empty',
       entries: entry ? [entry] : [],
       contexts: images.length
         ? images.map((slice, index) => ({
             id: String(index),
             label: `Slice ${index + 1} · ${cpuLabel(slice.cpu)}`,
           }))
-        : [{ id: '0', label: 'Awaiting dependency inspection' }],
+        : [
+            {
+              id: '0',
+              label: file
+                ? 'Awaiting dependency inspection'
+                : application
+                  ? 'Select an application file'
+                  : 'Open an application or binary',
+            },
+          ],
       relationships,
     },
     neighborhood: {

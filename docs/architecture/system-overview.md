@@ -27,7 +27,7 @@ Component: Rust analyzer → Rust filesystem client → Polymorph WIT
 Native Rust application → NativeSelection → NativeFileSource → same analyzer
 ```
 
-The browser application uses the component contract `apple-code:analysis@0.8.0`.
+The browser application uses the component contract `apple-code:analysis@0.9.0`.
 Its selected operations compose ordinary Rust APIs; internal helpers are not
 additional exports. Report and inspection interfaces supply shared types, while
 native-session operations perform selection, navigation and inspection. Generated
@@ -145,7 +145,7 @@ The Application Explorer has a dedicated `/explorer` route. Its server layout
 supplies the Ark theme and navigation; its server page supplies metadata and mounts
 client `ApplicationExplorer`. That page owner calls the existing `useNativeSession`
 and `useWorkbenchModel` hooks once and passes the model explicitly to
-`NativeExplorerWorkspace`. The existing Ark Tabs wrapper presents **Native file**
+`NativeExplorerWorkspace`. The existing Ark Tabs wrapper presents **Native**
 (default) and **Synthetic preview**, using its `workspace` layout variant; report
 tabs retain their default layout. The native owner and model live above `Tabs.Root`,
 so switching tabs retains them and the report. Source-specific tree, preview and
@@ -155,18 +155,21 @@ The page mounts no `WorkbenchShell`; it owns a separate instance of the same
 runtime/model composition.
 
 Native mode queries retained selection on entry and requires an explicit
-**Inspect dependencies** invocation. Browse folder establishes a retained root
-in Files, with lazy child expansion and file selection from any loaded directory.
+**Inspect dependencies** invocation. Open application establishes one validated
+modern macOS `.app` root in Files, with all bundle contents available through lazy
+expansion. Open binary establishes a standalone Mach-O subject. Explorer rejects
+generic file/folder scopes and legacy unclassified observations; Base/Ark retain
+their existing generic acquisition controls.
 Root and listing ownership, selected-file origin and bounded projection caching
 belong to Rust; React projects returned records into Ark nodes. Expansion preserves
 the current file/report, while successful file selection recenters the canvas.
-Standalone native file selection still shows a single file. The service supplies
-no exact filesystem path or acquired application relationship inventory. Library declarations appear in
+Standalone binary selection shows a single file. The selected application root
+stays fixed as its file selection changes. The service supplies no exact filesystem
+path or complete application relationship inventory. Library declarations appear in
 the south corridor with **Target not evaluated** status and no file endpoints.
-No application boundary, incoming consumer, resolved provider or alias traversal
-is inferred. `NativeExplorerInspector` displays per-declaration imports and the
+Incoming consumers, resolved providers and alias traversal are not inferred. `NativeExplorerInspector` displays per-declaration imports and the
 source image's runpaths, ID names and unassociated/special imports. The ordinary
-Rust ordinal grouping crosses WIT 0.8 as indices into the original import list;
+Rust ordinal grouping crosses WIT 0.9 as indices into the original import list;
 React does not group by library-name strings or decode symbol ordinals.
 **Open** lives beside the source tabs in the native toolbar; **Inspect dependencies**
 is beside the canvas context. Direction labels remain in the canvas legend.

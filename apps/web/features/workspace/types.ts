@@ -68,6 +68,10 @@ export type NativeInteraction = {
    * @returns Completion of request handling, or immediately if the workbench is busy.
    */
   chooseNativeDirectory(): Promise<void>;
+  /** Ask Rust to acquire one application package for Explorer navigation. */
+  chooseNativeApplication(): Promise<void>;
+  /** Ask Rust to acquire one validated standalone binary for Explorer. */
+  chooseNativeBinary(): Promise<void>;
   /**
    * Request selection of a file or directory from the observed native listing.
    * Rust validates that the directory and entry still belong to the current selection.

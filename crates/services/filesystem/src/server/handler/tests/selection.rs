@@ -44,6 +44,16 @@ async fn dismissed_pickers_preserve_selection() -> anyhow::Result<()> {
             Request::ChooseFolder,
             Response::SelectedDirectory(None),
         ),
+        (
+            PickMode::Application,
+            Request::ChooseApplication,
+            Response::SelectedApplication(None),
+        ),
+        (
+            PickMode::Binary,
+            Request::ChooseBinary,
+            Response::SelectedBinary(None),
+        ),
     ] {
         // 1. Create a real temporary file and retain it as the initial selection.
         let (picker, dispatcher) = crate::picker::channel();
@@ -300,5 +310,51 @@ async fn lazy_expansion_keeps_selection_and_addresses_files_in_loaded_siblings()
         assert_eq!(origin.directory, listing.directory.resource);
         assert_eq!(origin.entry_id, entry_id);
     }
+    Ok(())
+}
+
+#[tokio::test]
+async fn application_picker_installs_only_validated_application_scope() -> anyhow::Result<()> {
+    // 1. Retain an existing file and prepare a generic folder plus one app candidate.
+    let fixture = tempfile::tempdir()?;
+    let app = fixture.path().join("Chosen.app");
+    std::fs::create_dir_all(app.join("Contents"))?;
+    std::fs::write(app.join("Contents/Info.plist"), b"unparsed metadata")?;
+    let (picker, dispatcher) = crate::picker::channel();
+    let handler = Handler::new(picker, selection_with_file()?);
+    let before = handler.dispatch(Request::CurrentSelection).await?;
+    let mut choices = std::collections::VecDeque::from([fixture.path().to_path_buf(), app]);
+    let task = tokio::spawn(dispatcher.run_with(move |mode| {
+        assert_eq!(mode, PickMode::Application);
+        choices.pop_front()
+    }));
+
+    // 2. The picker cannot bypass native/core policy with an arbitrary directory.
+    assert!(matches!(
+        handler.dispatch(Request::ChooseApplication).await?,
+        Response::Failed(_)
+    ));
+    assert_eq!(handler.dispatch(Request::CurrentSelection).await?, before);
+
+    // 3. A valid root commits typed application scope with a fresh root capability.
+    let Response::SelectedApplication(Some(selected)) =
+        handler.dispatch(Request::ChooseApplication).await?
+    else {
+        panic!("expected application acquisition");
+    };
+    let Response::Selection(state) = handler.dispatch(Request::CurrentSelection).await? else {
+        panic!("expected application state");
+    };
+    assert_eq!(state.root.unwrap(), selected);
+    assert_eq!(
+        state.scope,
+        Some(filesystem_protocol::SelectionScope::Application)
+    );
+    assert!(state.file.is_none());
+    assert_eq!(state.entries[0].name, "Contents");
+
+    // 4. Release the request channel so the fake dialog dispatcher can finish.
+    drop(handler);
+    task.await?;
     Ok(())
 }

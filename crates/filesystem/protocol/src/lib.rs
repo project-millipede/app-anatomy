@@ -8,6 +8,7 @@ mod error;
 
 pub use error::{ProtocolError, ProtocolErrorKind, ProtocolLimit};
 use filesystem_data::DirectoryEntry;
+pub use filesystem_data::SelectionScope;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 pub const MAX_REQUEST_BYTES: u32 = 64 * 1024;
@@ -28,6 +29,8 @@ pub enum Request {
     },
     ChooseFile,
     ChooseFolder,
+    ChooseApplication,
+    ChooseBinary,
     CurrentSelection,
     OpenFile {
         resource: String,
@@ -55,7 +58,11 @@ impl Request {
             | Self::OpenDirectory { resource, .. }
             | Self::ListDirectory { resource }
             | Self::ExpandDirectory { resource, .. } => Some(resource),
-            Self::ChooseFile | Self::ChooseFolder | Self::CurrentSelection => None,
+            Self::ChooseFile
+            | Self::ChooseFolder
+            | Self::ChooseApplication
+            | Self::ChooseBinary
+            | Self::CurrentSelection => None,
         }
     }
 }
@@ -96,6 +103,9 @@ pub struct SelectionState {
     pub root: Option<SelectedResource>,
     #[serde(default)]
     pub file_entry: Option<DirectoryEntryRef>,
+    /// Missing on older providers; new owners report even the empty scope.
+    #[serde(default)]
+    pub scope: Option<SelectionScope>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -105,6 +115,8 @@ pub enum Response {
     Failed(FileError),
     SelectedFile(Option<SelectedResource>),
     SelectedDirectory(Option<SelectedResource>),
+    SelectedApplication(Option<SelectedResource>),
+    SelectedBinary(Option<SelectedResource>),
     Selection(SelectionState),
     OpenedFile(String),
     OpenedDirectory(String),
@@ -178,7 +190,10 @@ fn validate_response_fields(response: &Response) -> Result<(), ProtocolError> {
                 "error message exceeds the size limit",
             )?;
         }
-        Response::SelectedFile(Some(selected)) | Response::SelectedDirectory(Some(selected)) => {
+        Response::SelectedFile(Some(selected))
+        | Response::SelectedDirectory(Some(selected))
+        | Response::SelectedApplication(Some(selected))
+        | Response::SelectedBinary(Some(selected)) => {
             validate_selected(selected)?;
         }
         Response::OpenedFile(resource) | Response::OpenedDirectory(resource) => {
@@ -212,7 +227,9 @@ fn validate_response_fields(response: &Response) -> Result<(), ProtocolError> {
         Response::ByteLength(_)
         | Response::Failed(FileError::Cancelled)
         | Response::SelectedFile(None)
-        | Response::SelectedDirectory(None) => {}
+        | Response::SelectedDirectory(None)
+        | Response::SelectedApplication(None)
+        | Response::SelectedBinary(None) => {}
     }
     Ok(())
 }
@@ -279,6 +296,8 @@ pub fn validate_response(request: &Request, response: &Response) -> Result<(), P
         | (Request::ByteLength { .. }, Response::ByteLength(_))
         | (Request::ChooseFile, Response::SelectedFile(_))
         | (Request::ChooseFolder, Response::SelectedDirectory(_))
+        | (Request::ChooseApplication, Response::SelectedApplication(_))
+        | (Request::ChooseBinary, Response::SelectedBinary(_))
         | (Request::CurrentSelection, Response::Selection(_))
         | (Request::OpenFile { .. }, Response::OpenedFile(_))
         | (Request::OpenDirectory { .. }, Response::OpenedDirectory(_)) => Ok(()),
@@ -556,8 +575,16 @@ mod tests {
             ),
             (Request::ChooseFile, Response::SelectedFile(None)),
             (
+                Request::ChooseApplication,
+                Response::SelectedApplication(Some(selected.clone())),
+            ),
+            (
+                Request::ChooseBinary,
+                Response::SelectedBinary(Some(selected.clone())),
+            ),
+            (
                 Request::ChooseFolder,
-                Response::SelectedDirectory(Some(selected)),
+                Response::SelectedDirectory(Some(selected.clone())),
             ),
             (
                 Request::CurrentSelection,
@@ -763,6 +790,7 @@ mod tests {
                 entries: entries.clone(),
                 root: Some(directory.clone()),
                 file_entry: Some(origin.clone()),
+                scope: Some(SelectionScope::Application),
             }),
             Response::Directory(DirectoryListing {
                 directory,
@@ -806,5 +834,6 @@ mod tests {
         assert_eq!(state.directory, Some(selected));
         assert_eq!(state.root, None);
         assert_eq!(state.file_entry, None);
+        assert_eq!(state.scope, None);
     }
 }

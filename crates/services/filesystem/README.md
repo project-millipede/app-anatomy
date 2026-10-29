@@ -42,9 +42,11 @@ The socket can remain open between operations and between user interactions.
 - **Directories:** open a listed file or navigate to a child directory by entry
   ID. `ListDirectory` reads a retained listing; `ExpandDirectory` lazily captures
   one immediate child without changing the file or listing cursor.
-- **Selection:** choose a file or root folder through the native dialog and query
-  current file/cursor metadata, the root identity and optional listed-file origin.
-  The selection response includes only the cursor's bounded listing.
+- **Selection:** generic file/folder controls remain available for Base/Ark.
+  Separate `ChooseApplication` and `ChooseBinary` operations establish the Explorer's
+  application or standalone-binary scope. Queries include that scope, current
+  file/cursor metadata, root identity and optional listed-file origin; only the
+  cursor's listing is included.
 
 The protocol never accepts a native pathname. The native picker supplies the path.
 Resource identifiers are random 256-bit values encoded as
@@ -85,6 +87,33 @@ own dialogs; this service invokes rfd for native presentation.
 See [async helpers and runtime ownership](../../../docs/architecture/rust-runtime-independence/filesystem-communication-flow.md#async-helpers-and-runtime-ownership)
 for how `futures` supplies socket helpers and test polling within the service's
 Tokio runtime.
+
+## Application and binary acquisition
+
+`SelectionScope` distinguishes `Empty`, generic `File`/`Directory`, `Application`
+and `Binary`. New owners always report a scope; older responses omit it and decode
+as `None`. A generic folder, including `/Applications`, is not an Explorer application
+input. Generic acquisition never gains application scope merely from its name.
+
+On macOS, the application picker starts at `/Applications` and uses the pinned
+rfd file picker with an `.app` filter, so the user selects one package. The native
+adapter independently enforces the result through
+[`NativeApplication`](../../filesystem/native/src/application.rs). The ordinary
+[core policy](../../binary/inspection/src/application.rs) requires the raw name's
+`.app` suffix, a directory root, a `Contents` directory and a regular
+`Contents/Info.plist`. This supports the modern layout only; it does not parse the
+plist, validate signatures or establish execution eligibility. Application scope
+includes resource and other entries, not just binaries; listing and cursor changes
+preserve it. Existing directory bounds and live-path limitations still apply.
+
+The binary picker has no extension filter. `NativeBinary` opens a regular file and
+runs the existing thin/universal Mach-O header inspector before installation.
+Dependency inspection remains an explicit later operation. Private acquisition
+wrapper fields prevent installing either validated scope around generic resources.
+Cancel or validation failure preserves the previous input; successful replacement
+invalidates its resources. Direct native callers use
+`NativeSelection::select_application` or `select_binary` without a service or host
+runtime.
 
 ## Launch
 

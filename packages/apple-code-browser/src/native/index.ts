@@ -13,6 +13,7 @@ export type {
   InspectionOutcome,
   InspectionStepOutcome,
   SelectionOutcome,
+  SelectionScope,
   SelectionStepOutcome,
   StepKind,
   SelectionState,

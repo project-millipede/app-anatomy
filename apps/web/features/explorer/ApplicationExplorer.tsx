@@ -16,6 +16,11 @@ export function ApplicationExplorer() {
   const { getNativeSession } = useNativeSession();
   const model = useWorkbenchModel(getNativeSession);
   const native = source === 'native';
+  const application =
+    model.nativeWorkspace?.scope === 'application'
+      ? model.nativeWorkspace.root
+      : undefined;
+  const binary = model.nativeWorkspace?.scope === 'binary';
   return (
     <Tabs.Root
       className={styles.sourceTabs}
@@ -31,7 +36,7 @@ export function ApplicationExplorer() {
             <h1>Application Explorer</h1>
             <p>
               {native
-                ? 'Inspect declared references while the selected file stays at the center.'
+                ? 'Open one application or standalone binary. Select a file to inspect its declared references.'
                 : 'Related resources follow in the tree. One selected file stays at the center.'}
             </p>
           </>
@@ -40,7 +45,7 @@ export function ApplicationExplorer() {
           <div className={styles.toolbarActions}>
             <Tabs.List layout="workspace" aria-label="Explorer source">
               <Tabs.Trigger layout="workspace" value="native">
-                Native file
+                Native
               </Tabs.Trigger>
               <Tabs.Trigger layout="workspace" value="synthetic">
                 Synthetic preview
@@ -51,7 +56,11 @@ export function ApplicationExplorer() {
         }
         notice={
           native
-            ? 'Selected-file evidence · Application containment and incoming consumers are unknown. Declared references are not acquired files.'
+            ? application
+              ? `Application navigation scope: ${application.name}. Declared references have no evaluated file targets; incoming consumers are unknown.`
+              : binary
+                ? 'Standalone binary scope · Declared references have no evaluated file targets; incoming consumers are unknown.'
+                : 'Open an application or binary for Explorer. Generic file and folder selections remain available in the workbench.'
             : 'Synthetic preview · Rust-computed candidates from authored inventory facts. No files acquired or runtime loading observed.'
         }
         workspace={
@@ -68,7 +77,11 @@ export function ApplicationExplorer() {
           <>
             <span>
               {native
-                ? 'Application Explorer · Native selection'
+                ? application
+                  ? `Application scope · ${application.name}`
+                  : binary
+                    ? 'Application Explorer · Standalone binary'
+                    : 'Application Explorer · Choose an application or binary'
                 : 'Application Explorer · Authored synthetic data'}
             </span>
             <span>

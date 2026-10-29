@@ -28,6 +28,8 @@ type BridgeGridProps = {
   south: ReactNode;
   /** Render only when the supplied inventory actually establishes this boundary. */
   showBoundary?: boolean;
+  /** Accessible name for the selected source or application at the center. */
+  focusLabel?: string;
 };
 
 /**
@@ -42,6 +44,7 @@ export function BridgeGrid({
   east,
   south,
   showBoundary = true,
+  focusLabel = 'Selected file',
 }: BridgeGridProps) {
   return (
     <div className={styles.grid}>
@@ -52,7 +55,7 @@ export function BridgeGrid({
       )}
       <div className={styles.north}>{north}</div>
       <div className={styles.west}>{west}</div>
-      <section className={styles.focus} aria-label="Selected file">
+      <section className={styles.focus} aria-label={focusLabel}>
         {focus}
       </section>
       <div className={styles.east}>{east}</div>

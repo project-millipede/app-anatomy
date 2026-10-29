@@ -155,6 +155,14 @@ export function useWorkbenchModel(
     await runSelection((session) => session.chooseFolder());
   }, [runSelection]);
 
+  const chooseNativeApplication = useCallback(async () => {
+    await runSelection((session) => session.chooseApplication());
+  }, [runSelection]);
+
+  const chooseNativeBinary = useCallback(async () => {
+    await runSelection((session) => session.chooseBinary());
+  }, [runSelection]);
+
   /**
    * Forward an observed entry choice; Rust validates its directory and resource.
    * @param entryId Identifier from the last observed directory listing.
@@ -281,6 +289,8 @@ export function useWorkbenchModel(
     selectedSliceIndex,
     chooseNativeFile,
     chooseNativeDirectory,
+    chooseNativeApplication,
+    chooseNativeBinary,
     openNativeEntry,
     expandNativeDirectory,
     inspectNative,

@@ -32,13 +32,13 @@ const bridgeLabels = {
 const declarationBridgeLabels = {
   north: ['External ingress', 'Incoming references were not acquired'],
   west: ['Incoming references', 'Source relationships were not acquired'],
-  east: ['File targets', 'Containment has not been evaluated'],
+  east: ['File targets', 'Reference targets have not been evaluated'],
   south: ['Declared references', 'Library names recorded in this slice'],
 } as const;
 const declarationEmptyLabels = {
   north: 'External incoming references are unknown; they were not acquired.',
   west: 'Incoming source relationships are unknown; they were not acquired.',
-  east: 'File targets and containment have not been evaluated.',
+  east: 'Declared reference file targets have not been evaluated.',
   south: 'No declared library references were returned for this slice.',
 } as const;
 const positions = ['north', 'west', 'east', 'south'] as const;
@@ -64,6 +64,8 @@ export type ExplorerRelationshipCanvasProps = {
   mode?: CanvasMode;
   /** Distinguish absent dependency inspection from a completed empty declaration list. */
   declarationsInspected?: boolean;
+  /** Confirmed application navigation scope; does not establish dependency targets. */
+  applicationName?: string;
   /** Selected-file actions, supplied by the presentation owner. */
   actions?: ReactNode;
   /** Operation feedback kept beside the actions rather than in navigation. */
@@ -84,10 +86,17 @@ export function ExplorerRelationshipCanvas({
   onBack,
   mode = 'inventory',
   declarationsInspected = true,
+  applicationName,
   actions,
   feedback,
 }: ExplorerRelationshipCanvasProps) {
   const declarations = mode === 'declarations';
+  const applicationCenter = declarations && selectedEntry?.kind === 'directory';
+  const nativePrompt = applicationCenter
+    ? 'Select a file from the application to read declared references.'
+    : selectedEntry
+      ? 'Inspect the selected file to read declared references.'
+      : 'Open an application or binary to begin.';
   const instanceId = useId();
   const layoutKey = JSON.stringify([dataset.id, selectedEntry?.id, contextId]);
   const [pageState, setPageState] = useState({
@@ -297,7 +306,7 @@ export function ExplorerRelationshipCanvas({
             <p className={styles.emptyBridge}>
               {declarations
                 ? position === 'south' && !declarationsInspected
-                  ? 'Inspect the selected file to read declared references.'
+                  ? nativePrompt
                   : declarationEmptyLabels[position]
                 : position === 'north'
                   ? 'No external incoming records supplied.'
@@ -329,12 +338,14 @@ export function ExplorerRelationshipCanvas({
         <div className={styles.path}>
           <span className={styles.placeholderEyebrow}>
             {declarations
-              ? 'Selected native file / display name'
+              ? applicationCenter
+                ? 'Selected application / display name'
+                : 'Selected file / display name'
               : 'Selected entry / exact location'}
           </span>
           <span>
             {declarations
-              ? (selectedEntry?.name ?? 'No native file selected')
+              ? (selectedEntry?.name ?? 'Open an application or binary')
               : (selectedEntry?.path ?? 'Choose an inventory entry')}
           </span>
         </div>
@@ -369,6 +380,9 @@ export function ExplorerRelationshipCanvas({
           >
             <BridgeGrid
               showBoundary={!declarations}
+              focusLabel={
+                applicationCenter ? 'Selected application' : 'Selected file'
+              }
               north={bridge('north')}
               west={bridge('west')}
               east={bridge('east')}
@@ -377,7 +391,11 @@ export function ExplorerRelationshipCanvas({
                 <div className={styles.focusNode}>
                   <div className={styles.focusPlaceholder}>
                     <span className={styles.placeholderEyebrow}>
-                      {declarations ? 'Selected native file' : 'Selected entry'}
+                      {declarations
+                        ? applicationCenter
+                          ? 'Selected application'
+                          : 'Selected source file'
+                        : 'Selected entry'}
                     </span>
                     <div className={styles.focusTitle}>
                       <span className={styles.fileGlyph} aria-hidden="true">
@@ -385,11 +403,18 @@ export function ExplorerRelationshipCanvas({
                       </span>
                       <div>
                         <strong title={selectedEntry?.name}>
-                          {selectedEntry?.name ?? 'Choose an entry'}
+                          {selectedEntry?.name ??
+                            (declarations
+                              ? 'Open an application or binary'
+                              : 'Choose an entry')}
                         </strong>
                         <p>
                           {declarations
-                            ? 'Source file only'
+                            ? applicationCenter
+                              ? 'Select an internal file to inspect'
+                              : selectedEntry
+                                ? 'Source file only'
+                                : 'No Explorer scope selected'
                             : selectedEntry?.kind?.replaceAll('-', ' ')}
                         </p>
                       </div>
@@ -416,8 +441,18 @@ export function ExplorerRelationshipCanvas({
                         }
                       </span>
                       {declarations ? (
-                        <span title="Only the selected source file is represented.">
-                          Source only
+                        <span
+                          title={
+                            applicationName
+                              ? 'Confirmed application navigation scope; dependency targets are not evaluated.'
+                              : 'Standalone source; dependency targets are not evaluated.'
+                          }
+                        >
+                          {applicationName
+                            ? `Application: ${applicationName}`
+                            : selectedEntry
+                              ? 'Standalone binary'
+                              : 'No scope selected'}
                         </span>
                       ) : (
                         <span title={rootEntry?.name}>
@@ -513,7 +548,7 @@ export function ExplorerRelationshipCanvas({
       status={
         declarations
           ? !declarationsInspected
-            ? 'Inspect the selected file to read declared references.'
+            ? nativePrompt
             : activeRelationshipId
               ? 'Previewing a declared reference. Its file target has not been evaluated.'
               : 'Select a declared reference to inspect its evidence. Target files and incoming references have not been evaluated.'

@@ -74,15 +74,14 @@ Declaration display does not require a general loader subsystem. Upstream's
 [documented scope](https://github.com/gimli-rs/object/blob/4201cd4cd8026aed31377ce4193367b8c520d522/README.md#L61-L63)
 excludes reproducing platform-loader behavior.
 
-## Native selected-file presentation
+## Native application or binary presentation
 
-On entry, the page's model queries the service's retained selection. Selecting a
-native file or browsing a directory uses the existing native controls and Rust
-workflow. Inspection is explicit; entering the route or switching source modes
+On entry, the page's model queries the service's retained selection. Explorer offers **Open application** and **Open binary** through native controls
+and ordinary Rust acquisition APIs. Inspection is explicit; entering the route or switching source modes
 does not trigger dependency analysis. The runtime, pending operation, native model
 and its report survive a source-mode switch. Route navigation disposes the old
 page owner; a new owner queries selection and begins without its previous report.
-The Ark source tabs are **Native file** (default) and **Synthetic preview**. The
+The Ark source tabs are **Native** (default) and **Synthetic preview**. The
 page owns its runtime and model above the tab root. **Open** stays in the native
 toolbar, dependency inspection is beside the canvas context, and direction labels
 stay in the canvas legend. Shared navigation provides the **Download Native
@@ -96,11 +95,37 @@ The default architecture-tab recipe retained its report spacing. Preview freshne
 workspace typecheck, all 22 web tests and the production build passed. This
 increment changed presentation only; Rust, WIT and native acquisition were unchanged.
 
-**Browse native folder** installs a retained workspace root directly in Files.
-Ark expands directories on demand and owns keyboard focus and expansion. A listed
-file becomes the selected center only after native acquisition succeeds. Expansion
-preserves the selected file and report; selecting another file preserves the root,
-loaded siblings and tree expansion. Inspection remains explicit.
+**Open application** selects one macOS `.app` bundle as the fixed outer root in
+Files. `/Applications` is a chooser location, not an Explorer root. The tree keeps
+all captured bundle contents, including resources, frameworks, nested helpers,
+plists and aliases. It does not filter the tree down to binary files. Ark expands
+directories on demand and owns keyboard focus and expansion. A listed file becomes
+the center only after native acquisition succeeds. Expansion preserves that file
+and its report; file selection retains the application root and loaded siblings.
+Before a file is selected, the canvas identifies the application subject.
+
+**Open binary** acquires a standalone supported Mach-O file, including a universal
+file. Acquisition checks headers through the existing ordinary Rust inspector;
+dependency inspection remains explicit. A successful external choice replaces the
+preceding subject. Cancel or failed validation preserves it.
+
+The service reports an explicit `SelectionScope`: `Empty`, `File`, `Directory`,
+`Application` or `Binary`. Generic file/folder acquisition remains available to the
+Base/Ark workbench. Explorer admits only `Application` and `Binary` and never
+infers scope from a display name. The native owner retains application scope while
+its selected file changes. A missing scope means an older service, not an empty
+owner: new acquisition methods report an update requirement before sending an
+unsupported request.
+
+Application acquisition uses the native package picker and then independently
+validates observed filesystem facts through `binary-inspection`. The supported
+root layout is a directory named `*.app`, containing a `Contents` directory and
+regular `Contents/Info.plist`. The suffix is case-sensitive; the native adapter
+does not follow a symlink at any of these three observed entries. This structural
+check does not verify plist content,
+code signatures or launch eligibility. Older flat application layouts are not
+supported. Native adapters gather filesystem facts; the portable core owns the
+application-layout policy.
 
 `filesystem_native::NativeSelection` owns the root, captured child listings and
 selected file origin. Its ordinary Rust APIs work without a service or component.
@@ -116,13 +141,13 @@ Each mount retains at most 64 directories. Each captured immediate listing retai
 the existing 512-entry and 64-KiB name limits. There is no recursive scan or live
 watcher. Captured listings are not a filesystem snapshot; later opens may fail if
 the filesystem changes. Symlinks are displayed but are not followed. Successful
-external file or folder selection replaces the mount; Cancel and failed acquisition
+external application or binary selection replaces the mount; Cancel and failed acquisition
 preserve it. Returning to the route re-observes the root and selected file's
 ancestors, while presentation expansion and reports start with the new page owner.
 
-Resource IDs identify nodes; display names do not supply an exact filesystem path
-or application containment. The folder is a navigation scope, not an acquired
-bundle relationship graph. There is no authored application boundary in native mode.
+Resource IDs identify nodes; display names do not supply exact filesystem paths.
+The selected application establishes the outer navigation scope. Lazy directory
+listings do not establish a complete inspected bundle relationship graph.
 
 Declared libraries use the south corridor with **Target not evaluated** status.
 These cards represent declarations, not external-file findings, missing providers
@@ -135,20 +160,48 @@ produces per-declaration indices into the original imports list using upstream
 ordinary ordinals. Symbol-table ordinals require `MH_TWOLEVEL`; explicit dyld-bind
 ordinals retain their own context. Duplicate library names stay separate. Special,
 flat, unspecified and absent-declaration associations remain in the unassociated
-index list. WIT `apple-code:analysis@0.8.0` carries these lists as
+index list. WIT `apple-code:analysis@0.9.0` carries these lists as
 `declared-library.import-indices` and
 `dependency-evidence.unassociated-import-indices`. The original imports and flags
 remain available; React consumes the supplied indices without reinterpreting them.
 
-This mode does not call the candidate evaluator, acquire a real bundle inventory,
-resolve runpaths against disk or perform runtime symbol binding. The
+This mode does not call the candidate evaluator, acquire a complete inspected
+bundle inventory, resolve runpaths against disk or perform runtime symbol binding. The
 [native Explorer qualification](../rust-analysis-core.md#native-explorer-qualification)
 records retained-file runs through the native remote and live browser adapters;
 live picker acquisition remains unverified.
 
-## Retained native folder qualification
+## Application subject qualification
 
-On 2026-10-29, workspace native tests and the component test target passed after
+On 2026-10-29, workspace and component Rust tests passed (67 tests), along with
+Rust formatting, `pnpm engine:build`, generated-preview freshness, workspace
+typecheck, all 29 web/Archer tests and the production build. Native tests cover
+application validation, internal-file scope retention, invalid replacement,
+standalone binary acquisition and Cancel. Operations tests independently enforce
+scope/resource consistency and reject legacy providers before sending a new
+acquisition request.
+
+A temporary native service and matching browser component used an alternate
+address and real temporary bundle files. Only the OS chooser input was scripted;
+the ordinary Rust acquisition, validation, retained owner, WebSocket protocol,
+component and Explorer were exercised together. The browser showed one
+`Fixture.app` root, resources and plists, a framework and a nested helper, then
+inspected an internal universal Mach-O file with two slices and 37 imports while
+keeping the application root. Cancel preserved the root, a generic directory was
+rejected without replacement, and opening an extensionless binary replaced the
+application tree with one file. These checks do not qualify live macOS package
+picker interaction, other operating systems or other browser engines.
+
+The updated macOS installer is staged behind the shared download action. The
+installed owner was not replaced or restarted by this increment. Opening an
+Explorer subject requires the updated service; install/relaunch and a page reload
+are necessary when upgrading from the preceding generic-folder service.
+
+## Historical retained native folder qualification
+
+This records the general folder-navigation milestone before Explorer acquisition
+was restricted to one application or binary. On 2026-10-29, workspace native tests
+and the component test target passed after
 the directory ownership and WIT 0.8 changes. Focused tests cover sibling retention,
 transactional acquisition/replacement, the 64-directory bound, protocol reply
 correspondence, hydration ancestry and replacement rejection. The maximum allowed

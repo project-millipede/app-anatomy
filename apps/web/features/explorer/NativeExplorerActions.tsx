@@ -4,7 +4,7 @@ import { Menu } from '@base-ui/react/menu';
 import type { WorkbenchModel } from '../workspace/types';
 import styles from './NativeExplorerActions.module.css';
 
-/** Forward native acquisition intents; retained folder contents appear in Files. */
+/** Forward explicit application/binary acquisition intents; Rust validates their scope. */
 export function NativeExplorerActions({ model }: { model: WorkbenchModel }) {
   return (
     <div className={styles.actions}>
@@ -22,16 +22,16 @@ export function NativeExplorerActions({ model }: { model: WorkbenchModel }) {
               <Menu.Item
                 className={styles.menuItem}
                 disabled={model.operationPending}
-                onClick={() => void model.chooseNativeFile()}
+                onClick={() => void model.chooseNativeApplication()}
               >
-                Select file…
+                Open application…
               </Menu.Item>
               <Menu.Item
                 className={styles.menuItem}
                 disabled={model.operationPending}
-                onClick={() => void model.chooseNativeDirectory()}
+                onClick={() => void model.chooseNativeBinary()}
               >
-                Browse native folder…
+                Open binary…
               </Menu.Item>
             </Menu.Popup>
           </Menu.Positioner>
