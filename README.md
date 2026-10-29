@@ -53,9 +53,17 @@ The workbench opens individual thin and universal Mach-O files and reports CPU t
 
 Format acceptance follows the pinned upstream parsers: thin images support both byte orders; universal containers support big-endian fat32 and fat64. Project code supplies bounded reads, typed failures and owned report conversion. The [parser contract](docs/architecture/rust-analysis-core.md#parsing-dependencies) defines command validation, read granularity and diagnostics. A successful header report is not a claim of complete Mach-O validity. File and command ranges use absolute input offsets with exclusive ends, including ranges inside universal members.
 
-It does **not** verify signatures, evaluate certificate trust, traverse application bundles, resolve dependencies, modify binaries or re-sign applications. Synthetic test fixtures contain headers only; they are not runnable programs. Input is selected through the native service, which returns bounded ranges to the browser Wasm analyzer. The application has no analytics or account integration.
+**Inspect dependencies** is a separate action that additionally reports declared
+libraries, upstream import/library associations, runpaths and ID-dylib names for
+each image. Raw name bytes and special lookup ordinals remain available. `object`
+performs the metadata association; no candidate-file evaluation is required.
 
-Native callers use `inspect(bytes)` for resident input or `inspect_source(source)` for range-based access. The [parser contract](docs/architecture/rust-analysis-core.md#reads-and-memory) describes read granularity, cache retention and allocation diagnostics. The browser requests inspection by passing the observed resource identifier.
+The workbench does **not** verify signatures, evaluate certificate trust, traverse
+application bundles, select dependency provider files, perform runtime symbol
+binding, modify binaries or re-sign applications. Synthetic fixtures are not
+runnable programs. Input is selected through the native service, which returns bounded ranges to the browser Wasm analyzer. The application has no analytics or account integration.
+
+Native callers use `inspect(bytes)` for resident header input or `inspect_source(source)` for range-based access. `inspect_dependencies(bytes)` and `inspect_dependencies_source(source)` explicitly request the broader dependency-evidence scope. The [parser contract](docs/architecture/rust-analysis-core.md#reads-and-memory) describes read granularity, cache retention and allocation diagnostics. The browser requests inspection by passing the observed resource identifier.
 
 ## Native filesystem analysis
 
@@ -178,6 +186,6 @@ component and UI expose the dedicated Mach-O report. See the
 [Rust API scope](docs/architecture/rust-analysis-core.md#object-file-identity)
 for parser coverage and read behavior.
 
-The component contract is `apple-code:analysis@0.5.0`. Mach-O CPU, file-type, platform and command values cross as a numeric value and optional canonical name; generated jco types define the browser contract. The ordinary Rust API uses the pinned `object` types directly, so dependency upgrades require API compatibility review. Structured analysis errors carry a Rust-formatted message and typed failure details. All file offsets and sizes remain `u64` in Rust and `BigInt` in JavaScript.
+The component contract is `apple-code:analysis@0.6.0`. Mach-O CPU, file-type, platform and command values cross as a numeric value and optional canonical name; generated jco types define the browser contract. The ordinary Rust API uses the pinned `object` types directly, so dependency upgrades require API compatibility review. Structured analysis errors carry a Rust-formatted message and typed failure details. All file offsets and sizes remain `u64` in Rust and `BigInt` in JavaScript.
 
 No GitHub remote, deployment, external service or signing identity is configured.

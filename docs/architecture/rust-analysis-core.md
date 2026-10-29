@@ -1,8 +1,8 @@
 # Rust analysis core
 
-**Status: Mach-O header analysis, ordinary Rust object-file identity APIs and synthetic Explorer candidate APIs using `object` 0.40.0.**
+**Status: separate Mach-O header and dependency inspection, ordinary Rust object-file identity APIs and synthetic Explorer candidate APIs using `object` 0.40.0.**
 `object` owns format detection, thin and universal header decoding, and load-command
-iteration and decoding. Project code supplies bounded input, typed failures
+iteration and decoding, dependency enumeration and import/library associations. Project code supplies bounded input, typed failures
 and report conversion.
 See the [system overview](system-overview.md) for communication and native session
 lifecycle; this document owns the native API and analysis invariants.
@@ -22,7 +22,8 @@ belong in the native library.
 | `src/object_report.rs`        | Common file identity through the unified upstream parser              |
 | `src/error.rs`                | Typed failure reasons and standard Rust error integration             |
 | `src/macho/mod.rs`            | Public inspection facade                                              |
-| `src/macho/report.rs`         | Upstream parser orchestration and owned report conversion             |
+| `src/macho/report.rs`         | Upstream header parser orchestration and owned report conversion      |
+| `src/macho/dependencies.rs`   | Owned dependency evidence through the upstream Mach-O reader          |
 | `src/input/cache.rs`          | Format-independent cache ownership, partial reads and source failures |
 | `src/macho/source.rs`         | Public inspection failures and their original causes                  |
 | Component `src/conversion.rs` | Explicit native-to-WIT conversion                                     |
@@ -96,6 +97,39 @@ These upstream types are part of the public Rust API. Consumers and dependency
 upgrades must account for the pinned `object` version; the library does not promise
 an interchangeable decoder behind independent classification enums.
 
+### Dependency evidence
+
+`inspect_dependencies(bytes)` and `inspect_dependencies_source(source)` return
+`BinaryReport` with `AnalysisScope::Dependencies`. Each image has
+`Some(DependencyEvidence)` containing declared libraries, imported symbols,
+runpath bytes and ID-dylib name bytes. Existing `inspect` and `inspect_source`
+remain header-only and return `None` for this field; absence is distinct from an
+inspected image with no declarations or imports.
+
+The dependency operation first validates headers and member bounds through the
+existing traversal, then uses `MachOFile` for each bounded member. It calls
+`Object::import_libraries()` and `Object::imports()` directly. `object` selects
+its import source and associates ordinary ordinals with recorded library names.
+The core copies borrowed names into owned byte vectors and retains upstream
+`ImportLibraryFlags` and the scalar Mach-O `ImportFlags` variants. Duplicate
+library declarations remain separate; import names are not deduplicated.
+Runpaths and ID names use upstream load-command accessors and belong to their
+containing report image. The ordinary Rust records do not retain command offsets
+for this evidence.
+
+An empty import library name can mean special or flat lookup. Original flags and
+ordinals remain available; the core supplies an association label for presentation.
+An association with a recorded library name does not identify a provider file.
+This operation does not call the synthetic candidate evaluator, expand paths,
+acquire an inventory, traverse aliases or perform runtime binding. Reexports,
+per-location bind records and shared-cache analysis are not exposed by this API.
+
+The deeper operation can acquire section, symbol, bind and chained-import tables.
+Resident images stay borrowed. Source-backed images share the same operation cache
+as header validation and use member-bounded views; the first retained acquisition
+failure takes precedence over the parser result. Read volume follows upstream
+requests and is not limited to header-sized reads. It returns no partial report.
+
 ## Contracts
 
 - Every reported range is absolute within the supplied input and has an exclusive
@@ -108,14 +142,15 @@ an interchangeable decoder behind independent classification enums.
   CPU, file-role and modern platform values are retained.
 - Duplicate platform/signature commands are preserved as separate evidence.
   Inspection does not assert that those combinations are accepted by Apple's tools.
-- Reports cover headers, platform declarations and signature-command ranges.
-  Reserved fields, segment contents, signature blobs, trust and application bundles
-  are outside this milestone. `AnalysisScope::HeadersOnly` records that boundary.
+- Header reports cover headers, platform declarations and signature-command ranges.
+  `AnalysisScope::Dependencies` additionally includes the evidence described above.
+  Neither scope verifies signature blobs or trust, acquires application bundles,
+  or establishes complete file validity.
 - Inspection returns the first error, without a partial report.
 
 ## Adapter and UI
 
-The WIT contract is `apple-code:analysis@0.5.0`, which exposes zero-argument native
+The WIT contract is `apple-code:analysis@0.6.0`, which exposes zero-argument native
 session construction, persistent selection and inspection outcomes.
 Its `macho-value` record carries `value: u32` and `name: option<string>` for CPU,
 file-type, platform and load-command values. The platform field is optional to
@@ -127,13 +162,17 @@ upstream decoding failures. The native crate version remains 0.1.0 while the
 unpublished workspace is being developed; the contract version is independent.
 
 The native component composes the ordinary Rust filesystem client and
-`inspect_source` analyzer. Requested ranges enter Wasm through the Polymorph
+`inspect_source` or `inspect_dependencies_source` analyzer, selected by the explicit
+session operation. Requested ranges enter Wasm through the Polymorph
 provider; reports and inspection errors use explicit WIT conversion. The core
 still supports resident bytes for native callers and fixtures. jco carries u64
 offsets as JavaScript BigInt and preserves structured diagnostics alongside
 Rust-formatted messages. Both UI variants use one presentation module and
 one image-details component to display the supplied canonical names and numeric
-fallbacks. They do not maintain Mach-O classification tables or interpret bytes.
+fallbacks. Dependency names cross as both original bytes and Rust-escaped display
+strings. Signed special ordinals and symbol flags retain their numeric values.
+The shared image details show declarations and paginated imported-symbol evidence;
+React does not infer target files or maintain Mach-O classification tables.
 
 ## Parsing dependencies
 
@@ -155,7 +194,8 @@ These APIs let header analysis propagate each parse or iteration failure and avo
 reading section contents and symbol tables. `MachOFile::parse` is unsuitable for
 this scope: it eagerly processes sections and symbols and suppresses some command
 traversal failures. A successful general file parse would not provide the same
-first-error behavior.
+first-error behavior. The separate dependency operation performs header validation
+first and then deliberately uses `MachOFile` for its broader read scope.
 
 ### Accepted formats and command evidence
 
@@ -299,6 +339,30 @@ types documented with units and invariants, retain unknown values where inspecti
 can continue, and add a focused report-conversion test when new evidence warrants
 one.
 
+## Dependency inspection qualification
+
+Validated on 2026-10-29:
+
+- Native workspace tests cover owned import associations, special/flat context,
+  deeper member bounds, acquisition-error precedence and the selected-source
+  workflow. The component test checks non-UTF-8 bytes and signed special ordinals
+  across WIT conversion. Core/workflow/component Clippy passes with warnings denied.
+- The existing `filesystem-native` example inspected the upstream
+  `macho/imports.bundle` fixture from `gimli-rs/object-testfiles` revision
+  `fe8da208d4013ec3691311915fdc7d71436c0d1e` through real
+  `NativeSelection`/`NativeFileSource`, twice with the retained file. It reported
+  one image, one library and five imports, including special lookup associations.
+  No browser, service or Wasm runtime participated, and the binary was not executed.
+- `pnpm engine:build`, full typecheck, web tests and the production web build pass.
+  The ordinary library also compiles for `wasm32-unknown-unknown`. A targeted React
+  render checks declared-only libraries, raw names, association text and the
+  50-symbol rendering limit. These checks do not establish live browser inspection.
+- The native remote example compiled, but the running service had no retained file.
+  A browser selection attempt reached the native request, while macOS dialog
+  automation timed out; the browser ultimately reported a non-regular-file
+  selection error. End-to-end dependency inspection through the live native remote
+  and browser adapters remains unqualified. Header-only qualification is unchanged.
+
 ## Synthetic Explorer APIs
 
 The ordinary `explorer` module validates supplied inventories and computes bounded
@@ -310,11 +374,11 @@ outside production library sources. See the
 contexts, presentation boundaries, unsupported capabilities and future native
 acquisition requirements.
 
-Native Explorer integration will start with upstream dependency declarations and
-static import/library associations. `object` already maps ordinary import
+The separate dependency inspection APIs now provide upstream dependency declarations
+and static import/library associations on the native workbench report. `object` already maps ordinary import
 ordinals to recorded library names. Candidate
 file lookup against an acquired inventory and explicit context is a separate,
 optional capability. Actual runtime provider selection, symbol lookup and binding
-remain outside the current Explorer. This direction adds no extraction API and
-does not broaden the existing header-only entry points; see the
+remain outside the current Explorer. The dedicated extraction operation leaves
+the existing header-only entry points unchanged; see the
 [upstream integration boundary](capabilities/explorer-relationships.md#upstream-reuse-and-integration-boundary).

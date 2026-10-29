@@ -22,8 +22,9 @@ selection or application sample input.
 
 ## Upstream reuse and integration boundary
 
-The native integration direction is to display declared dependencies and static
-import/library associations through the pinned `object` APIs first. Upstream
+The native workbench report displays declared dependencies and static
+import/library associations through the pinned `object` APIs in a separate
+**Inspect dependencies** action. Upstream
 already interprets relationships within binary metadata: `Object::import_libraries`
 enumerates declarations and assigns ordinals; `Object::imports` maps ordinary
 library ordinals to recorded library names. Upstream bind-program and reexport
@@ -50,7 +51,7 @@ source provenance without recreating upstream interpretation. Special ordinals,
 flat lookup and missing associations must remain explicit instead of becoming
 fabricated provider-file endpoints.
 
-The first native milestone will present these declarations and upstream import
+The native evidence milestone presents these declarations and upstream import
 associations without requiring file-candidate evaluation. A later candidate
 capability can consume an acquired inventory and explicit context when a product
 interaction requires concrete file candidates. Path-token expansion and inherited
@@ -150,11 +151,16 @@ independent expectations. UI tests and real-browser checks establish linked
 presentation behavior. The ordinary library can compile for browser Wasm, but
 this preview does not add a component export or execute resolution inside Wasm.
 
-Initial native integration will expose upstream dependency declarations and
-import/library associations through the selected binary's existing bounded-input
-path. That milestone does not require a whole-bundle inventory or candidate
-evaluation. Actual dependency/runpath extraction and selected WIT adapters still
-require their own native/browser qualification.
+`inspect_dependencies` and `inspect_dependencies_source` expose upstream dependency
+declarations and import/library associations through the selected binary's
+bounded-input path. `Session::inspect_dependencies` and WIT `inspect-dependencies`
+compose that ordinary Rust operation. Header inspection remains a separate scope.
+The workbench report displays this evidence; `/explorer` remains the synthetic
+preview and does not acquire real graph endpoints. See the
+[dependency API contract](../rust-analysis-core.md#dependency-evidence) for read scope,
+owned evidence and unsupported capabilities. The separate
+[dependency qualification record](../rust-analysis-core.md#dependency-inspection-qualification)
+distinguishes native execution from compilation and presentation checks.
 
 Whole-bundle acquisition is a separate extension: current native entry IDs are
 listing-scoped; opening a directory replaces selection; symlink targets and a
@@ -163,12 +169,12 @@ read-link capabilities must preserve selection/resource ownership and bounded
 reads. Optional candidate queries can consume the acquired facts and explicit
 context separately.
 
-### Validation recorded on 2026-10-29
+### Synthetic preview validation recorded on 2026-10-29
 
 - Native workspace tests passed, including 11 Explorer rule tests. The
   `binary-inspection` suite also passed its two doctests and Clippy with warnings
   denied. The existing component library test target compiled and completed
-  (it currently contains no tests).
+  (there were no component library tests at that milestone).
 - `pnpm engine:build`, `pnpm typecheck`, `pnpm test:web`, `pnpm build` and
   `pnpm explorer:check` passed. The core also passed a check for
   `wasm32-unknown-unknown`; this establishes compilation only.
