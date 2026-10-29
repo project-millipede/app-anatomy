@@ -9,3 +9,6 @@ apps/web/next-env.d.ts
 apps/web/styled-system
 wkg/vendor
 wkg/wit/deps
+
+# Rust owns this deterministic export; explorer:check compares its exact bytes.
+apps/web/features/explorer/previewData.generated.json

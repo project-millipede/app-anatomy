@@ -6,3 +6,6 @@ publish.workspace = true
 
 [dependencies]
 anyhow = "1"
+binary-inspection = { path = "../crates/binary/inspection" }
+object.workspace = true
+serde_json = "1"
