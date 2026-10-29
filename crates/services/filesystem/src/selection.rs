@@ -1,17 +1,19 @@
-//! Name current resources around the ordinary native selection owner.
+//! Name retained resources around the ordinary native selection owner.
 
 use std::io;
 
 use binary_inspection::input::SourceError;
-use filesystem_native::{NativeDirectory, NativeFileSource, NativeSelection};
-use filesystem_protocol::{SelectedResource, SelectionState};
+use filesystem_native::{
+    DirectoryId, NativeDirectory, NativeDirectoryEntryRef, NativeFileSource, NativeSelection,
+};
+use filesystem_protocol::{DirectoryEntryRef, DirectoryListing, SelectedResource, SelectionState};
 
-/// One persistent owner. Identifiers name only its current resources.
+/// One persistent owner with opaque identities for all directories in its root.
 pub struct Selection {
     /// An available owner may be empty; `None` means it has been shut down.
     native: Option<NativeSelection>,
     file_id: Option<String>,
-    directory_id: Option<String>,
+    directories: Vec<(DirectoryId, String)>,
 }
 
 fn resource_identifier() -> String {
@@ -29,7 +31,10 @@ impl Selection {
     pub fn new(native: NativeSelection) -> Self {
         Self {
             file_id: native.file().map(|_| resource_identifier()),
-            directory_id: native.directory_name().map(|_| resource_identifier()),
+            directories: native
+                .directories()
+                .map(|directory| (directory.id, resource_identifier()))
+                .collect(),
             native: Some(native),
         }
     }
@@ -52,21 +57,46 @@ impl Selection {
                     .expect("file identifier has an owner")
                     .into(),
             }),
-            directory: self.directory_id.as_ref().map(|resource| SelectedResource {
-                resource: resource.clone(),
-                name: native
-                    .directory_name()
-                    .expect("directory identifier has an owner")
-                    .into(),
-            }),
+            directory: native
+                .current_directory()
+                .map(|id| self.selected_directory(native, id)),
             entries: native.entries().to_vec(),
+            root: native
+                .root_directory()
+                .map(|id| self.selected_directory(native, id)),
+            file_entry: native.file_entry().map(|entry| self.entry_ref(entry)),
         })
+    }
+
+    /// Return one already captured listing without additional filesystem I/O.
+    pub fn list_directory(&self, resource: &str) -> Result<DirectoryListing, SourceError> {
+        let id = self.directory_id(resource)?;
+        let native = self.native.as_ref().ok_or(SourceError::Cancelled)?;
+        let directory = native.directory(id).ok_or_else(unknown_resource)?;
+        Ok(DirectoryListing {
+            directory: self.selected_directory(native, id),
+            parent: directory.parent.map(|entry| self.entry_ref(entry)),
+            entries: directory.entries.to_vec(),
+        })
+    }
+
+    /// Capture one immediate child without changing file selection or cursor.
+    pub fn expand_directory(
+        &mut self,
+        resource: &str,
+        entry_id: u32,
+    ) -> Result<DirectoryListing, SourceError> {
+        let parent = self.directory_id(resource)?;
+        let native = self.native.as_mut().ok_or(SourceError::Cancelled)?;
+        let id = native.load_child(parent, entry_id)?;
+        let resource = self.publish_directory(id);
+        self.list_directory(&resource)
     }
 
     /// Shutdown only: callers first stop connections and wait for native access.
     pub fn shutdown(&mut self) {
         self.file_id = None;
-        self.directory_id = None;
+        self.directories.clear();
         self.native = None;
     }
 
@@ -80,7 +110,7 @@ impl Selection {
         let resource = resource_identifier();
         native.install_file(name.clone(), source);
         self.file_id = Some(resource.clone());
-        self.directory_id = None;
+        self.directories.clear();
         Ok(SelectedResource { name, resource })
     }
 
@@ -90,24 +120,17 @@ impl Selection {
         directory: NativeDirectory,
     ) -> Result<SelectedResource, SourceError> {
         let native = self.native.as_mut().ok_or(SourceError::Cancelled)?;
-        let resource = resource_identifier();
-        native.install_directory(name.clone(), directory);
-        self.directory_id = Some(resource.clone());
+        let id = native.install_directory(name.clone(), directory)?;
+        self.directories.clear();
+        let resource = self.publish_directory(id);
         self.file_id = None;
         Ok(SelectedResource { name, resource })
     }
 
-    fn check_directory(&self, resource: &str) -> Result<(), SourceError> {
-        if self.directory_id.as_deref() != Some(resource) {
-            return Err(unknown_resource());
-        }
-        Ok(())
-    }
-
     pub fn open_file(&mut self, directory: &str, entry_id: u32) -> Result<String, SourceError> {
-        self.check_directory(directory)?;
+        let id = self.directory_id(directory)?;
         let native = self.native.as_mut().ok_or(SourceError::Cancelled)?;
-        native.open_file(entry_id)?;
+        native.open_file_from(id, entry_id)?;
         let resource = resource_identifier();
         self.file_id = Some(resource.clone());
         Ok(resource)
@@ -118,11 +141,10 @@ impl Selection {
         directory: &str,
         entry_id: u32,
     ) -> Result<String, SourceError> {
-        self.check_directory(directory)?;
+        let parent = self.directory_id(directory)?;
         let native = self.native.as_mut().ok_or(SourceError::Cancelled)?;
-        native.open_directory(entry_id)?;
-        let resource = resource_identifier();
-        self.directory_id = Some(resource.clone());
+        let id = native.open_directory_from(parent, entry_id)?;
+        let resource = self.publish_directory(id);
         self.file_id = None;
         Ok(resource)
     }
@@ -133,6 +155,50 @@ impl Selection {
         }
         let native = self.native.as_mut().ok_or(SourceError::Cancelled)?;
         native.file_mut().ok_or_else(unknown_resource)
+    }
+
+    fn directory_id(&self, resource: &str) -> Result<DirectoryId, SourceError> {
+        self.directories
+            .iter()
+            .find(|(_, value)| value == resource)
+            .map(|(id, _)| *id)
+            .ok_or_else(unknown_resource)
+    }
+
+    fn directory_resource(&self, id: DirectoryId) -> &str {
+        &self
+            .directories
+            .iter()
+            .find(|(value, _)| *value == id)
+            .expect("retained directory has a service identifier")
+            .1
+    }
+
+    fn publish_directory(&mut self, id: DirectoryId) -> String {
+        if let Some((_, resource)) = self.directories.iter().find(|(value, _)| *value == id) {
+            return resource.clone();
+        }
+        let resource = resource_identifier();
+        self.directories.push((id, resource.clone()));
+        resource
+    }
+
+    fn selected_directory(&self, native: &NativeSelection, id: DirectoryId) -> SelectedResource {
+        SelectedResource {
+            resource: self.directory_resource(id).into(),
+            name: native
+                .directory(id)
+                .expect("retained directory has an owner")
+                .name
+                .into(),
+        }
+    }
+
+    fn entry_ref(&self, entry: NativeDirectoryEntryRef) -> DirectoryEntryRef {
+        DirectoryEntryRef {
+            directory: self.directory_resource(entry.directory).into(),
+            entry_id: entry.entry_id,
+        }
     }
 }
 
@@ -151,13 +217,37 @@ mod tests {
             "second".into(),
             NativeFileSource::new(tempfile::tempfile()?)?,
         )?;
-
-        // The previous identifier must be rejected after replacement.
         assert!(selection.file(&first.resource).is_err());
-
-        // The replacement identifier must allow access to the selected file.
         assert!(selection.file(&second.resource).is_ok());
+        Ok(())
+    }
 
+    #[test]
+    fn external_replacement_invalidates_every_retained_directory_resource() -> anyhow::Result<()> {
+        // 1. Publish a root and a lazy child under distinct opaque resources.
+        let root = tempfile::tempdir()?;
+        std::fs::create_dir(root.path().join("child"))?;
+        let mut native = NativeSelection::default();
+        native.select_directory(root.path())?;
+        let mut selection = Selection::new(native);
+        let state = selection.current()?;
+        let root_resource = state.root.unwrap().resource;
+        let child = selection.expand_directory(&root_resource, state.entries[0].id)?;
+        let child_resource = child.directory.resource;
+        assert!(selection.list_directory(&root_resource).is_ok());
+        assert!(selection.list_directory(&child_resource).is_ok());
+
+        // 2. External file replacement invalidates both capabilities together.
+        selection.install_file(
+            "external".into(),
+            NativeFileSource::new(tempfile::tempfile()?)?,
+        )?;
+        assert!(selection.list_directory(&root_resource).is_err());
+        assert!(selection.list_directory(&child_resource).is_err());
+        let state = selection.current()?;
+        assert_eq!(state.root, None);
+        assert_eq!(state.file_entry, None);
+        assert!(state.entries.is_empty());
         Ok(())
     }
 }

@@ -39,27 +39,37 @@ response completes each operation. No text terminator or socket EOF is required.
 The socket can remain open between operations and between user interactions.
 
 - **Files:** obtain captured length and read an offset and bounded length.
-- **Directories:** open a listed file or child directory by entry ID; the current
-  selection response contains the captured bounded listing.
-- **Selection:** choose a file or folder through the native dialog and query the
-  current names, file/directory identifiers and listing.
+- **Directories:** open a listed file or navigate to a child directory by entry
+  ID. `ListDirectory` reads a retained listing; `ExpandDirectory` lazily captures
+  one immediate child without changing the file or listing cursor.
+- **Selection:** choose a file or root folder through the native dialog and query
+  current file/cursor metadata, the root identity and optional listed-file origin.
+  The selection response includes only the cursor's bounded listing.
 
 The protocol never accepts a native pathname. The native picker supplies the path.
 Resource identifiers are random 256-bit values encoded as
-64 lowercase hexadecimal characters. They name the current file or directory;
-file and directory identifiers cannot substitute for each other. Names sent to
-the client are display names.
+64 lowercase hexadecimal characters. They name the current file or any captured
+directory under the retained root; file and directory identifiers cannot substitute
+for each other. Names sent to the client are display names, not exact paths.
 
-A selection owns one current file and one current directory. Opening another
-file replaces the current file while retaining its directory. Choosing a file
-replaces both previous selections. Choosing a folder or successfully opening a
-child directory replaces both previous selections. A failed child acquisition
-preserves the existing selections. Native directory code owns entry resolution,
-link handling and the captured listing.
+A selection owns one file and at most 64 captured directories, including a stable
+root. Repeated expansion of the same parent entry returns its existing identity
+and listing without I/O. Loaded siblings remain addressable. Selecting a listed
+file changes only the file and cursor to its parent, preserving the root/tree;
+`file_entry` records that parent resource and listing-scoped entry ID. Legacy
+child-directory navigation moves the cursor and clears the file, retaining the
+root/tree. Base/Ark consumers can continue using the current directory and entries.
 
-The reusable `filesystem_native::NativeSelection` owns acquired native resources,
-display names and the directory listing. Acquisition and listing succeed before
-replacement. Native-dialog cancellation preserves the existing selection.
+Choosing an external file clears the directory tree. Choosing a folder installs a
+new root. Both invalidate every old directory identity only after successful
+acquisition. Failed acquisition or the 64-directory limit preserves existing
+resources; there is no eviction or recursive walk. Native directory code still
+owns entry resolution and link handling. Captured listings and later live-path
+opens do not provide a filesystem snapshot or confinement boundary.
+
+The reusable `filesystem_native::NativeSelection` owns this state through ordinary
+Rust APIs without a service or JavaScript. The service adds opaque identifiers
+and wire projections. Native-dialog cancellation preserves the existing selection.
 Inspection success or failure, refresh, navigation and socket
 closure do not change native ownership. Replacement, owner destruction and service
 shutdown dispose resources. There is no frontend or remote deselection operation.
@@ -127,8 +137,11 @@ named-field overhead. The shared codec checks message size before decoding owned
 fields, rejects trailing bytes and
 configures the decoder's nesting limit to 32. It validates resources, offsets,
 lengths and response variants. Directory responses contain at most 512 distinct
-entry IDs and 64 KiB of combined name bytes. Read payloads and error messages have their
-own limits. Decoding returns owned values; the frame limit is not a strict bound
+entry IDs and 64 KiB of combined name bytes. Root/cursor/file display names each
+have a 4 KiB limit; entry references contain one validated resource and entry ID.
+Each directory response carries one listing. A codec test checks that maximum
+listing and selection metadata fit the existing 96 KiB response limit. Read
+payloads and error messages have their own limits. Decoding returns owned values; the frame limit is not a strict bound
 on decoder allocations.
 
 The service admits at most eight connection tasks. Handshakes have a five-second

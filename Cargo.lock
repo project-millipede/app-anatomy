@@ -1537,6 +1537,7 @@ version = "0.1.0"
 dependencies = [
  "binary-inspection",
  "filesystem-data",
+ "tempfile",
 ]
 
 [[package]]

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 pub const MAX_REQUEST_BYTES: u32 = 64 * 1024;
 pub const MAX_REQUEST_MESSAGE_BYTES: usize = 1024;
-// Includes named fields for up to 512 directory entries and 64 KiB of names.
+// Includes one listing (512 entries / 64 KiB names) and bounded selection metadata.
 pub const MAX_RESPONSE_MESSAGE_BYTES: usize = 96 * 1024;
 const MAX_ERROR_MESSAGE_BYTES: usize = 4096;
 
@@ -37,6 +37,13 @@ pub enum Request {
         resource: String,
         entry_id: u32,
     },
+    ListDirectory {
+        resource: String,
+    },
+    ExpandDirectory {
+        resource: String,
+        entry_id: u32,
+    },
 }
 
 impl Request {
@@ -45,7 +52,9 @@ impl Request {
             Self::ByteLength { resource }
             | Self::ReadAt { resource, .. }
             | Self::OpenFile { resource, .. }
-            | Self::OpenDirectory { resource, .. } => Some(resource),
+            | Self::OpenDirectory { resource, .. }
+            | Self::ListDirectory { resource }
+            | Self::ExpandDirectory { resource, .. } => Some(resource),
             Self::ChooseFile | Self::ChooseFolder | Self::CurrentSelection => None,
         }
     }
@@ -60,13 +69,33 @@ pub struct SelectedResource {
     pub resource: String,
 }
 
+/// A captured entry addressed through its retained parent directory.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct DirectoryEntryRef {
+    pub directory: String,
+    pub entry_id: u32,
+}
+
+/// One retained directory's captured immediate listing, without recursive children.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct DirectoryListing {
+    pub directory: SelectedResource,
+    pub parent: Option<DirectoryEntryRef>,
+    pub entries: Vec<DirectoryEntry>,
+}
+
 /// An observation of the native owner's current selection.
-/// The entries belong to `directory`; another operation may subsequently replace it.
+/// The entries belong to the listing cursor `directory`. `root` remains stable
+/// during lazy expansion and listed-file selection; external replacement invalidates it.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SelectionState {
     pub file: Option<SelectedResource>,
     pub directory: Option<SelectedResource>,
     pub entries: Vec<DirectoryEntry>,
+    #[serde(default)]
+    pub root: Option<SelectedResource>,
+    #[serde(default)]
+    pub file_entry: Option<DirectoryEntryRef>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -79,6 +108,7 @@ pub enum Response {
     Selection(SelectionState),
     OpenedFile(String),
     OpenedDirectory(String),
+    Directory(DirectoryListing),
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -161,7 +191,23 @@ fn validate_response_fields(response: &Response) -> Result<(), ProtocolError> {
             if let Some(selected) = &state.directory {
                 validate_selected(selected)?;
             }
+            if let Some(root) = &state.root {
+                validate_selected(root)?;
+            }
+            if let Some(origin) = &state.file_entry {
+                validate_entry_ref(origin)?;
+            }
             validate_entries(&state.entries)?;
+        }
+        Response::Directory(listing) => {
+            validate_selected(&listing.directory)?;
+            if let Some(parent) = &listing.parent {
+                validate_entry_ref(parent)?;
+                if parent.directory == listing.directory.resource {
+                    return Err(response_mismatch("directory cannot be its own parent"));
+                }
+            }
+            validate_entries(&listing.entries)?;
         }
         Response::ByteLength(_)
         | Response::Failed(FileError::Cancelled)
@@ -169,6 +215,14 @@ fn validate_response_fields(response: &Response) -> Result<(), ProtocolError> {
         | Response::SelectedDirectory(None) => {}
     }
     Ok(())
+}
+
+fn validate_entry_ref(entry: &DirectoryEntryRef) -> Result<(), ProtocolError> {
+    validate_resource(&entry.directory)
+}
+
+fn response_mismatch(message: &'static str) -> ProtocolError {
+    ProtocolError::validation(ProtocolErrorKind::ResponseMismatch, message)
 }
 
 fn validate_selected(selected: &SelectedResource) -> Result<(), ProtocolError> {
@@ -228,6 +282,18 @@ pub fn validate_response(request: &Request, response: &Response) -> Result<(), P
         | (Request::CurrentSelection, Response::Selection(_))
         | (Request::OpenFile { .. }, Response::OpenedFile(_))
         | (Request::OpenDirectory { .. }, Response::OpenedDirectory(_)) => Ok(()),
+        (Request::ListDirectory { resource }, Response::Directory(listing))
+            if &listing.directory.resource == resource =>
+        {
+            Ok(())
+        }
+        (Request::ExpandDirectory { resource, entry_id }, Response::Directory(listing))
+            if listing.parent.as_ref().is_some_and(|parent| {
+                &parent.directory == resource && parent.entry_id == *entry_id
+            }) =>
+        {
+            Ok(())
+        }
         (Request::ReadAt { length, .. }, Response::Read(bytes)) => {
             enforce_limit(
                 bytes.len() as u64,
@@ -582,5 +648,163 @@ mod tests {
             decode_response(&encode_response(&response).unwrap()).unwrap(),
             response
         );
+    }
+
+    #[test]
+    fn directory_replies_match_the_requested_resource_and_parent_entry() {
+        let parent = resource();
+        let child = "a".repeat(64);
+        let listing = DirectoryListing {
+            directory: SelectedResource {
+                name: "child".into(),
+                resource: child.clone(),
+            },
+            parent: Some(DirectoryEntryRef {
+                directory: parent.clone(),
+                entry_id: 7,
+            }),
+            entries: vec![],
+        };
+        let response = Response::Directory(listing.clone());
+        for request in [
+            Request::ListDirectory { resource: child },
+            Request::ExpandDirectory {
+                resource: parent.clone(),
+                entry_id: 7,
+            },
+        ] {
+            assert_eq!(
+                decode_request(&encode_request(&request).unwrap()).unwrap(),
+                request
+            );
+            let decoded = decode_response(&encode_response(&response).unwrap()).unwrap();
+            validate_response(&request, &decoded).unwrap();
+        }
+        for request in [
+            Request::ListDirectory {
+                resource: parent.clone(),
+            },
+            Request::ExpandDirectory {
+                resource: parent,
+                entry_id: 8,
+            },
+            Request::ExpandDirectory {
+                resource: "b".repeat(64),
+                entry_id: 7,
+            },
+        ] {
+            assert_eq!(
+                validate_response(&request, &response).unwrap_err().kind(),
+                ProtocolErrorKind::ResponseMismatch
+            );
+        }
+        for invalid in [
+            DirectoryListing {
+                parent: Some(DirectoryEntryRef {
+                    directory: "invalid".into(),
+                    entry_id: 7,
+                }),
+                ..listing.clone()
+            },
+            DirectoryListing {
+                parent: Some(DirectoryEntryRef {
+                    directory: listing.directory.resource.clone(),
+                    entry_id: 7,
+                }),
+                ..listing
+            },
+        ] {
+            let response = Response::Directory(invalid);
+            assert!(encode_response(&response).is_err());
+            assert!(decode_response(&rmp_serde::to_vec_named(&response).unwrap()).is_err());
+        }
+        for state in [
+            SelectionState {
+                root: Some(SelectedResource {
+                    name: "root".into(),
+                    resource: "invalid".into(),
+                }),
+                ..SelectionState::default()
+            },
+            SelectionState {
+                file_entry: Some(DirectoryEntryRef {
+                    directory: "invalid".into(),
+                    entry_id: 0,
+                }),
+                ..SelectionState::default()
+            },
+        ] {
+            assert!(encode_response(&Response::Selection(state)).is_err());
+        }
+    }
+
+    #[test]
+    fn full_listing_and_selection_metadata_fit_the_existing_message_budget() {
+        // Maximum count/name bytes plus maximum selected names and wide entry IDs.
+        let directory = SelectedResource {
+            name: "x".repeat(4096),
+            resource: resource(),
+        };
+        let entries: Vec<_> = (0..512)
+            .map(|id| DirectoryEntry {
+                id: u32::MAX - id,
+                name: "x".repeat(128),
+                kind: DirectoryEntryKind::Directory,
+            })
+            .collect();
+        let origin = DirectoryEntryRef {
+            directory: "a".repeat(64),
+            entry_id: u32::MAX,
+        };
+        let responses = [
+            Response::Selection(SelectionState {
+                file: Some(directory.clone()),
+                directory: Some(directory.clone()),
+                entries: entries.clone(),
+                root: Some(directory.clone()),
+                file_entry: Some(origin.clone()),
+            }),
+            Response::Directory(DirectoryListing {
+                directory,
+                parent: Some(origin),
+                entries,
+            }),
+        ];
+        for response in responses {
+            let encoded = encode_response(&response).unwrap();
+            assert!(encoded.len() <= MAX_RESPONSE_MESSAGE_BYTES);
+            assert_eq!(decode_response(&encoded).unwrap(), response);
+        }
+    }
+
+    #[test]
+    fn legacy_selection_replies_decode_without_claiming_a_retained_root() {
+        #[derive(Serialize)]
+        struct LegacySelection {
+            file: Option<SelectedResource>,
+            directory: Option<SelectedResource>,
+            entries: Vec<DirectoryEntry>,
+        }
+        #[derive(Serialize)]
+        enum LegacyResponse {
+            Selection(LegacySelection),
+        }
+        let selected = SelectedResource {
+            name: "retained".into(),
+            resource: resource(),
+        };
+        let bytes = rmp_serde::to_vec_named(&LegacyResponse::Selection(LegacySelection {
+            file: Some(selected.clone()),
+            directory: Some(selected.clone()),
+            entries: vec![],
+        }))
+        .unwrap();
+        let Response::Selection(state) = decode_response(&bytes).unwrap() else {
+            panic!("expected legacy selection");
+        };
+        assert_eq!(state.file, Some(selected.clone()));
+        assert_eq!(state.directory, Some(selected));
+        assert_eq!(state.root, None);
+        assert_eq!(state.file_entry, None);
     }
 }
