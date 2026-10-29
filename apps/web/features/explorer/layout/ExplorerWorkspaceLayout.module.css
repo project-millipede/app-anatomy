@@ -1,8 +1,31 @@
-/* Fractions are shares of the available width, not fixed sizes. */
+/* The reference keeps usable navigation and evidence widths around a fluid canvas. */
 .workspace {
   display: grid;
   grid-template-columns:
-    [tree] minmax(0, 1fr)
-    [canvas] minmax(0, 3fr)
-    [inspector] minmax(0, 1fr);
+    [tree] 294px
+    [canvas] minmax(0, 1fr)
+    [inspector] 310px;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+}
+.workspace > * {
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+@media (max-width: 1190px) {
+  .workspace {
+    grid-template-columns:
+      [tree] 230px
+      [canvas] minmax(0, 1fr)
+      [inspector] 280px;
+  }
+}
+@media (max-width: 780px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: max-content max-content max-content;
+    align-content: start;
+    overflow: visible;
+  }
 }

@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
 import styles from './BridgeGrid.module.css';
 
-/** Keep the drawing surface and its grid together inside a horizontal scroll region. */
+/** Keep the drawing surface and its grid together inside its independent scroll region. */
 export function BridgeViewport({ children }: { children: ReactNode }) {
   return (
     <div
       className={styles.viewport}
       role="region"
-      aria-label="Four-bridge relationship canvas; scroll horizontally on narrow screens"
+      aria-label="Four-bridge relationship canvas; scroll to explore"
       tabIndex={0}
     >
       <div className={styles.surface}>{children}</div>
@@ -22,6 +22,8 @@ type BridgeGridProps = {
   west: ReactNode;
   /** The selected file at the center. */
   focus: ReactNode;
+  /** Invisible presentation routing port below the middle row, outside every card. */
+  southPort?: ReactNode;
   /** Internal targets of the selected file, to its right. */
   east: ReactNode;
   /** External or unresolved references of the selected file, below it. */
@@ -37,6 +39,7 @@ export function BridgeGrid({
   north,
   west,
   focus,
+  southPort,
   east,
   south,
 }: BridgeGridProps) {
@@ -47,8 +50,17 @@ export function BridgeGrid({
       </div>
       <div className={styles.north}>{north}</div>
       <div className={styles.west}>{west}</div>
-      <section className={styles.focus} aria-label="Selected file">
+      <section
+        className={styles.focus}
+        aria-label="Selected file"
+        data-has-south={southPort ? true : undefined}
+      >
         {focus}
+        {southPort && (
+          <div className={styles.southPort} aria-hidden="true">
+            {southPort}
+          </div>
+        )}
       </section>
       <div className={styles.east}>{east}</div>
       <div className={styles.south}>{south}</div>

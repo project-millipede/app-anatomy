@@ -10,7 +10,7 @@ type ExplorerWorkspaceLayoutProps = {
   inspector: ReactNode;
 };
 
-/** Arrange the named workspace panes in a 1:3:1 ratio at every width. */
+/** Keep readable sidebar widths around a fluid canvas; stack on narrow screens. */
 export function ExplorerWorkspaceLayout({
   navigation,
   canvas,

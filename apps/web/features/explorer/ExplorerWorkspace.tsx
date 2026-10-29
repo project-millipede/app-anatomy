@@ -295,6 +295,7 @@ function DatasetWorkspace({
           roles={roles}
           activeEndpointIds={activeEndpointIds}
           hiddenCounts={hiddenCounts}
+          datasetSelector={datasetSelector}
         />
       }
       canvas={
@@ -308,7 +309,6 @@ function DatasetWorkspace({
           onContextChange={changeContext}
           onPreview={previewConnection}
           onBack={goBack}
-          datasetSelector={datasetSelector}
         />
       }
       inspector={

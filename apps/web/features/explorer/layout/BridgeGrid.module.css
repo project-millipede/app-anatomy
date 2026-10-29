@@ -1,28 +1,32 @@
 .viewport {
-  overflow-x: auto;
-  padding: 0.125rem 0.125rem 0.3125rem;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 0.25rem 0.25rem 0.75rem;
 }
 /* Keep the grid and its coordinate surface at the same scroll width. */
 .surface {
-  min-inline-size: 39rem;
+  min-inline-size: 40.1875rem;
 }
 /*
  * The surface owns the minimum canvas width. Columns share that width;
  * gaps leave room for connector lanes between the bridges and the center.
  */
 .grid {
-  isolation: isolate;
+  position: relative;
   display: grid;
   grid-template-columns:
-    [west] minmax(0, 1fr)
-    [focus] minmax(0, 1.15fr)
-    [east] minmax(0, 1fr);
-  grid-template-rows: 1fr auto 1fr;
+    [west] minmax(10.625rem, 1fr)
+    [focus] minmax(12.8125rem, 1.15fr)
+    [east] minmax(10.625rem, 1fr);
+  grid-template-rows: auto auto auto;
   grid-template-areas:
     'north north north'
     'west focus east'
     'south south south';
-  column-gap: 2rem;
+  column-gap: 2.125rem;
   row-gap: 3rem;
   padding: 0 0.75rem 0.3125rem;
   border-radius: 0.625rem;
@@ -54,27 +58,25 @@
   padding-inline: 0.4375rem;
   background: var(--acw-colors-background);
   color: var(--acw-colors-muted);
-  font-size: var(--acw-font-sizes-2xs);
+  font-size: 0.625rem;
 }
 .north,
 .west,
 .focus,
 .east,
 .south {
+  position: relative;
   z-index: 2;
+  min-inline-size: 0;
   align-self: center;
 }
-.north,
-.south {
-  display: grid;
-  align-self: stretch;
+.north {
   justify-self: center;
-  inline-size: min(100%, 60ch);
+  inline-size: min(100%, 31.25rem);
 }
-.north > .bridge,
-.south > .bridge {
-  display: grid;
-  grid-template-rows: auto 1fr;
+.south {
+  justify-self: stretch;
+  inline-size: 100%;
 }
 .north {
   grid-area: north;
@@ -84,6 +86,28 @@
 }
 .focus {
   grid-area: focus;
+  display: grid;
+  align-self: stretch;
+  align-content: center;
+}
+/* Route the shared south trunk through the center lane, below every side card.
+ * The tiny port is only an Archer coordinate anchor, never an inventory node. */
+.focus[data-has-south]::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  inset-block-end: 0;
+  border-inline-start: 1.5px solid var(--explorer-external);
+}
+.southPort {
+  position: absolute;
+  inset-inline-start: calc(50% - 0.5px);
+  inset-block-end: 0;
+  inline-size: 1px;
+  block-size: 1px;
+  pointer-events: none;
 }
 .east {
   grid-area: east;
@@ -103,13 +127,13 @@
 }
 .heading h2 {
   margin: 0;
-  font-size: var(--acw-font-sizes-sm);
+  font-size: 0.75rem;
   font-weight: 600;
 }
 .heading p {
   margin: 0;
   color: var(--acw-colors-muted);
-  font-size: var(--acw-font-sizes-2xs);
+  font-size: 0.625rem;
 }
 .compass {
   display: grid;
@@ -121,7 +145,7 @@
   border-radius: 50%;
   background: var(--acw-colors-surface);
   color: var(--explorer-outgoing);
-  font-size: var(--acw-font-sizes-2xs);
+  font-size: 0.625rem;
 }
 .bridge[data-position='west'] .compass {
   color: var(--explorer-incoming);
@@ -129,4 +153,20 @@
 .bridge[data-position='north'] .compass,
 .bridge[data-position='south'] .compass {
   color: var(--explorer-external);
+}
+
+@media (max-width: 1190px) {
+  .grid {
+    column-gap: 1.6875rem;
+  }
+  .surface {
+    min-inline-size: 39.3125rem;
+  }
+}
+@media (max-width: 780px) {
+  .viewport {
+    min-block-size: max-content;
+    max-block-size: none;
+    overflow-y: visible;
+  }
 }

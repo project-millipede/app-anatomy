@@ -6,26 +6,15 @@ import styles from './ExplorerLayout.module.css';
 export function ApplicationExplorer() {
   return (
     <ExplorerFrame
-      brand={
-        <div className={styles.brand}>
-          <span className={styles.brandMark} aria-hidden="true">
-            ⌘
-          </span>
-          <div>
-            <strong>CODE WORKBENCH</strong>
-            <span>Application anatomy</span>
-          </div>
-        </div>
-      }
-      headerActions={
-        <span className={styles.headerMeta}>
-          Ark workspace · Synthetic relationships
-        </span>
-      }
+      brand={null}
+      headerActions={null}
       title={
         <>
           <h1>Application Explorer</h1>
-          <p>One selected resource. Four directions to explore.</p>
+          <p>
+            Related resources follow in the tree. One selected file stays at the
+            center.
+          </p>
         </>
       }
       axisKey={
@@ -34,11 +23,11 @@ export function ApplicationExplorer() {
           <span>↕ External / unresolved</span>
         </div>
       }
-      notice="Synthetic preview · Rust computes bounded dependency candidates from authored inventory facts. No files are acquired; results do not establish runtime loading."
+      notice="Synthetic preview · Rust-computed candidates from authored inventory facts. No files acquired or runtime loading observed."
       workspace={<ExplorerWorkspace />}
       footer={
         <>
-          <span>Application Explorer · Synthetic preview</span>
+          <span>Application Explorer · Authored synthetic data</span>
           <span>Rust-computed candidates · No files inspected</span>
         </>
       }

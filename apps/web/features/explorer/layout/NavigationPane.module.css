@@ -2,25 +2,48 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-inline-size: 0;
   min-block-size: 0;
+  overflow: hidden;
   border-inline-end: var(--acw-borders-divider);
   background: var(--acw-colors-surface);
 }
 .heading {
-  padding: 1.25rem 1rem 0.75rem;
+  padding: 1rem 1rem 0.625rem;
 }
 .description {
-  padding: 0 1rem 0.75rem;
+  padding: 0 1rem 0.625rem;
 }
-/* Allocate space; the supplied virtual viewport owns scrolling. */
+/* Allocate space; the supplied virtual viewport remains the sole tree scroller. */
 .tree {
   display: flex;
   flex: 1;
+  min-inline-size: 0;
   min-block-size: 0;
-  padding: 0 0.625rem 1.25rem;
+  padding: 0 0.625rem 0.75rem;
 }
 .footer {
   margin-inline: 1rem;
-  padding-block: 1rem;
+  padding-block: 0.625rem;
   border-block-start: var(--acw-borders-divider);
+}
+@media (max-width: 780px) {
+  .pane {
+    border-inline-end: 0;
+    border-block-end: var(--acw-borders-divider);
+  }
+  .heading {
+    padding-block: 0.75rem 0.5rem;
+  }
+  .description {
+    padding-block-end: 0.5rem;
+  }
+  .tree {
+    flex: none;
+    block-size: 180px;
+    padding-block-end: 0.5rem;
+  }
+  .footer {
+    padding-block: 0.5rem;
+  }
 }

@@ -136,3 +136,34 @@ selected WIT adapters require their own native/browser qualification.
 Screen-reader behavior and other browser engines were not qualified. Real native
 bundle acquisition and execution of the new resolver through a live Wasm
 component remain future capabilities.
+
+### Reference layout correction
+
+The linked-tree-bridge-workspace prototype is the positioning reference. The
+Explorer uses fixed readable sidebars around a fluid center, compact page chrome
+and intrinsic bridge rows. North is capped at 500px; south spans the canvas with
+horizontal cards. Desktop pane scrollers are independent, and narrow screens
+stack the panes with a finite virtual-tree viewport.
+
+Archer's existing sharp path builder supplies orthogonal connectors. Its SVG
+shares a stacking context with cards, so paths remain below their headings. A
+private presentation routing port at the bottom of the middle row supplies the
+south corridor, keeping horizontal south segments below the side cards. The
+selected card supplies the visible trunk through its center lane. This port is
+not domain data, a selectable endpoint or another analysis operation.
+
+Physical paths and explicit alias captions appear on internal relationship
+cards; original references remain in the inspector. The synthetic-dataset chooser
+belongs to the tree pane, while the selected entry's architecture context stays
+above the canvas. Tree indentation and controls are compact while rows remain
+32px high and Ark retains selection and focus ownership.
+
+Layout qualification used the in-app browser at 1533×1127, 1100×900 and
+740×900. Desktop pane widths measured 294/929/310px; the narrower desktop
+measured 230/590/280px without document horizontal overflow. At 740px the panes
+stacked and the graph retained its full 599px content height rather than being
+clipped; the virtual tree viewport remained bounded. North/south heights were
+independent, and south branch segments ran below the bottom of the side cards.
+Alias preview, retained center selection, Focus and Back were rechecked after
+the changes. Typecheck, the production web build, all 18 web tests and formatting
+of the changed files passed.
