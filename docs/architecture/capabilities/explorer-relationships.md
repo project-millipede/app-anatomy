@@ -8,8 +8,8 @@ Rust library validates inventory identity and containment, expands supported
 references, follows represented aliases and produces direct neighborhoods. It
 has no filesystem, WIT, serialization, networking or JavaScript dependency.
 
-The pinned `object` types supply Mach-O dependency flags, command identifiers,
-versions and CPU identity. Owned application records retain original reference
+The preview borrows pinned `object` types for Mach-O dependency flags, command
+identifiers, versions and CPU identity. Owned application records retain original reference
 bytes, provenance and separate entry/image/relationship identities. A filesystem
 alias and its target remain separate entries even when their basenames match.
 Fixture provenance is explicit; synthetic evidence does not claim parsed offsets.
@@ -20,7 +20,53 @@ framework/version alias, architecture-dependent and ambiguous references,
 incomplete evidence and dense inventories. They are preview data, never native
 selection or application sample input.
 
-## Bounded candidate computation
+## Upstream reuse and integration boundary
+
+The native integration direction is to display declared dependencies and static
+import/library associations through the pinned `object` APIs first. Upstream
+already interprets relationships within binary metadata: `Object::import_libraries`
+enumerates declarations and assigns ordinals; `Object::imports` maps ordinary
+library ordinals to recorded library names. Upstream bind-program and reexport
+interpretation should also be reused when those records are needed. See the
+[import implementation](https://github.com/gimli-rs/object/blob/4201cd4cd8026aed31377ce4193367b8c520d522/src/read/macho/import.rs#L146-L164)
+and [ordinal association](https://github.com/gimli-rs/object/blob/4201cd4cd8026aed31377ce4193367b8c520d522/src/read/macho/import.rs#L225-L255).
+
+The boundary is:
+
+```text
+Library ordinal
+    object -> recorded library name
+
+Recorded library name + inventory + explicit context
+    optional application evaluator -> candidate files
+
+Actual runtime provider, symbol lookup and binding
+    outside the current Explorer
+```
+
+A runpath's declaring image is known from the file being parsed; attaching the
+inventory's image identity is bookkeeping. Retain declaration bytes, order and
+source provenance without recreating upstream interpretation. Special ordinals,
+flat lookup and missing associations must remain explicit instead of becoming
+fabricated provider-file endpoints.
+
+The first native milestone will present these declarations and upstream import
+associations without requiring file-candidate evaluation. A later candidate
+capability can consume an acquired inventory and explicit context when a product
+interaction requires concrete file candidates. Path-token expansion and inherited
+runpath search model loader semantics; the acquired inventory boundary, exact-CPU
+filter and alias budget are deliberately limited application choices. They are
+not required merely to display dependency evidence. The current synthetic preview
+continues to exercise these choices through authored fixtures.
+
+Keep ordinary Rust APIs and owned evidence small, preserving the existing
+header-only inspection contract. Choose upstream APIs whose read scope matches
+the operation: constructing `MachOFile` can acquire section and symbol metadata.
+Declaration display does not require a general loader subsystem. Upstream's
+[documented scope](https://github.com/gimli-rs/object/blob/4201cd4cd8026aed31377ce4193367b8c520d522/README.md#L61-L63)
+excludes reproducing platform-loader behavior.
+
+## Existing synthetic candidate computation
 
 A resolution context supplies a main executable, referring image and ordered
 runpaths, including the image declaring each runpath. The library supports exact
@@ -104,12 +150,18 @@ independent expectations. UI tests and real-browser checks establish linked
 presentation behavior. The ordinary library can compile for browser Wasm, but
 this preview does not add a component export or execute resolution inside Wasm.
 
-Real acquisition requires a separate extension: current native entry IDs are
+Initial native integration will expose upstream dependency declarations and
+import/library associations through the selected binary's existing bounded-input
+path. That milestone does not require a whole-bundle inventory or candidate
+evaluation. Actual dependency/runpath extraction and selected WIT adapters still
+require their own native/browser qualification.
+
+Whole-bundle acquisition is a separate extension: current native entry IDs are
 listing-scoped; opening a directory replaces selection; symlink targets and a
 retained whole-bundle inventory are unavailable. Future native inventory and
 read-link capabilities must preserve selection/resource ownership and bounded
-reads, then feed the same Rust model. Actual dependency/runpath extraction and
-selected WIT adapters require their own native/browser qualification.
+reads. Optional candidate queries can consume the acquired facts and explicit
+context separately.
 
 ### Validation recorded on 2026-10-29
 

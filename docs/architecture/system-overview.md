@@ -210,6 +210,12 @@ remains on the workbench page. The [synthetic relationship contract](capabilitie
 describes supported references and evidence limits; this preview neither acquires
 a real bundle nor runs a live Wasm resolver.
 
+Native Explorer integration will first present upstream-declared dependencies
+and static import/library associations. File-candidate evaluation remains a
+separate capability requiring inventory and explicit context; actual runtime
+provider selection, symbol lookup and binding stay outside the current Explorer.
+See the [upstream integration boundary](capabilities/explorer-relationships.md#upstream-reuse-and-integration-boundary).
+
 Navigating from the workbench to `/explorer` ends the workbench owner and its
 in-memory report. Returning creates a new owner that queries retained native
 selection. Switching only the workbench's `view` query parameter keeps the existing
@@ -248,7 +254,12 @@ Native selection, bounded reads and limited directory navigation are implemented
 Complete application traversal, metadata fidelity and source consistency still
 require the [filesystem acceptance checks](../filesystem/requirements.md).
 
-Next stages: signatures/certificates, bundle and resource graphs, dependency resolution, variant comparisons, then native verification and controlled rebuild execution. Their directories and APIs will be introduced when implemented, rather than adding nonfunctional exports now.
+Next stages include signatures/certificates, bundle and resource graphs,
+upstream dependency declarations and import associations, variant comparisons,
+then native verification and controlled rebuild execution. File-candidate
+evaluation is a separate extension when product interactions require it. Their
+directories and APIs will be introduced when implemented, rather than adding
+nonfunctional exports now.
 
 Before that full native executor, the proposed [early LIEF rewriting experiment](../libraries/lief-native-macho-rewriting-experiment.md) will evaluate dependency/rpath changes on controlled thin and universal fixtures, with separate signing and independent validation. It can proceed alongside evaluation of deeper portable analysis. For that initial rewriting experiment, LIEF stays in a native development harness; this plan adds no dependency to the core, component or browser application. The separate [LIEF integration study](../libraries/lief-selective-builds-and-wasm.md) evaluates possible Wasm delivery without changing this experiment’s native scope.
 
