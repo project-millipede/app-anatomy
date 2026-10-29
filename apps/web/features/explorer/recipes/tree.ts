@@ -183,6 +183,25 @@ export const tree = defineSlotRecipe({
       paddingInline: '0.25rem',
       border: '1px solid transparent',
       borderRadius: '0.375rem',
+      '&[data-relation-role="in"]': {
+        color: 'var(--explorer-incoming)',
+        background:
+          'color-mix(in srgb, var(--explorer-incoming) 12%, var(--acw-colors-surface))',
+      },
+      '&[data-relation-role="out"]': {
+        color: 'var(--explorer-outgoing)',
+        background:
+          'color-mix(in srgb, var(--explorer-outgoing) 12%, var(--acw-colors-surface))',
+      },
+      '&[data-relation-role="inout"]': {
+        color: 'var(--explorer-incoming)',
+        background:
+          'linear-gradient(90deg, color-mix(in srgb, var(--explorer-incoming) 12%, var(--acw-colors-surface)), color-mix(in srgb, var(--explorer-outgoing) 12%, var(--acw-colors-surface)))',
+      },
+      '&[data-active-endpoint]': {
+        outline: '2px solid currentColor',
+        outlineOffset: '-1px',
+      },
     },
     icon: {
       display: 'inline-flex',
