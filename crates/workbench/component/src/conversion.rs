@@ -50,19 +50,35 @@ fn dependency_evidence(
     value: core::DependencyEvidence,
     header_flags: u32,
 ) -> binary::DependencyEvidence {
+    let groups = value.group_imports(header_flags);
     binary::DependencyEvidence {
-        libraries: value.libraries.into_iter().map(declared_library).collect(),
+        libraries: value
+            .libraries
+            .into_iter()
+            .zip(groups.libraries)
+            .map(|(library, indices)| declared_library(library, indices))
+            .collect(),
         imports: value
             .imports
             .into_iter()
             .map(|value| imported_symbol(value, header_flags))
             .collect(),
+        unassociated_import_indices: import_indices(groups.unassociated),
         runpaths: value.runpaths.into_iter().map(byte_string).collect(),
         install_names: value.install_names.into_iter().map(byte_string).collect(),
     }
 }
 
-fn declared_library(value: core::DeclaredLibrary) -> binary::DeclaredLibrary {
+fn import_indices(indices: Vec<usize>) -> Vec<u32> {
+    indices
+        .into_iter()
+        .map(|index| {
+            u32::try_from(index).expect("component import indices fit the WIT list index width")
+        })
+        .collect()
+}
+
+fn declared_library(value: core::DeclaredLibrary, indices: Vec<usize>) -> binary::DeclaredLibrary {
     let ImportLibraryFlags::MachO {
         ordinal,
         cmd,
@@ -75,6 +91,7 @@ fn declared_library(value: core::DeclaredLibrary) -> binary::DeclaredLibrary {
     };
     binary::DeclaredLibrary {
         name: byte_string(value.name),
+        import_indices: import_indices(indices),
         ordinal,
         command: macho_value(cmd.into_inner(), cmd.name()),
         current_version: current_version.to_string(),
@@ -211,6 +228,7 @@ mod tests {
             },
             0,
         );
+        assert_eq!(projected.unassociated_import_indices, [0]);
         let import = &projected.imports[0];
         assert_eq!(import.name.bytes, [b'_', 0xff]);
         assert_eq!(import.name.display, "_\\xff");
