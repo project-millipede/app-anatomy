@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, type CSSProperties } from 'react';
+import { useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { Archer, type ArcherTypes } from '@apple-code/archer';
 import { Button } from '../workspace/ark/Button';
 import { BridgeGrid, BridgeViewport } from './layout/BridgeGrid';
@@ -8,11 +8,12 @@ import { BridgeSection, type BridgePosition } from './layout/BridgeSection';
 import { CanvasPane } from './layout/CanvasPane';
 import { getCorridorPage } from './corridorLayout';
 import type {
-  PreviewDataset,
-  PreviewEntry,
-  PreviewNeighborhood,
-  PreviewConnection,
-} from './previewInventory';
+  CanvasDataset,
+  CanvasEntry,
+  CanvasNeighborhood,
+  CanvasConnection,
+  CanvasMode,
+} from './canvasPresentation';
 import styles from './ExplorerLayout.module.css';
 
 const { ArcherSurface, ArcherElement } = Archer;
@@ -28,12 +29,45 @@ const bridgeLabels = {
     'System references and unknown targets',
   ],
 } as const;
+const declarationBridgeLabels = {
+  north: ['External ingress', 'Incoming references were not acquired'],
+  west: ['Incoming references', 'Source relationships were not acquired'],
+  east: ['File targets', 'Containment has not been evaluated'],
+  south: ['Declared references', 'Library names recorded in this slice'],
+} as const;
+const declarationEmptyLabels = {
+  north: 'External incoming references are unknown; they were not acquired.',
+  west: 'Incoming source relationships are unknown; they were not acquired.',
+  east: 'File targets and containment have not been evaluated.',
+  south: 'No declared library references were returned for this slice.',
+} as const;
 const positions = ['north', 'west', 'east', 'south'] as const;
 const firstPages: Record<BridgePosition, number> = {
   north: 0,
   west: 0,
   east: 0,
   south: 0,
+};
+
+export type ExplorerRelationshipCanvasProps = {
+  dataset: CanvasDataset;
+  selectedEntry: CanvasEntry | undefined;
+  neighborhood: CanvasNeighborhood | undefined;
+  contextId: string;
+  activeRelationshipId: string | null;
+  canGoBack: boolean;
+  onContextChange: (id: string) => void;
+  onPreview: (connection: CanvasConnection) => void;
+  onClearPreview: () => void;
+  onBack: () => void;
+  /** Declarations do not claim a file target, acquired inventory or bundle boundary. */
+  mode?: CanvasMode;
+  /** Distinguish absent dependency inspection from a completed empty declaration list. */
+  declarationsInspected?: boolean;
+  /** Selected-file actions, supplied by the presentation owner. */
+  actions?: ReactNode;
+  /** Operation feedback kept beside the actions rather than in navigation. */
+  feedback?: ReactNode;
 };
 
 /** Fixed presentation slots pair each visible card with its own center-edge port. */
@@ -48,18 +82,12 @@ export function ExplorerRelationshipCanvas({
   onPreview,
   onClearPreview,
   onBack,
-}: {
-  dataset: PreviewDataset;
-  selectedEntry: PreviewEntry | undefined;
-  neighborhood: PreviewNeighborhood | undefined;
-  contextId: string;
-  activeRelationshipId: string | null;
-  canGoBack: boolean;
-  onContextChange: (id: string) => void;
-  onPreview: (connection: PreviewConnection) => void;
-  onClearPreview: () => void;
-  onBack: () => void;
-}) {
+  mode = 'inventory',
+  declarationsInspected = true,
+  actions,
+  feedback,
+}: ExplorerRelationshipCanvasProps) {
+  const declarations = mode === 'declarations';
   const instanceId = useId();
   const layoutKey = JSON.stringify([dataset.id, selectedEntry?.id, contextId]);
   const [pageState, setPageState] = useState({
@@ -68,7 +96,7 @@ export function ExplorerRelationshipCanvas({
   });
   const requestedPages =
     pageState.key === layoutKey ? pageState.pages : firstPages;
-  const allLinks: Record<BridgePosition, readonly PreviewConnection[]> = {
+  const allLinks: Record<BridgePosition, readonly CanvasConnection[]> = {
     north: neighborhood?.north ?? [],
     west: neighborhood?.west ?? [],
     east: neighborhood?.east ?? [],
@@ -89,14 +117,17 @@ export function ExplorerRelationshipCanvas({
     ]),
   );
   const entries = new Map(dataset.entries.map((entry) => [entry.id, entry]));
-  const rootEntry = dataset.entries.find((entry) => entry.parentId === null);
+  const rootEntry = declarations
+    ? undefined
+    : dataset.entries.find((entry) => entry.parentId === null);
+  const rootPath = rootEntry?.path;
   const displayPath = (path: string) =>
-    rootEntry && path.startsWith(`${rootEntry.path}/Contents/`)
-      ? path.slice(`${rootEntry.path}/Contents/`.length)
+    rootPath && path.startsWith(`${rootPath}/Contents/`)
+      ? path.slice(`${rootPath}/Contents/`.length)
       : path;
   const endpointId = (
     position: BridgePosition,
-    link: PreviewConnection,
+    link: CanvasConnection,
     kind: 'card' | 'port',
   ) =>
     `${instanceId}-${kind}-${encodeURIComponent(JSON.stringify([layoutKey, position, link.relationshipId]))}`;
@@ -104,7 +135,7 @@ export function ExplorerRelationshipCanvas({
   function connection(
     position: BridgePosition,
     targetId: string,
-    link: PreviewConnection,
+    link: CanvasConnection,
   ): ArcherTypes.Relation {
     const relationship = relations.get(link.relationshipId)!;
     const active = link.relationshipId === activeRelationshipId;
@@ -127,7 +158,8 @@ export function ExplorerRelationshipCanvas({
           ? color
           : `color-mix(in srgb, ${color} 45%, transparent)`,
         strokeWidth: active ? 2 : 1,
-        ...((position === 'west' || position === 'east') &&
+        ...(!declarations &&
+        (position === 'west' || position === 'east') &&
         relationship.status === 'candidates' &&
         relationship.kind !== 'alias'
           ? { strokeDasharray: '4 3' }
@@ -148,11 +180,19 @@ export function ExplorerRelationshipCanvas({
 
   function bridge(position: BridgePosition) {
     const view = views.find((value) => value.position === position)!;
-    const [title, description] = bridgeLabels[position];
+    const [title, description] = (
+      declarations ? declarationBridgeLabels : bridgeLabels
+    )[position];
+    const heading =
+      declarations && position !== 'south'
+        ? `${title} · ${position === 'east' ? 'not evaluated' : 'unknown'}`
+        : declarations && !declarationsInspected
+          ? `${title} · not inspected`
+          : `${title} (${view.total})`;
     return (
       <BridgeSection
         position={position}
-        title={`${title} (${view.total})`}
+        title={heading}
         description={description}
         controls={
           <div className={styles.corridorPager}>
@@ -195,15 +235,18 @@ export function ExplorerRelationshipCanvas({
               );
             const relationship = relations.get(link.relationshipId)!;
             const endpoint =
-              link.endpointIds.length === 1
+              !declarations && link.endpointIds.length === 1
                 ? entries.get(link.endpointIds[0]!)
                 : undefined;
             const label = endpoint
               ? `${endpoint.name}${endpoint.kind === 'alias' ? ' · alias' : ''}`
               : relationship.label;
-            const path = endpoint
+            const path = endpoint?.path
               ? displayPath(endpoint.path)
               : relationship.reference;
+            const cardStatus = declarations
+              ? 'Target not evaluated'
+              : relationship.status.replaceAll('-', ' ');
             const active = relationship.id === activeRelationshipId;
             const incoming = position === 'north' || position === 'west';
             return (
@@ -239,12 +282,9 @@ export function ExplorerRelationshipCanvas({
                     </span>
                     <strong title={label}>{label}</strong>
                     <code title={path}>{path}</code>
-                    <span
-                      className={styles.cardStatus}
-                      title={relationship.status.replaceAll('-', ' ')}
-                    >
-                      {relationship.status.replaceAll('-', ' ')}
-                      {link.endpointIds.length > 1
+                    <span className={styles.cardStatus} title={cardStatus}>
+                      {cardStatus}
+                      {!declarations && link.endpointIds.length > 1
                         ? ` · ${link.endpointIds.length} endpoints`
                         : ''}
                     </span>
@@ -255,9 +295,13 @@ export function ExplorerRelationshipCanvas({
           })}
           {view.total === 0 && (
             <p className={styles.emptyBridge}>
-              {position === 'north'
-                ? 'No external incoming records supplied.'
-                : 'No references in this context.'}
+              {declarations
+                ? position === 'south' && !declarationsInspected
+                  ? 'Inspect the selected file to read declared references.'
+                  : declarationEmptyLabels[position]
+                : position === 'north'
+                  ? 'No external incoming records supplied.'
+                  : 'No references in this context.'}
             </p>
           )}
         </div>
@@ -270,7 +314,11 @@ export function ExplorerRelationshipCanvas({
       back={
         <Button
           disabled={!canGoBack}
-          aria-label="Back to previous resource"
+          aria-label={
+            declarations
+              ? 'Back to source evidence'
+              : 'Back to previous resource'
+          }
           className={styles.compactButton}
           onClick={onBack}
         >
@@ -280,15 +328,22 @@ export function ExplorerRelationshipCanvas({
       location={
         <div className={styles.path}>
           <span className={styles.placeholderEyebrow}>
-            Selected entry / exact location
+            {declarations
+              ? 'Selected native file / display name'
+              : 'Selected entry / exact location'}
           </span>
-          <span>{selectedEntry?.path ?? 'Choose an inventory entry'}</span>
+          <span>
+            {declarations
+              ? (selectedEntry?.name ?? 'No native file selected')
+              : (selectedEntry?.path ?? 'Choose an inventory entry')}
+          </span>
         </div>
       }
       context={
         <div className={styles.previewControls}>
+          {actions}
           <label className={styles.selectLabel}>
-            Architecture context
+            {declarations ? 'Architecture slice' : 'Architecture context'}
             <select
               value={contextId}
               onChange={(event) => onContextChange(event.target.value)}
@@ -302,6 +357,7 @@ export function ExplorerRelationshipCanvas({
           </label>
         </div>
       }
+      feedback={feedback}
       canvas={
         <BridgeViewport>
           <ArcherSurface
@@ -312,6 +368,7 @@ export function ExplorerRelationshipCanvas({
             svgElementProps={{ 'aria-hidden': true }}
           >
             <BridgeGrid
+              showBoundary={!declarations}
               north={bridge('north')}
               west={bridge('west')}
               east={bridge('east')}
@@ -320,7 +377,7 @@ export function ExplorerRelationshipCanvas({
                 <div className={styles.focusNode}>
                   <div className={styles.focusPlaceholder}>
                     <span className={styles.placeholderEyebrow}>
-                      Selected entry
+                      {declarations ? 'Selected native file' : 'Selected entry'}
                     </span>
                     <div className={styles.focusTitle}>
                       <span className={styles.fileGlyph} aria-hidden="true">
@@ -330,14 +387,20 @@ export function ExplorerRelationshipCanvas({
                         <strong title={selectedEntry?.name}>
                           {selectedEntry?.name ?? 'Choose an entry'}
                         </strong>
-                        <p>{selectedEntry?.kind.replaceAll('-', ' ')}</p>
+                        <p>
+                          {declarations
+                            ? 'Source file only'
+                            : selectedEntry?.kind?.replaceAll('-', ' ')}
+                        </p>
                       </div>
                     </div>
-                    <code title={selectedEntry?.path}>
-                      {selectedEntry
-                        ? displayPath(selectedEntry.path)
-                        : undefined}
-                    </code>
+                    {!declarations && (
+                      <code title={selectedEntry?.path}>
+                        {selectedEntry?.path
+                          ? displayPath(selectedEntry.path)
+                          : undefined}
+                      </code>
+                    )}
                     <div className={styles.focusMeta}>
                       <span
                         title={
@@ -352,9 +415,15 @@ export function ExplorerRelationshipCanvas({
                           )?.label
                         }
                       </span>
-                      <span title={rootEntry?.name}>
-                        Scope: {rootEntry?.name}
-                      </span>
+                      {declarations ? (
+                        <span title="Only the selected source file is represented.">
+                          Source only
+                        </span>
+                      ) : (
+                        <span title={rootEntry?.name}>
+                          Scope: {rootEntry?.name}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {views.flatMap((view) =>
@@ -406,36 +475,59 @@ export function ExplorerRelationshipCanvas({
       }
       legend={
         <div className={styles.legend} aria-label="Connection legend">
-          <span>
-            <i className={`${styles.legendSwatch} ${styles.incomingSwatch}`} />
-            Bundle ingress
-          </span>
-          <span>
-            <i className={styles.legendSwatch} />
-            Bundle egress
-          </span>
-          <span>
-            <i className={`${styles.legendSwatch} ${styles.externalSwatch}`} />
-            External / unresolved
-          </span>
-          <span>
-            <i className={`${styles.legendSwatch} ${styles.candidateSwatch}`} />
-            Candidate / inferred
-          </span>
+          {declarations ? (
+            <span>
+              <i
+                className={`${styles.legendSwatch} ${styles.externalSwatch}`}
+              />
+              Declared reference · file target not evaluated
+            </span>
+          ) : (
+            <>
+              <span>
+                <i
+                  className={`${styles.legendSwatch} ${styles.incomingSwatch}`}
+                />
+                Bundle ingress
+              </span>
+              <span>
+                <i className={styles.legendSwatch} />
+                Bundle egress
+              </span>
+              <span>
+                <i
+                  className={`${styles.legendSwatch} ${styles.externalSwatch}`}
+                />
+                External / unresolved
+              </span>
+              <span>
+                <i
+                  className={`${styles.legendSwatch} ${styles.candidateSwatch}`}
+                />
+                Candidate / inferred
+              </span>
+            </>
+          )}
         </div>
       }
       status={
-        activeRelationshipId
-          ? positions.some((position) =>
-              allLinks[position].some(
-                (link) =>
-                  link.relationshipId === activeRelationshipId &&
-                  link.endpointIds.length > 0,
-              ),
-            )
-            ? 'Previewing a relationship. Its direct endpoints are outlined in the tree; the center selection is unchanged.'
-            : 'Previewing recorded evidence. This reference has no internal tree endpoint.'
-          : 'Select a relationship to inspect its recorded evidence. Corridors show up to three relationships at a time.'
+        declarations
+          ? !declarationsInspected
+            ? 'Inspect the selected file to read declared references.'
+            : activeRelationshipId
+              ? 'Previewing a declared reference. Its file target has not been evaluated.'
+              : 'Select a declared reference to inspect its evidence. Target files and incoming references have not been evaluated.'
+          : activeRelationshipId
+            ? positions.some((position) =>
+                allLinks[position].some(
+                  (link) =>
+                    link.relationshipId === activeRelationshipId &&
+                    link.endpointIds.length > 0,
+                ),
+              )
+              ? 'Previewing a relationship. Its direct endpoints are outlined in the tree; the center selection is unchanged.'
+              : 'Previewing recorded evidence. This reference has no internal tree endpoint.'
+            : 'Select a relationship to inspect its recorded evidence. Corridors show up to three relationships at a time.'
       }
     />
   );

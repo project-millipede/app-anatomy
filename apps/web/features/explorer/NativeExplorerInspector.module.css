@@ -1,0 +1,82 @@
+.shared {
+  --dependency-border: var(--acw-colors-border);
+  --dependency-muted: var(--acw-colors-muted);
+  --dependency-background: var(--acw-colors-background);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.header {
+  display: grid;
+  gap: 8px;
+}
+.header h2,
+.header p,
+.content h3,
+.content p {
+  margin: 0;
+}
+.header h2 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.header p,
+.note,
+.metadata dt {
+  color: var(--acw-colors-muted);
+}
+.eyebrow {
+  color: var(--acw-colors-muted);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.content > .note + section {
+  margin-block-start: 16px;
+}
+.content > section + section {
+  margin-block-start: 16px;
+  padding-block-start: 16px;
+  border-block-start: var(--acw-borders-divider);
+}
+.content h3 {
+  margin-block-end: 8px;
+  color: var(--acw-colors-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.metadata {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+}
+.metadata dt {
+  font-size: 10px;
+}
+.metadata dd {
+  margin: 2px 0 0;
+}
+.names {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-inline-start: 18px;
+}
+.symbols > section {
+  margin-block-start: 10px;
+}
+.symbols h4 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.symbols ol {
+  margin-block: 0;
+  padding-inline-start: 18px;
+}
+.symbols li {
+  padding: 10px;
+  margin-block-end: 8px;
+}
