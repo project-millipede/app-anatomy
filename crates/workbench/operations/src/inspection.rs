@@ -1,6 +1,6 @@
 use crate::{Failure, Outcome, Session, StepKind, StepOutcome};
 use binary_inspection::{
-    BinaryReport, InspectionError,
+    AnalysisScope, BinaryReport, InspectionError,
     input::{ByteSource, SourceError},
 };
 use filesystem_protocol::MAX_REQUEST_BYTES;
@@ -55,10 +55,26 @@ impl Session {
     /// The outcome retains selection, metadata, source or analyzer failures in
     /// its step.
     pub fn inspect(&mut self, resource: &str) -> InspectionOutcome {
+        self.inspect_scope(resource, AnalysisScope::HeadersOnly)
+    }
+
+    /// Inspect declared dependencies and upstream import associations for the selected file.
+    ///
+    /// Uses the same retained selection and bounded source workflow as [`Self::inspect`].
+    /// The deeper parser may request symbol and link-edit metadata. Results describe
+    /// recorded evidence, not acquired target files or runtime binding.
+    ///
+    /// # Errors
+    /// The outcome retains selection, metadata, source or analyzer failures in its step.
+    pub fn inspect_dependencies(&mut self, resource: &str) -> InspectionOutcome {
+        self.inspect_scope(resource, AnalysisScope::Dependencies)
+    }
+
+    fn inspect_scope(&mut self, resource: &str, scope: AnalysisScope) -> InspectionOutcome {
         let analysis = self
             .ensure_file(resource)
             .map_err(InspectionFailure::Selection)
-            .and_then(|()| self.analyze(resource));
+            .and_then(|()| self.analyze(resource, scope));
         Outcome {
             steps: vec![StepOutcome {
                 kind: StepKind::Inspect,
@@ -67,7 +83,11 @@ impl Session {
         }
     }
 
-    fn analyze(&mut self, resource: &str) -> Result<BinaryReport, InspectionFailure> {
+    fn analyze(
+        &mut self,
+        resource: &str,
+        scope: AnalysisScope,
+    ) -> Result<BinaryReport, InspectionFailure> {
         let byte_length = self
             .byte_length(resource)
             .map_err(InspectionFailure::Metadata)?;
@@ -76,7 +96,13 @@ impl Session {
             resource,
             byte_length,
         };
-        binary_inspection::inspect_source(&mut source).map_err(InspectionFailure::Inspection)
+        match scope {
+            AnalysisScope::HeadersOnly => binary_inspection::inspect_source(&mut source),
+            AnalysisScope::Dependencies => {
+                binary_inspection::inspect_dependencies_source(&mut source)
+            }
+        }
+        .map_err(InspectionFailure::Inspection)
     }
 }
 struct RemoteSource<'operation> {

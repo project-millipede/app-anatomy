@@ -90,3 +90,18 @@ fn a_command_table_larger_than_one_remote_read_is_filled_in_chunks() {
         ]
     );
 }
+
+#[test]
+fn dependency_inspection_uses_the_selected_source_without_falling_back_to_headers() {
+    let observed = Rc::new(RefCell::new(Observed::default()));
+    let mut session = file(macho(), observed);
+
+    let outcome = session.inspect_dependencies(&resource('a'));
+
+    let [step] = outcome.steps.as_slice() else {
+        panic!("expected one completed inspection step");
+    };
+    let report = step.result.as_ref().unwrap();
+    assert_eq!(report.scope, binary_inspection::AnalysisScope::Dependencies);
+    assert!(report.images[0].dependencies.is_some());
+}

@@ -46,20 +46,25 @@ impl wire::GuestSession for NativeSession {
         ))
     }
     fn inspect(&self, resource: String) -> wire::InspectionOutcome {
-        let outcome = self.session.borrow_mut().inspect(&resource);
-        wire::InspectionOutcome {
-            steps: outcome
-                .steps
-                .into_iter()
-                .map(|step| wire::InspectionStepOutcome {
-                    kind: step.kind,
-                    result: step
-                        .result
-                        .map(conversion::report)
-                        .map_err(inspection_failure),
-                })
-                .collect(),
-        }
+        inspection_outcome(self.session.borrow_mut().inspect(&resource))
+    }
+    fn inspect_dependencies(&self, resource: String) -> wire::InspectionOutcome {
+        inspection_outcome(self.session.borrow_mut().inspect_dependencies(&resource))
+    }
+}
+fn inspection_outcome(value: client::InspectionOutcome) -> wire::InspectionOutcome {
+    wire::InspectionOutcome {
+        steps: value
+            .steps
+            .into_iter()
+            .map(|step| wire::InspectionStepOutcome {
+                kind: step.kind,
+                result: step
+                    .result
+                    .map(conversion::report)
+                    .map_err(inspection_failure),
+            })
+            .collect(),
     }
 }
 fn selection_outcome(value: client::SelectionOutcome) -> wire::SelectionOutcome {

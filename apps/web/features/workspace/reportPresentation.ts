@@ -28,6 +28,8 @@ export const endiannessLabels: Record<Endianness, string> = {
 export const scopeLabels: Record<AnalysisScope, string> = {
   'headers-only':
     'Header analysis only. Certificates, signature integrity, bundle resources and runtime acceptance have not been evaluated.',
+  dependencies:
+    'Declared libraries and imported-symbol associations are extracted from this file. Filesystem targets, runtime loading, certificates and signature validity have not been evaluated.',
 };
 
 /**

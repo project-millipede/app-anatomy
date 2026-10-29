@@ -1,6 +1,6 @@
-package apple-code:analysis@0.5.0;
+package apple-code:analysis@0.6.0;
 
-/// Portable header analysis. All offsets are absolute offsets in the input file.
+/// Portable header and dependency evidence analysis. All offsets are absolute offsets in the input file.
 interface binary {
   enum endianness {
     little,
@@ -20,6 +20,7 @@ interface binary {
 
   enum analysis-scope {
     headers-only,
+    dependencies,
   }
 
   /// An input-file range. Offset and size remain u64 across the component boundary.
@@ -64,6 +65,56 @@ interface binary {
     data-range: file-range,
   }
 
+  /// Original bytes plus a Rust-provided display label; display text is not an opening path.
+  record byte-string {
+    bytes: list<u8>,
+    display: string,
+  }
+
+  /// An upstream-reported declared library. It is not a resolved file or runtime binding.
+  record declared-library {
+    name: byte-string,
+    ordinal: u32,
+    command: macho-value,
+    current-version: string,
+    compatibility-version: string,
+    use-flags: option<macho-value>,
+  }
+
+  record symbol-import-flags {
+    n-type: u8,
+    n-desc: u16,
+  }
+
+  record bind-import-flags {
+    dylib: s32,
+    %flags: u8,
+  }
+
+  /// Exact upstream Mach-O metadata, including signed special bind ordinals.
+  variant import-flags {
+    none,
+    mach-o(symbol-import-flags),
+    mach-o-bind(bind-import-flags),
+    other(string),
+  }
+
+  record imported-symbol {
+    name: byte-string,
+    library: byte-string,
+    weak: bool,
+    /// Rust describes the upstream association or its absence without resolving a file.
+    association: string,
+    %flags: import-flags,
+  }
+
+  record dependency-evidence {
+    libraries: list<declared-library>,
+    imports: list<imported-symbol>,
+    runpaths: list<byte-string>,
+    install-names: list<byte-string>,
+  }
+
   record image {
     cpu: cpu-identity,
     header-format: header-format,
@@ -73,6 +124,8 @@ interface binary {
     header-flags: u32,
     platforms: list<platform-declaration>,
     signature-commands: list<signature-command>,
+    /// None for header-only analysis; Some(empty) means dependency inspection completed.
+    dependencies: option<dependency-evidence>,
   }
 
   record report {

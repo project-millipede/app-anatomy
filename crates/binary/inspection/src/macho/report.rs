@@ -158,6 +158,7 @@ fn inspect_header<'data, Header: MachHeader<Endian = Endianness>, Data: ReadRef<
         header_flags: header.flags(endian).into_inner(),
         platforms: Vec::new(),
         signature_commands: Vec::new(),
+        dependencies: None,
     };
     for command in commands {
         let command = command.map_err(decode_error)?;

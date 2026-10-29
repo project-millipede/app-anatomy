@@ -1,4 +1,4 @@
-package apple-code:analysis@0.5.0;
+package apple-code:analysis@0.6.0;
 
 interface native {
   use binary.{report};
@@ -47,6 +47,8 @@ interface native {
     open-file: func(directory: string, entry-id: u32) -> selection-outcome;
     open-directory: func(directory: string, entry-id: u32) -> selection-outcome;
     inspect: func(%resource: string) -> inspection-outcome;
+    /// Declared dependencies and upstream import associations, without runtime binding.
+    inspect-dependencies: func(%resource: string) -> inspection-outcome;
   }
   create-selection-session: func() -> own<session>;
 }
