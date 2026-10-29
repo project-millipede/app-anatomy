@@ -1,9 +1,25 @@
 use crate::{Failure, Outcome, StepOutcome, Transport};
-use filesystem_data::DirectoryEntryKind;
+use filesystem_data::{DirectoryEntry, DirectoryEntryKind};
 use filesystem_protocol::{
-    FileError, Request, Response, SelectionState, decode_response, encode_request,
-    validate_response,
+    DirectoryEntryRef, DirectoryListing, FileError, Request, Response, SelectedResource,
+    SelectionState as NativeSelectionState, decode_response, encode_request, validate_response,
 };
+use serde::Serialize;
+use std::collections::HashSet;
+
+/// A bounded observation of native selection and this client's loaded directory snapshots.
+/// The native owner retains resources; this projection never contains native paths.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
+pub struct SelectionState {
+    pub file: Option<SelectedResource>,
+    pub directory: Option<SelectedResource>,
+    pub entries: Vec<DirectoryEntry>,
+    pub root: Option<SelectedResource>,
+    pub file_entry: Option<DirectoryEntryRef>,
+    pub directories: Vec<DirectoryListing>,
+}
+
+const MAX_LOADED_DIRECTORIES: usize = 64;
 
 /// Identifies a completed filesystem-client action.
 #[repr(u8)]
@@ -19,6 +35,8 @@ pub enum StepKind {
     QuerySelection,
     /// Validate and analyze a retained file.
     Inspect,
+    /// Load a child listing without changing the native file or directory cursor.
+    ExpandDirectory,
 }
 
 /// An identified selection-related step and its original result.
@@ -44,12 +62,18 @@ pub type SelectionOutcome = Outcome<SelectionStepOutcome>;
 /// their transport completes or fails. Transport connection bounds are separate.
 pub struct Session {
     transport: Box<dyn Transport>,
+    root: Option<String>,
+    directories: Vec<DirectoryListing>,
 }
 
 impl Session {
     /// Own a transport without sending a request or selecting a resource.
     pub fn new(transport: Box<dyn Transport>) -> Self {
-        Self { transport }
+        Self {
+            transport,
+            root: None,
+            directories: Vec::new(),
+        }
     }
 
     fn request(&mut self, request: Request) -> Result<Response, Failure> {
@@ -82,18 +106,134 @@ impl Session {
         }
     }
 
-    /// Query the native owner's current selection without changing it.
-    ///
-    /// An empty successful result confirms that nothing is selected. An error
-    /// leaves the state unknown; it must not be interpreted as an empty selection.
-    ///
-    /// # Errors
-    /// Returns transport, protocol or provider failures from the query.
-    pub fn current_selection(&mut self) -> Result<SelectionState, Failure> {
+    fn observe_selection(&mut self) -> Result<NativeSelectionState, Failure> {
         let Response::Selection(state) = self.request(Request::CurrentSelection)? else {
             unreachable!("response was validated against its request");
         };
+        let root = state.root.as_ref().map(|root| root.resource.clone());
+        if self.root != root {
+            self.directories.clear();
+            self.root = root;
+        }
         Ok(state)
+    }
+
+    fn list_directory(&mut self, resource: &str) -> Result<DirectoryListing, Failure> {
+        let Response::Directory(listing) = self.request(Request::ListDirectory {
+            resource: resource.into(),
+        })?
+        else {
+            unreachable!("response was validated against its request");
+        };
+        Ok(listing)
+    }
+
+    /// Load missing ancestors, with a client-side bound independent of the provider.
+    fn load_chain(
+        &mut self,
+        directories: &mut Vec<DirectoryListing>,
+        resource: &str,
+    ) -> Result<(), Failure> {
+        let mut current = resource.to_owned();
+        let mut visited = HashSet::new();
+        while !directories
+            .iter()
+            .any(|item| item.directory.resource == current)
+        {
+            if !visited.insert(current.clone()) || directories.len() >= MAX_LOADED_DIRECTORIES {
+                return Err(Failure::precondition(
+                    "The native directory hierarchy exceeds its bound or contains a cycle.",
+                ));
+            }
+            let listing = self.list_directory(&current)?;
+            let parent = listing
+                .parent
+                .as_ref()
+                .map(|parent| parent.directory.clone());
+            directories.push(listing);
+            let Some(parent) = parent else { break };
+            current = parent;
+        }
+        Ok(())
+    }
+
+    /// Query selection and hydrate its root, cursor and selected-file ancestry.
+    ///
+    /// Loaded snapshots survive within the same mount. A changed root invalidates
+    /// them. The follow-up observation rejects replacement during hydration rather
+    /// than publishing a mixture of two native selections.
+    ///
+    /// # Errors
+    /// Returns transport/provider errors or inconsistent, cyclic or oversized hierarchy data.
+    pub fn current_selection(&mut self) -> Result<SelectionState, Failure> {
+        let state = self.observe_selection()?;
+        let mut directories = self.directories.clone();
+        if let Some(root) = &state.root {
+            self.load_chain(&mut directories, &root.resource)?;
+            if let Some(cursor) = &state.directory {
+                self.load_chain(&mut directories, &cursor.resource)?;
+            }
+            if let Some(origin) = &state.file_entry {
+                self.load_chain(&mut directories, &origin.directory)?;
+            }
+            validate_directories(&directories, root)?;
+            let cursor = state
+                .directory
+                .as_ref()
+                .ok_or_else(|| Failure::precondition("A mounted root has no directory cursor."))?;
+            let listing = directories
+                .iter()
+                .find(|item| item.directory == *cursor)
+                .ok_or_else(|| {
+                    Failure::precondition("The directory cursor is not in the mounted hierarchy.")
+                })?;
+            if listing.entries != state.entries {
+                return Err(Failure::precondition(
+                    "The directory cursor does not match its captured listing.",
+                ));
+            }
+            if let Some(origin) = &state.file_entry {
+                let entry = directories
+                    .iter()
+                    .find(|item| item.directory.resource == origin.directory)
+                    .and_then(|listing| {
+                        listing
+                            .entries
+                            .iter()
+                            .find(|entry| entry.id == origin.entry_id)
+                    });
+                if !matches!((entry, &state.file), (Some(entry), Some(file)) if entry.kind == DirectoryEntryKind::File && entry.name == file.name)
+                {
+                    return Err(Failure::precondition(
+                        "The selected file is not in its recorded parent listing.",
+                    ));
+                }
+            } else if state.file.is_some() {
+                return Err(Failure::precondition(
+                    "A mounted file has no recorded parent entry.",
+                ));
+            }
+            if self.observe_selection()? != state {
+                return Err(Failure::precondition(
+                    "Native selection changed during directory hydration.",
+                ));
+            }
+        } else if (state.directory.is_none() && !state.entries.is_empty())
+            || state.file_entry.is_some()
+        {
+            return Err(Failure::precondition(
+                "Native directory state has no mounted root.",
+            ));
+        }
+        self.directories = directories;
+        Ok(SelectionState {
+            file: state.file,
+            directory: state.directory,
+            entries: state.entries,
+            root: state.root,
+            file_entry: state.file_entry,
+            directories: self.directories.clone(),
+        })
     }
 
     /// Query selection and return its result as one completed step.
@@ -153,18 +293,8 @@ impl Session {
         entry_id: u32,
         kind: DirectoryEntryKind,
     ) -> Result<(), Failure> {
-        let state = self.current_selection()?;
-        if state
-            .directory
-            .as_ref()
-            .map(|value| value.resource.as_str())
-            != Some(directory)
-        {
-            return Err(Failure::precondition(
-                "The directory is no longer selected.",
-            ));
-        }
-        if !state
+        let listing = self.parent_listing(directory)?;
+        if !listing
             .entries
             .iter()
             .any(|entry| entry.id == entry_id && entry.kind == kind)
@@ -191,6 +321,76 @@ impl Session {
         self.request(request).map(|_| ())
     }
 
+    fn parent_listing(&mut self, resource: &str) -> Result<DirectoryListing, Failure> {
+        let state = self.current_selection()?;
+        let Some(root) = state.root else {
+            // Older services expose one cursor but no persistent mount. Preserve
+            // their existing navigation without claiming a mounted hierarchy.
+            let cursor = state
+                .directory
+                .filter(|cursor| cursor.resource == resource)
+                .ok_or_else(|| Failure::precondition("The directory is no longer selected."))?;
+            return Ok(DirectoryListing {
+                directory: cursor,
+                parent: None,
+                entries: state.entries,
+            });
+        };
+        // Query the retained parent, rather than restricting actions to the cursor.
+        let listing = self.list_directory(resource)?;
+        let mut directories = self.directories.clone();
+        retain_listing(&mut directories, listing.clone())?;
+        if let Some(parent) = &listing.parent {
+            self.load_chain(&mut directories, &parent.directory)?;
+        }
+        validate_directories(&directories, &root)?;
+        self.directories = directories;
+        Ok(listing)
+    }
+
+    /// Load one child listing, preserving the current file and listing cursor.
+    /// Returns the action result and a fresh Rust-composed selection projection.
+    pub fn expand_directory(&mut self, directory: &str, entry_id: u32) -> SelectionOutcome {
+        let result = self.expand_child(directory, entry_id);
+        self.finish_selection(StepKind::ExpandDirectory, result)
+    }
+
+    fn expand_child(&mut self, directory: &str, entry_id: u32) -> Result<(), Failure> {
+        let parent = self.parent_listing(directory)?;
+        if self.root.is_none() {
+            return Err(Failure::precondition(
+                "This native service does not expose a mounted folder. Update Native Workbench to expand directories.",
+            ));
+        }
+        if !parent
+            .entries
+            .iter()
+            .any(|entry| entry.id == entry_id && entry.kind == DirectoryEntryKind::Directory)
+        {
+            return Err(Failure::precondition(
+                "The entry is not a directory in the observed listing.",
+            ));
+        }
+        let Response::Directory(listing) = self.request(Request::ExpandDirectory {
+            resource: directory.into(),
+            entry_id,
+        })?
+        else {
+            unreachable!("response was validated against its request");
+        };
+        let mut directories = self.directories.clone();
+        retain_listing(&mut directories, listing)?;
+        let root = directories
+            .iter()
+            .find(|item| Some(&item.directory.resource) == self.root.as_ref())
+            .ok_or_else(|| Failure::precondition("The mounted root is unavailable."))?
+            .directory
+            .clone();
+        validate_directories(&directories, &root)?;
+        self.directories = directories;
+        Ok(())
+    }
+
     fn finish_selection(
         &mut self,
         kind: StepKind,
@@ -211,7 +411,7 @@ impl Session {
     }
 
     pub(crate) fn ensure_file(&mut self, resource: &str) -> Result<(), Failure> {
-        let state = self.current_selection()?;
+        let state = self.observe_selection()?;
         if state.file.as_ref().map(|value| value.resource.as_str()) != Some(resource) {
             return Err(Failure::precondition("The file is no longer selected."));
         }
@@ -257,4 +457,77 @@ impl Session {
         };
         Ok(bytes)
     }
+}
+
+fn retain_listing(
+    directories: &mut Vec<DirectoryListing>,
+    listing: DirectoryListing,
+) -> Result<(), Failure> {
+    if let Some(existing) = directories
+        .iter()
+        .find(|item| item.directory.resource == listing.directory.resource)
+    {
+        if *existing != listing {
+            return Err(Failure::precondition(
+                "A retained directory snapshot changed identity or contents.",
+            ));
+        }
+    } else {
+        if directories.len() >= MAX_LOADED_DIRECTORIES {
+            return Err(Failure::precondition(
+                "The mounted directory cache exceeds its 64-directory bound.",
+            ));
+        }
+        directories.push(listing);
+    }
+    Ok(())
+}
+
+fn validate_directories(
+    directories: &[DirectoryListing],
+    root: &SelectedResource,
+) -> Result<(), Failure> {
+    let invalid = || {
+        Failure::precondition(
+            "The native directory hierarchy is not a bounded tree rooted at the selected folder.",
+        )
+    };
+    if directories.len() > MAX_LOADED_DIRECTORIES {
+        return Err(invalid());
+    }
+    let mut children = HashSet::new();
+    for listing in directories {
+        let mut current = listing;
+        let mut visited = HashSet::new();
+        loop {
+            if !visited.insert(current.directory.resource.as_str()) {
+                return Err(invalid());
+            }
+            if current.directory.resource == root.resource {
+                if current.directory != *root || current.parent.is_some() {
+                    return Err(invalid());
+                }
+                break;
+            }
+            let parent = current.parent.as_ref().ok_or_else(invalid)?;
+            let owner = directories
+                .iter()
+                .find(|item| item.directory.resource == parent.directory)
+                .ok_or_else(invalid)?;
+            if !owner.entries.iter().any(|entry| {
+                entry.id == parent.entry_id
+                    && entry.kind == DirectoryEntryKind::Directory
+                    && entry.name == current.directory.name
+            }) {
+                return Err(invalid());
+            }
+            current = owner;
+        }
+        if let Some(parent) = &listing.parent
+            && !children.insert((parent.directory.as_str(), parent.entry_id))
+        {
+            return Err(invalid());
+        }
+    }
+    Ok(())
 }

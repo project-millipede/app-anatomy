@@ -67,6 +67,7 @@ const { files } = await transpile(await readFile(component), {
     'native#[method]session.query-selection',
     'native#[method]session.open-file',
     'native#[method]session.open-directory',
+    'native#[method]session.expand-directory',
     'native#[method]session.inspect',
     'native#[method]session.inspect-dependencies',
   ],

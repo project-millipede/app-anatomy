@@ -1,4 +1,4 @@
-package apple-code:analysis@0.7.0;
+package apple-code:analysis@0.8.0;
 
 interface native {
   use binary.{report};
@@ -9,12 +9,22 @@ interface native {
   record selected-resource { name: string, %resource: string }
   enum entry-kind { file, directory, symlink, other }
   record directory-entry { id: u32, name: string, kind: entry-kind }
+  record directory-entry-ref { directory: string, entry-id: u32 }
+  record directory-listing {
+    directory: selected-resource,
+    parent: option<directory-entry-ref>,
+    entries: list<directory-entry>,
+  }
   record selection-state {
     file: option<selected-resource>,
     directory: option<selected-resource>,
     entries: list<directory-entry>,
+    root: option<selected-resource>,
+    file-entry: option<directory-entry-ref>,
+    /// Loaded snapshots assembled and validated by the ordinary Rust client.
+    directories: list<directory-listing>,
   }
-  enum step-kind { select-file, select-directory, open-entry, query-selection, inspect }
+  enum step-kind { select-file, select-directory, open-entry, query-selection, inspect, expand-directory }
   record selection-step-outcome {
     kind: step-kind,
     /// Successful actions return none; successful queries return some state,
@@ -46,6 +56,8 @@ interface native {
     choose-folder: func() -> selection-outcome;
     open-file: func(directory: string, entry-id: u32) -> selection-outcome;
     open-directory: func(directory: string, entry-id: u32) -> selection-outcome;
+    /// Lazily load a child while preserving the mounted root and selected file.
+    expand-directory: func(directory: string, entry-id: u32) -> selection-outcome;
     inspect: func(%resource: string) -> inspection-outcome;
     /// Declared dependencies and upstream import associations, without runtime binding.
     inspect-dependencies: func(%resource: string) -> inspection-outcome;

@@ -1,4 +1,4 @@
-package apple-code:analysis@0.7.0;
+package apple-code:analysis@0.8.0;
 
 /// Portable header and dependency evidence analysis. All offsets are absolute offsets in the input file.
 interface binary {

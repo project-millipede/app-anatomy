@@ -10,22 +10,24 @@ wit_bindgen::generate!({
         "../../../wkg/wit/deps/polymorph-websocket-0.1.0",
         "wit",
     ],
-    world: "apple-code:analysis/analysis@0.7.0",
+    world: "apple-code:analysis/analysis@0.8.0",
     with: {
         // Output enums: Rust discriminants must match WIT case order.
         // Accepting these types as inputs would require compatible lifting support.
-        "apple-code:analysis/native@0.7.0/step-kind": workbench_operations::StepKind,
-        "apple-code:analysis/native@0.7.0/entry-kind": filesystem_data::DirectoryEntryKind,
-        "apple-code:analysis/native@0.7.0/failure-kind": workbench_operations::FailureKind,
-        "apple-code:analysis/binary@0.7.0/container-kind": binary_inspection::ContainerKind,
-        "apple-code:analysis/binary@0.7.0/header-format": binary_inspection::MachOHeaderFormat,
-        "apple-code:analysis/binary@0.7.0/analysis-scope": binary_inspection::AnalysisScope,
+        "apple-code:analysis/native@0.8.0/step-kind": workbench_operations::StepKind,
+        "apple-code:analysis/native@0.8.0/entry-kind": filesystem_data::DirectoryEntryKind,
+        "apple-code:analysis/native@0.8.0/failure-kind": workbench_operations::FailureKind,
+        "apple-code:analysis/binary@0.8.0/container-kind": binary_inspection::ContainerKind,
+        "apple-code:analysis/binary@0.8.0/header-format": binary_inspection::MachOHeaderFormat,
+        "apple-code:analysis/binary@0.8.0/analysis-scope": binary_inspection::AnalysisScope,
 
         // Records: generated bindings access the ordinary Rust fields directly.
         // Public field names and types must match the WIT record.
-        "apple-code:analysis/native@0.7.0/selected-resource": filesystem_protocol::SelectedResource,
-        "apple-code:analysis/native@0.7.0/directory-entry": filesystem_data::DirectoryEntry,
-        "apple-code:analysis/native@0.7.0/selection-state": filesystem_protocol::SelectionState,
+        "apple-code:analysis/native@0.8.0/selected-resource": filesystem_protocol::SelectedResource,
+        "apple-code:analysis/native@0.8.0/directory-entry": filesystem_data::DirectoryEntry,
+        "apple-code:analysis/native@0.8.0/directory-entry-ref": filesystem_protocol::DirectoryEntryRef,
+        "apple-code:analysis/native@0.8.0/directory-listing": filesystem_protocol::DirectoryListing,
+        "apple-code:analysis/native@0.8.0/selection-state": workbench_operations::SelectionState,
     },
     generate_all,
 });
