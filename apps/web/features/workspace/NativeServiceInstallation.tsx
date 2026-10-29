@@ -46,7 +46,8 @@ export function NativeServiceInstallationContent() {
       </p>
       <ol>
         <li>
-          Open the downloaded package and complete the macOS installation.
+          Quit Native Workbench if it is running, then open the downloaded
+          package and complete the macOS installation.
         </li>
         <li>
           Open Native Workbench from Applications. It runs in the background.

@@ -96,10 +96,33 @@ The default architecture-tab recipe retained its report spacing. Preview freshne
 workspace typecheck, all 22 web tests and the production build passed. This
 increment changed presentation only; Rust, WIT and native acquisition were unchanged.
 
-The native tree has at most one selected-file node. Resource IDs identify it;
-display names do not supply an exact filesystem path or application containment.
-Directory listings remain navigation controls, not an acquired bundle graph.
-There is no authored application boundary in native mode.
+**Browse native folder** installs a retained workspace root directly in Files.
+Ark expands directories on demand and owns keyboard focus and expansion. A listed
+file becomes the selected center only after native acquisition succeeds. Expansion
+preserves the selected file and report; selecting another file preserves the root,
+loaded siblings and tree expansion. Inspection remains explicit.
+
+`filesystem_native::NativeSelection` owns the root, captured child listings and
+selected file origin. Its ordinary Rust APIs work without a service or component.
+The service assigns opaque identities to retained directories; entry IDs are scoped
+to their parent listing. The Rust operations session retains bounded listing
+projections and hydrates the root/ancestor chain on a fresh observation. WIT carries
+those records to React, which projects them into Ark nodes without resolving paths
+or implementing filesystem workflow. A loaded empty directory differs from an
+unloaded directory. Failed expansion remains retryable and does not install an
+empty listing.
+
+Each mount retains at most 64 directories. Each captured immediate listing retains
+the existing 512-entry and 64-KiB name limits. There is no recursive scan or live
+watcher. Captured listings are not a filesystem snapshot; later opens may fail if
+the filesystem changes. Symlinks are displayed but are not followed. Successful
+external file or folder selection replaces the mount; Cancel and failed acquisition
+preserve it. Returning to the route re-observes the root and selected file's
+ancestors, while presentation expansion and reports start with the new page owner.
+
+Resource IDs identify nodes; display names do not supply an exact filesystem path
+or application containment. The folder is a navigation scope, not an acquired
+bundle relationship graph. There is no authored application boundary in native mode.
 
 Declared libraries use the south corridor with **Target not evaluated** status.
 These cards represent declarations, not external-file findings, missing providers
@@ -112,7 +135,7 @@ produces per-declaration indices into the original imports list using upstream
 ordinary ordinals. Symbol-table ordinals require `MH_TWOLEVEL`; explicit dyld-bind
 ordinals retain their own context. Duplicate library names stay separate. Special,
 flat, unspecified and absent-declaration associations remain in the unassociated
-index list. WIT `apple-code:analysis@0.7.0` carries these lists as
+index list. WIT `apple-code:analysis@0.8.0` carries these lists as
 `declared-library.import-indices` and
 `dependency-evidence.unassociated-import-indices`. The original imports and flags
 remain available; React consumes the supplied indices without reinterpreting them.
@@ -122,6 +145,40 @@ resolve runpaths against disk or perform runtime symbol binding. The
 [native Explorer qualification](../rust-analysis-core.md#native-explorer-qualification)
 records retained-file runs through the native remote and live browser adapters;
 live picker acquisition remains unverified.
+
+## Retained native folder qualification
+
+On 2026-10-29, workspace native tests and the component test target passed after
+the directory ownership and WIT 0.8 changes. Focused tests cover sibling retention,
+transactional acquisition/replacement, the 64-directory bound, protocol reply
+correspondence, hydration ancestry and replacement rejection. The maximum allowed
+listing plus selection metadata fits the unchanged 96-KiB response limit.
+`pnpm engine:build`, preview freshness, typecheck, all 26 web tests and the production
+build passed.
+
+An in-process Rust composition selected a temporary root, loaded two sibling
+folders, inspected a file through `inspect_dependencies_source`, and retained its
+root/file while loading the other sibling. It reported two images and 37 imports
+without a service, JavaScript or Wasm. The ordinary native remote adapter inspected
+an equivalent copy through a real WebSocket service and reported the same data.
+
+A separate temporary service/component build used a matching alternate address to
+avoid replacing the installed native owner's selection. In the in-app browser,
+root and sibling expansion remained intact across file selection; expansion kept
+an existing 37-import report. Empty listings, failed-expansion retry, repeated file
+activation, selected-file ancestry after refresh, and an 80-file virtualized folder
+were exercised. An offscreen file was selected with 24 tree rows mounted and a
+2479.5px scroll offset. Refresh revealed the retained selected row at a 2256px
+scroll offset while keyboard focus stayed on the document body. No frontend
+filesystem provider or candidate evaluation was
+used. The temporary service began with a Rust-acquired fixture root; live OS picker
+interaction was not qualified by this run. Other operating systems and browser
+engines remain unqualified.
+
+The updated installer is staged behind the shared download action. Folder mounting
+requires this new native service; an older service's standalone-file inspection
+remains usable, and an older directory cursor displays an update instruction.
+Install/relaunch of the user's existing native owner was not performed.
 
 ## Existing synthetic candidate computation
 
@@ -222,11 +279,11 @@ owned evidence and unsupported capabilities. The current
 and preceding historical dependency record distinguish adapter execution from
 compilation and presentation checks.
 
-Whole-bundle acquisition is a separate extension: current native entry IDs are
-listing-scoped; opening a directory replaces selection; symlink targets and a
-retained whole-bundle inventory are unavailable. Future native inventory and
-read-link capabilities must preserve selection/resource ownership and bounded
-reads. Optional candidate queries can consume the acquired facts and explicit
+Whole-bundle acquisition is a separate extension. Native entry IDs are
+listing-scoped and lazy expansion retains directory identities, but symlink targets
+and a complete inspected bundle inventory remain unavailable. Future native
+inventory and read-link capabilities must preserve selection/resource ownership
+and bounded reads. Optional candidate queries can consume the acquired facts and explicit
 context separately.
 
 ### Synthetic preview validation recorded on 2026-10-29

@@ -4,6 +4,7 @@ import type {
   InspectionOutcome,
   SelectionOutcome,
   SelectedResource,
+  SelectionState,
 } from '@apple-code/browser/native';
 
 /** Complete generated result of a native invocation. */
@@ -24,8 +25,9 @@ export type NativeDirectoryListing = {
  * Native outcomes, selection data and actions for the workbench.
  * Rust owns native selection; these properties describe its presentation.
  *
- * Async action promises settle after UI handling, including handled failures or
- * ignored requests. Resolution does not establish native success.
+ * Selection and inspection promises settle after UI handling, including handled
+ * failures or ignored requests. Expansion rejects unsuccessful observations so
+ * a lazy tree does not treat failed requests as loaded empty directories.
  */
 export type NativeInteraction = {
   /**
@@ -51,6 +53,8 @@ export type NativeInteraction = {
   selectedFile?: SelectedResource;
   /** Last observed directory listing, or null when none is selected or known. */
   nativeDirectory: NativeDirectoryListing | null;
+  /** Full Rust observation of the retained mount, loaded directories and selected file. */
+  nativeWorkspace: SelectionState | null;
 
   /**
    * Request the native file dialog and present Rust's operation and selection results.
@@ -68,11 +72,20 @@ export type NativeInteraction = {
    * Request selection of a file or directory from the observed native listing.
    * Rust validates that the directory and entry still belong to the current selection.
    *
-   * @param entryId Identifier from nativeDirectory.entries.
+   * @param entryId Identifier scoped to the observed parent directory.
+   * @param parentDirectory Explicit loaded parent; omit to use the legacy current directory.
    * @returns Completion of request handling, or immediately when busy or when
    * the observed entry is missing or has an unsupported kind.
    */
-  openNativeEntry(entryId: number): Promise<void>;
+  openNativeEntry(entryId: number, parentDirectory?: string): Promise<void>;
+  /**
+   * Load one observed directory without changing the selected file or mount.
+   * Rejects busy, failed or incomplete requests; success returns Rust's full observation.
+   */
+  expandNativeDirectory(
+    parentDirectory: string,
+    entryId: number,
+  ): Promise<SelectionState>;
   /**
    * Analyze the observed native file through Rust, replacing the displayed result.
    *

@@ -84,8 +84,8 @@ export function NativeExplorerInspector({
       sections={
         <div className={`${styles.content} ${styles.shared}`}>
           <p className={styles.note}>
-            Only the selected file is acquired. Declared references have no
-            acquired target and do not add tree entries.
+            Only the selected file supplies binary evidence. Declared references
+            have no acquired target and do not add tree entries.
           </p>
           {!image ? (
             <p className={styles.note}>

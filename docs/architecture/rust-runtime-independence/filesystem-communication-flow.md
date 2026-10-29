@@ -173,7 +173,7 @@ to their adapters. WebSocket backends report connection failures; the filesystem
 protocol validates messages independently. See the [service configuration](../../../crates/services/filesystem/README.md#launch)
 for the address, startup behavior and rebuild requirements.
 
-The Rust message contract covers file length, bounded reads, directory navigation,
+The Rust message contract covers file length, bounded reads, retained directory listings and lazy expansion,
 native selection/current state and structured errors. It defines exact integer
 handling, message limits and permitted response types. Each binary WebSocket
 message carries one MessagePack request or response directly. Client and service
@@ -197,6 +197,22 @@ does not change ownership. Replaced identifiers fail as unknown resources, so a
 stale request cannot target the replacement; an admitted read completes against
 its original handle. No remote
 cleanup or frontend deselection operation exists.
+
+A selected folder establishes a stable root. Rust native ownership retains up to
+64 captured directory listings, including that root. `ListDirectory` returns one
+retained listing without I/O; `ExpandDirectory` captures one immediate child and
+returns its stable identity, parent entry and bounded contents. Repeated expansion
+reuses the retained listing. Expansion changes neither the selected file nor the
+legacy listing cursor. File selection from a retained parent keeps the directory
+tree; legacy directory navigation moves the cursor and clears the file.
+
+The operations session hydrates root/cursor/file-origin ancestry and owns its
+bounded listing cache. It validates linkage and observes selection again before
+publishing a projection, rejecting a concurrent replacement instead of mixing
+mounts. WIT exports `expand-directory` as an adapter of that ordinary Rust API.
+React receives directory snapshots and selected-file origin; it owns only their
+tree presentation. Transport carries one listing per response, retaining the
+96-KiB message bound. Filesystem replacement invalidates the whole previous mount.
 
 Analysis uses `Session::inspect` and returns its outcome when
 the invocation completes. The UI displays “Analysis in progress…” while waiting;
