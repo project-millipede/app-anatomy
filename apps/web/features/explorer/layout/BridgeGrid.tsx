@@ -26,6 +26,8 @@ type BridgeGridProps = {
   east: ReactNode;
   /** External or unresolved references of the selected file, below it. */
   south: ReactNode;
+  /** Render only when the supplied inventory actually establishes this boundary. */
+  showBoundary?: boolean;
 };
 
 /**
@@ -39,12 +41,15 @@ export function BridgeGrid({
   focus,
   east,
   south,
+  showBoundary = true,
 }: BridgeGridProps) {
   return (
     <div className={styles.grid}>
-      <div className={styles.boundary} aria-hidden="true">
-        <span>Inside the application</span>
-      </div>
+      {showBoundary && (
+        <div className={styles.boundary} aria-hidden="true">
+          <span>Inside the application</span>
+        </div>
+      )}
       <div className={styles.north}>{north}</div>
       <div className={styles.west}>{west}</div>
       <section className={styles.focus} aria-label="Selected file">

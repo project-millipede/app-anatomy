@@ -18,6 +18,10 @@
   min-inline-size: 0;
   overflow-wrap: anywhere;
 }
+.feedback {
+  flex-basis: 100%;
+  min-inline-size: 0;
+}
 .context {
   margin-inline-start: auto;
 }

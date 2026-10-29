@@ -10,7 +10,7 @@ import styles from './DependencyDetails.module.css';
 const SYMBOL_PAGE_SIZE = 50;
 
 /** Render Rust's display text alongside the original bytes without interpreting either. */
-function RecordedBytes({ value }: { value: ByteString }) {
+export function RecordedBytes({ value }: { value: ByteString }) {
   return (
     <>
       <code className={styles.recordedName}>{value.display || '(empty)'}</code>
@@ -41,7 +41,7 @@ function rawImportFlags(flags: ImportedSymbol['flags']): string {
 }
 
 /** Bound rendered symbol rows while retaining their original order and Rust associations. */
-function ImportedSymbols({ imports }: { imports: ImportedSymbol[] }) {
+export function ImportedSymbols({ imports }: { imports: ImportedSymbol[] }) {
   const [requestedPage, setRequestedPage] = useState(0);
   const pageCount = Math.max(1, Math.ceil(imports.length / SYMBOL_PAGE_SIZE));
   const page = Math.min(requestedPage, pageCount - 1);

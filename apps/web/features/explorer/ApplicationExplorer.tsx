@@ -1,9 +1,20 @@
+'use client';
+
+import { useState } from 'react';
+import { useNativeSession } from '../workspace/useNativeSession';
+import { useWorkbenchModel } from '../workspace/useWorkbenchModel';
 import { ExplorerWorkspace } from './ExplorerWorkspace';
+import { NativeExplorerWorkspace } from './NativeExplorerWorkspace';
+import { NativeExplorerActions } from './NativeExplorerActions';
 import { ExplorerFrame } from './layout/ExplorerFrame';
 import styles from './ExplorerLayout.module.css';
 
-/** Compose static Explorer chrome around the interactive workspace. */
+/** Own one native session/model independently of the selected Explorer presentation. */
 export function ApplicationExplorer() {
+  const [source, setSource] = useState<'native' | 'synthetic'>('native');
+  const { getNativeSession } = useNativeSession();
+  const model = useWorkbenchModel(getNativeSession);
+  const native = source === 'native';
   return (
     <ExplorerFrame
       brand={null}
@@ -12,23 +23,60 @@ export function ApplicationExplorer() {
         <>
           <h1>Application Explorer</h1>
           <p>
-            Related resources follow in the tree. One selected file stays at the
-            center.
+            {native
+              ? 'Inspect declared references while the selected file stays at the center.'
+              : 'Related resources follow in the tree. One selected file stays at the center.'}
           </p>
         </>
       }
       axisKey={
-        <div className={styles.toolbarActions} aria-label="Relationship axes">
-          <span>↔ Internal resources</span>
-          <span>↕ External / unresolved</span>
+        <div className={styles.toolbarActions}>
+          <label className={styles.selectLabel}>
+            Explorer source
+            <select
+              value={source}
+              onChange={(event) =>
+                setSource(event.target.value as 'native' | 'synthetic')
+              }
+            >
+              <option value="native">Native selection</option>
+              <option value="synthetic">Synthetic datasets</option>
+            </select>
+          </label>
+          {native ? (
+            <NativeExplorerActions model={model} />
+          ) : (
+            <>
+              <span>↔ Internal resources</span>
+              <span>↕ External / unresolved</span>
+            </>
+          )}
         </div>
       }
-      notice="Synthetic preview · Rust-computed candidates from authored inventory facts. No files acquired or runtime loading observed."
-      workspace={<ExplorerWorkspace />}
+      notice={
+        native
+          ? 'Selected-file evidence · Application containment and incoming consumers are unknown. Declared references are not acquired files.'
+          : 'Synthetic preview · Rust-computed candidates from authored inventory facts. No files acquired or runtime loading observed.'
+      }
+      workspace={
+        native ? (
+          <NativeExplorerWorkspace model={model} />
+        ) : (
+          <ExplorerWorkspace />
+        )
+      }
       footer={
         <>
-          <span>Application Explorer · Authored synthetic data</span>
-          <span>Rust-computed candidates · No files inspected</span>
+          <span>
+            {native
+              ? 'Application Explorer · Native selection'
+              : 'Application Explorer · Authored synthetic data'}
+          </span>
+          <span>
+            {native
+              ? 'Recorded evidence · Target evaluation not performed'
+              : 'Rust-computed candidates · No files inspected'}
+          </span>
         </>
       }
     />

@@ -28,7 +28,7 @@ export function NavigationPane({
   return (
     <aside className={styles.pane} aria-label="Physical file navigation">
       <div className={styles.heading}>{heading}</div>
-      <div className={styles.description}>{description}</div>
+      {description && <div className={styles.description}>{description}</div>}
       <div className={styles.tree}>{tree}</div>
       <div className={styles.footer}>{footer}</div>
     </aside>

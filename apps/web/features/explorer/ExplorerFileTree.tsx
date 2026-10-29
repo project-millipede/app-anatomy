@@ -20,9 +20,13 @@ export function ExplorerFileTree({
   activeEndpointIds,
   hiddenCounts,
   datasetSelector,
+  description,
+  summary,
 }: VirtualizedTree<PreviewNode> & {
   viewportElementRef: RefObject<HTMLDivElement | null>;
   datasetSelector: ReactNode;
+  description?: ReactNode;
+  summary?: ReactNode;
   roles: ReadonlyMap<string, { incoming: boolean; outgoing: boolean }>;
   activeEndpointIds: ReadonlySet<string>;
   hiddenCounts: ReadonlyMap<string, number>;
@@ -47,10 +51,16 @@ export function ExplorerFileTree({
           </div>
         }
         description={
-          <p id={hintId} className={styles.treeHint}>
-            SEL center · IN source · OUT target/candidate. Outline: active
-            endpoint. +count: collapsed related entries.
-          </p>
+          description === null ? null : (
+            <p id={hintId} className={styles.treeHint}>
+              {description ?? (
+                <>
+                  SEL center · IN source · OUT target/candidate. Outline: active
+                  endpoint. +count: collapsed related entries.
+                </>
+              )}
+            </p>
+          )
         }
         tree={
           <VirtualTreeViewport
@@ -87,8 +97,11 @@ export function ExplorerFileTree({
           />
         }
         footer={
-          <p className={styles.treeSummary}>
-            {roles.size} related resources · No files inspected
+          <p
+            id={description === null ? hintId : undefined}
+            className={styles.treeSummary}
+          >
+            {summary ?? `${roles.size} related resources · No files inspected`}
           </p>
         }
       />
