@@ -214,6 +214,50 @@ pub struct DependencyEvidence {
     pub install_names: Vec<Vec<u8>>,
 }
 
+/// Imported-symbol indices grouped by recorded declaration identity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportGroups {
+    /// One index list per `DependencyEvidence::libraries` entry, in the same order.
+    /// Each index addresses the original `DependencyEvidence::imports` list.
+    pub libraries: Vec<Vec<usize>>,
+    /// Imports with special, flat, unspecified or absent declaration associations.
+    pub unassociated: Vec<usize>,
+}
+
+impl DependencyEvidence {
+    /// Group imports by their upstream ordinary library ordinal, never by names.
+    ///
+    /// Symbol-table ordinals require `MH_TWOLEVEL`; dyld-bind ordinals carry their
+    /// own context. Special/unspecified lookups and ordinals without a matching
+    /// declaration remain unassociated. Duplicate library names stay distinct.
+    /// This groups recorded evidence and does not select provider files.
+    pub fn group_imports(&self, header_flags: u32) -> ImportGroups {
+        let twolevel = macho::FileFlags::from_inner(header_flags).contains(macho::MH_TWOLEVEL);
+        let mut groups = ImportGroups {
+            libraries: vec![Vec::new(); self.libraries.len()],
+            unassociated: Vec::new(),
+        };
+        for (index, import) in self.imports.iter().enumerate() {
+            let ordinal = match import.flags {
+                object::read::ImportFlags::MachO { n_desc, .. } if twolevel => {
+                    n_desc.library().index().map(u32::from)
+                }
+                object::read::ImportFlags::MachOBind { dylib, .. } => dylib.index(),
+                _ => None,
+            };
+            let library = ordinal.and_then(|ordinal| self.libraries.iter().position(|library| {
+                matches!(library.flags, object::read::ImportLibraryFlags::MachO { ordinal: declared, .. } if declared == ordinal)
+            }));
+            if let Some(library) = library {
+                groups.libraries[library].push(index);
+            } else {
+                groups.unassociated.push(index);
+            }
+        }
+        groups
+    }
+}
+
 /// One physical Mach-O image within the supplied bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MachOImage {

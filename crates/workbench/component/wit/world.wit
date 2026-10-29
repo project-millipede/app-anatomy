@@ -1,4 +1,4 @@
-package apple-code:analysis@0.6.0;
+package apple-code:analysis@0.7.0;
 
 /// Portable header and dependency evidence analysis. All offsets are absolute offsets in the input file.
 interface binary {
@@ -74,6 +74,8 @@ interface binary {
   /// An upstream-reported declared library. It is not a resolved file or runtime binding.
   record declared-library {
     name: byte-string,
+    /// Indices in dependency-evidence.imports associated by the ordinary upstream ordinal.
+    import-indices: list<u32>,
     ordinal: u32,
     command: macho-value,
     current-version: string,
@@ -111,6 +113,8 @@ interface binary {
   record dependency-evidence {
     libraries: list<declared-library>,
     imports: list<imported-symbol>,
+    /// Original import indices with special, flat, unspecified or absent declarations.
+    unassociated-import-indices: list<u32>,
     runpaths: list<byte-string>,
     install-names: list<byte-string>,
   }

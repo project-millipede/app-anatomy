@@ -70,7 +70,7 @@ pub use macho::{
 };
 pub use model::{
     AnalysisScope, BinaryReport, CommandLocation, ContainerKind, CpuIdentity, DeclaredLibrary,
-    DependencyEvidence, FileRange, ImportedSymbol, MachOHeaderFormat, MachOImage,
+    DependencyEvidence, FileRange, ImportGroups, ImportedSymbol, MachOHeaderFormat, MachOImage,
     PlatformDeclaration, SignatureCommand, display_bytes,
 };
 pub use object::{Endianness, macho::Version};
