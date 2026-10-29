@@ -14,6 +14,8 @@ type BridgeSectionProps = {
   description: string;
   /** Relationships crossing this bridge. */
   children: ReactNode;
+  /** Optional page controls; their row stays reserved when no controls apply. */
+  controls?: ReactNode;
 };
 
 /**
@@ -26,6 +28,7 @@ export function BridgeSection({
   title,
   description,
   children,
+  controls,
 }: BridgeSectionProps) {
   const titleId = useId();
   return (
@@ -39,11 +42,14 @@ export function BridgeSection({
           {compass[position]}
         </span>
         <div>
-          <h2 id={titleId}>{title}</h2>
-          <p>{description}</p>
+          <h2 id={titleId} title={title}>
+            {title}
+          </h2>
+          <p title={description}>{description}</p>
         </div>
       </div>
-      {children}
+      <div className={styles.body}>{children}</div>
+      <div className={styles.controls}>{controls}</div>
     </section>
   );
 }

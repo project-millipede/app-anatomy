@@ -69,33 +69,40 @@
   margin-block-end: 0.25rem;
   font-size: var(--acw-font-sizes-2xs);
 }
-.relationPlaceholder,
-.focusPlaceholder {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-block-size: 7.5rem;
-  padding: 0.875rem;
-  border: var(--acw-borders-divider);
-  border-radius: 0.625rem;
-  background: var(--acw-colors-surface);
-  overflow-wrap: anywhere;
+.focusNode {
+  position: relative;
+  inline-size: var(--center-card-width);
+  block-size: var(--center-card-height);
 }
-
-.relationPlaceholder strong {
-  font-weight: 600;
-}
-
 .focusPlaceholder {
+  display: grid;
+  grid-template-rows: 12px 42px 30px 26px;
+  align-content: start;
+  gap: 8px;
+  inline-size: var(--center-card-width);
+  block-size: var(--center-card-height);
   min-block-size: 0;
-  padding: 0.9375rem 0.875rem;
-  border-color: var(--acw-colors-accent);
-  box-shadow: 0 0.25rem 1.125rem #00000006;
+  padding: 14px;
+  border: 1px solid var(--acw-colors-accent);
+  border-radius: 10px;
+  background: var(--acw-colors-surface);
+  box-shadow: 0 4px 18px #00000006;
+  overflow: hidden;
 }
-
+.focusPlaceholder > .placeholderEyebrow {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 12px;
+}
 .focusPlaceholder strong {
-  font-size: var(--acw-font-sizes-xl);
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 20px;
   font-weight: 650;
+  line-height: 25px;
 }
 
 .placeholderEyebrow {
@@ -159,27 +166,79 @@
 }
 
 .cardStack {
+  position: relative;
   display: grid;
-  align-content: start;
-  gap: 0.5625rem;
+  grid-template-columns: var(--corridor-card-width);
+  grid-template-rows: repeat(3, var(--corridor-card-height));
+  row-gap: var(--corridor-slot-gap);
+  justify-items: center;
+  align-items: start;
+  min-inline-size: 0;
+  block-size: var(--corridor-body-height);
+}
+.cardStack[data-direction='north'],
+.cardStack[data-direction='south'] {
+  grid-template-columns:
+    var(--corridor-card-width) var(--center-card-width)
+    var(--corridor-card-width);
+  grid-template-rows: var(--corridor-card-height);
+  column-gap: var(--corridor-gutter);
+  row-gap: 0;
+  block-size: var(--corridor-card-height);
+}
+.corridorSlot {
+  position: relative;
+  inline-size: var(--corridor-card-width);
+  block-size: var(--corridor-card-height);
+  min-inline-size: 0;
+}
+.corridorPager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  inline-size: 100%;
+  block-size: var(--corridor-pager-height);
+  color: var(--acw-colors-muted);
+  font-size: 10px;
+  line-height: 14px;
+}
+.corridorPager > button {
+  min-block-size: 24px;
+  block-size: 24px;
+  padding: 2px 6px;
+  font-size: 10px;
+  line-height: 14px;
 }
 .relationshipCard {
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  gap: 0.3125rem;
-  min-block-size: 6.75rem;
-  inline-size: 100%;
-  min-inline-size: 0;
-  padding: 0.6875rem 0.75rem;
+  display: grid;
+  grid-template-rows: 12px 18px 30px 14px;
+  align-content: center;
+  row-gap: 4px;
+  inline-size: var(--corridor-card-width);
+  min-inline-size: var(--corridor-card-width);
+  max-inline-size: var(--corridor-card-width);
+  block-size: var(--corridor-card-height);
+  min-block-size: var(--corridor-card-height);
+  max-block-size: var(--corridor-card-height);
+  padding: 8px 11px;
   border: var(--acw-borders-divider);
-  border-radius: 0.5rem;
+  border-radius: 8px;
   color: var(--acw-colors-text);
   background: var(--acw-colors-surface);
   font: inherit;
   text-align: start;
-  overflow-wrap: anywhere;
   cursor: pointer;
+}
+.relationshipCard > .placeholderEyebrow,
+.relationshipCard > strong,
+.relationshipCard > .cardStatus {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.relationshipCard > .placeholderEyebrow {
+  line-height: 12px;
 }
 .relationshipCard:hover {
   background: color-mix(
@@ -206,35 +265,36 @@
   box-shadow: 0 0 0 1px var(--explorer-external);
 }
 .relationshipCard strong {
-  font-size: var(--acw-font-sizes-sm);
+  font-size: 12px;
   font-weight: 650;
+  line-height: 18px;
 }
 .relationshipCard code,
-.focusPlaceholder code {
+.focusPlaceholder > code {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow-wrap: anywhere;
-  font-size: 0.625rem;
+  font-size: 10px;
+  line-height: 15px;
+  max-block-size: 30px;
 }
 .cardStatus,
 .emptyBridge {
   margin: 0;
   color: var(--acw-colors-muted);
-  font-size: 0.6875rem;
+  font-size: 10px;
 }
 .cardStatus {
-  margin-block-start: auto;
-  padding-block-start: 0.375rem;
-  font-size: 0.625rem;
-}
-.cardStack[data-direction='north'],
-.cardStack[data-direction='south'] {
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  padding: 0;
+  line-height: 14px;
 }
 .emptyBridge {
-  padding: 0.875rem;
-  border: 1px dashed var(--acw-colors-border);
-  border-radius: 0.5rem;
-  background: var(--acw-colors-surface);
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  padding: 12px;
 }
 .previewControls {
   display: flex;
@@ -353,19 +413,27 @@
 .focusTitle {
   display: flex;
   align-items: center;
-  gap: 0.5625rem;
-  margin-block: 0.375rem;
+  gap: 9px;
+  min-inline-size: 0;
+  margin: 0;
+}
+.focusTitle > div {
+  min-inline-size: 0;
 }
 .focusTitle p {
-  font-size: 0.6875rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  line-height: 15px;
 }
 .fileGlyph {
   display: grid;
   flex-shrink: 0;
   place-items: center;
-  inline-size: 1.9375rem;
-  block-size: 2.25rem;
-  border-radius: 0.4375rem;
+  inline-size: 31px;
+  block-size: 36px;
+  border-radius: 7px;
   color: var(--acw-colors-accent);
   background: color-mix(
     in srgb,
@@ -375,33 +443,69 @@
 }
 .focusMeta {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.375rem;
-  margin-block-start: 0.25rem;
-  padding-block-start: 0.625rem;
+  gap: 6px;
+  min-inline-size: 0;
+  padding-block-start: 8px;
   border-block-start: var(--acw-borders-divider);
   color: var(--acw-colors-muted);
-  font-size: 0.625rem;
+  font-size: 10px;
+  line-height: 15px;
 }
-@media (max-width: 1190px) {
-  .relationshipCard {
-    padding: 0.625rem;
-  }
+.focusMeta > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-
 .candidateSwatch {
   border-block-start-style: dashed;
 }
-.cardLocation {
-  color: var(--acw-colors-muted);
-  font-size: 0.625rem;
+.portSlot {
+  position: absolute;
+  z-index: 3;
+  inline-size: 8px;
+  block-size: 8px;
+  pointer-events: none;
+}
+.portSlot[data-side='west'],
+.portSlot[data-side='east'] {
+  inset-block-start: calc((var(--port-index) + 1) * 25% - 4px);
+}
+.portSlot[data-side='north'],
+.portSlot[data-side='south'] {
+  inset-inline-start: calc((var(--port-index) + 1) * 25% - 4px);
+}
+.portSlot[data-side='west'] {
+  inset-inline-start: -4px;
+}
+.portSlot[data-side='east'] {
+  inset-inline-end: -4px;
+}
+.portSlot[data-side='north'] {
+  inset-block-start: -4px;
+}
+.portSlot[data-side='south'] {
+  inset-block-end: -4px;
 }
 .routingPort {
   display: block;
-  inline-size: 1px;
-  block-size: 1px;
+  inline-size: 8px;
+  block-size: 8px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: var(--explorer-outgoing);
+  background: var(--acw-colors-surface);
+}
+.routingPort[data-side='west'] {
+  color: var(--explorer-incoming);
+}
+.routingPort[data-side='north'],
+.routingPort[data-side='south'] {
+  color: var(--explorer-external);
+}
+.routingPort[data-active='true'] {
+  background: currentColor;
 }
 .compactButton {
   min-block-size: 2.0625rem;
