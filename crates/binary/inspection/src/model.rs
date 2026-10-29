@@ -1,7 +1,7 @@
 //! Owned analysis facts, independent of presentation and transport.
 
 use object::{
-    Endianness,
+    Endianness, Wrap,
     macho::{self, Version},
 };
 
@@ -30,6 +30,8 @@ pub enum MachOHeaderFormat {
 pub enum AnalysisScope {
     /// Headers, command envelopes, platform declarations and signature locations.
     HeadersOnly,
+    /// Header facts, declared libraries and upstream-associated imported symbols.
+    Dependencies,
 }
 
 /// A non-overflowing absolute byte range with an exclusive end.
@@ -129,6 +131,89 @@ pub struct SignatureCommand {
     pub data_range: FileRange,
 }
 
+/// A declared library, as enumerated by the upstream Mach-O reader.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeclaredLibrary {
+    /// Original install-name bytes, without path expansion or UTF-8 conversion.
+    pub name: Vec<u8>,
+    /// Upstream ordinal, command, versions and optional dylib-use flags.
+    pub flags: object::read::ImportLibraryFlags,
+}
+
+/// An imported symbol and the recorded library association supplied by `object`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportedSymbol {
+    /// Original symbol-name bytes.
+    pub name: Vec<u8>,
+    /// Recorded library-name bytes. Empty means special, flat or unspecified lookup;
+    /// the upstream flags preserve the available ordinal/context distinction.
+    pub library: Vec<u8>,
+    /// Whether the upstream reader identifies a weak import.
+    pub weak: bool,
+    /// Owned upstream Mach-O symbol-table or dyld-bind flags.
+    ///
+    /// These Mach-O variants contain no borrowed values. Their reconstruction at
+    /// the ownership boundary preserves raw flags and special library ordinals.
+    pub flags: object::read::ImportFlags<'static>,
+}
+
+impl ImportedSymbol {
+    /// Describe the recorded provider association without selecting a provider file.
+    ///
+    /// Symbol-table ordinals are interpreted only when the image declares
+    /// `MH_TWOLEVEL`; flat namespace imports retain unspecified-provider wording.
+    /// Special ordinal names come from the pinned upstream types.
+    pub fn association_label(&self, header_flags: u32) -> String {
+        if !self.library.is_empty() {
+            return display_bytes(&self.library);
+        }
+        match self.flags {
+            object::read::ImportFlags::MachO { n_desc, .. } => {
+                if !macho::FileFlags::from_inner(header_flags).contains(macho::MH_TWOLEVEL) {
+                    return "Flat namespace lookup (provider unspecified)".into();
+                }
+                let ordinal = n_desc.library();
+                ordinal.name().map(str::to_owned).unwrap_or_else(|| {
+                    format!(
+                        "Library ordinal {} (recorded name empty)",
+                        ordinal.into_inner()
+                    )
+                })
+            }
+            object::read::ImportFlags::MachOBind { dylib, .. } => {
+                dylib.name().map(str::to_owned).unwrap_or_else(|| {
+                    format!(
+                        "Library ordinal {} (recorded name empty)",
+                        dylib.into_inner()
+                    )
+                })
+            }
+            _ => "Unspecified library association".into(),
+        }
+    }
+}
+
+/// Format binary name bytes as lossless ASCII escapes for a display boundary.
+///
+/// Raw byte fields remain authoritative. Non-ASCII and control bytes are escaped
+/// rather than replaced or interpreted as filesystem paths.
+pub fn display_bytes(bytes: &[u8]) -> String {
+    bytes.escape_ascii().to_string()
+}
+
+/// Upstream-derived dependency evidence, without selecting acquired provider files.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DependencyEvidence {
+    /// Declared libraries in upstream command/ordinal order.
+    pub libraries: Vec<DeclaredLibrary>,
+    /// Imported symbols and their recorded library names, associated by `object`.
+    pub imports: Vec<ImportedSymbol>,
+    /// Original `LC_RPATH` strings in command order, without inherited-context inference.
+    pub runpaths: Vec<Vec<u8>>,
+    /// Every `LC_ID_DYLIB` string, retaining duplicates without choosing an identity.
+    pub install_names: Vec<Vec<u8>>,
+}
+
 /// One physical Mach-O image within the supplied bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MachOImage {
@@ -148,6 +233,8 @@ pub struct MachOImage {
     pub platforms: Vec<PlatformDeclaration>,
     /// Signature locations in command order; an empty list means absent.
     pub signature_commands: Vec<SignatureCommand>,
+    /// Additional dependency evidence; absent when only header inspection was requested.
+    pub dependencies: Option<DependencyEvidence>,
 }
 
 /// Owned facts from one successful inspection.

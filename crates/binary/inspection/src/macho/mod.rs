@@ -1,5 +1,6 @@
 //! Public inspection entry points using object parsers and caller-owned input.
 
+mod dependencies;
 mod report;
 mod source;
 
@@ -8,6 +9,7 @@ use crate::{
     input::{ByteSource, SourceCache},
 };
 
+pub use dependencies::{inspect_dependencies, inspect_dependencies_source};
 use report::{inspect_bytes, inspect_cached};
 pub use source::InspectionError;
 

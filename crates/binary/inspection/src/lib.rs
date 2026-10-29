@@ -35,6 +35,11 @@
 //! `object` version as this library. Legacy commands retain their actual command
 //! kind and versions without inventing a modern platform identifier.
 //!
+//! [`inspect_dependencies`] and [`inspect_dependencies_source`] additionally reuse
+//! upstream library and symbol-import interpretation. Recorded library names are
+//! distinct from acquired provider files; these APIs do not expand paths, select
+//! candidates or perform runtime symbol binding.
+//!
 //! # Native use
 //!
 //! ```
@@ -60,10 +65,13 @@ mod model;
 mod object_report;
 
 pub use error::{AnalysisError, ErrorKind};
-pub use macho::{InspectionError, inspect, inspect_source};
+pub use macho::{
+    InspectionError, inspect, inspect_dependencies, inspect_dependencies_source, inspect_source,
+};
 pub use model::{
-    AnalysisScope, BinaryReport, CommandLocation, ContainerKind, CpuIdentity, FileRange,
-    MachOHeaderFormat, MachOImage, PlatformDeclaration, SignatureCommand,
+    AnalysisScope, BinaryReport, CommandLocation, ContainerKind, CpuIdentity, DeclaredLibrary,
+    DependencyEvidence, FileRange, ImportedSymbol, MachOHeaderFormat, MachOImage,
+    PlatformDeclaration, SignatureCommand, display_bytes,
 };
 pub use object::{Endianness, macho::Version};
 pub use object_report::{ObjectReport, inspect_object, inspect_object_source};

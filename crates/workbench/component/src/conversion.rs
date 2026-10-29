@@ -2,7 +2,10 @@
 
 use crate::binary;
 use binary_inspection as core;
-use object::Wrap;
+use object::{
+    Wrap,
+    read::{ImportFlags, ImportLibraryFlags},
+};
 
 pub(crate) fn report(report: core::BinaryReport) -> binary::Report {
     binary::Report {
@@ -22,6 +25,9 @@ fn image(image: core::MachOImage) -> binary::Image {
         file_range: file_range(image.file_range),
         file_type: macho_value(image.file_type.into_inner(), image.file_type.name()),
         header_flags: image.header_flags,
+        dependencies: image
+            .dependencies
+            .map(|value| dependency_evidence(value, image.header_flags)),
         platforms: image
             .platforms
             .into_iter()
@@ -32,6 +38,78 @@ fn image(image: core::MachOImage) -> binary::Image {
             .into_iter()
             .map(signature_command)
             .collect(),
+    }
+}
+
+fn byte_string(bytes: Vec<u8>) -> binary::ByteString {
+    let display = core::display_bytes(&bytes);
+    binary::ByteString { bytes, display }
+}
+
+fn dependency_evidence(
+    value: core::DependencyEvidence,
+    header_flags: u32,
+) -> binary::DependencyEvidence {
+    binary::DependencyEvidence {
+        libraries: value.libraries.into_iter().map(declared_library).collect(),
+        imports: value
+            .imports
+            .into_iter()
+            .map(|value| imported_symbol(value, header_flags))
+            .collect(),
+        runpaths: value.runpaths.into_iter().map(byte_string).collect(),
+        install_names: value.install_names.into_iter().map(byte_string).collect(),
+    }
+}
+
+fn declared_library(value: core::DeclaredLibrary) -> binary::DeclaredLibrary {
+    let ImportLibraryFlags::MachO {
+        ordinal,
+        cmd,
+        current_version,
+        compatibility_version,
+        use_flags,
+    } = value.flags
+    else {
+        unreachable!("Mach-O dependency inspection supplies Mach-O library flags");
+    };
+    binary::DeclaredLibrary {
+        name: byte_string(value.name),
+        ordinal,
+        command: macho_value(cmd.into_inner(), cmd.name()),
+        current_version: current_version.to_string(),
+        compatibility_version: compatibility_version.to_string(),
+        use_flags: use_flags.map(|flags| binary::MachoValue {
+            value: flags.into_inner(),
+            name: Some(format!("{flags:?}")),
+        }),
+    }
+}
+
+fn imported_symbol(value: core::ImportedSymbol, header_flags: u32) -> binary::ImportedSymbol {
+    let association = value.association_label(header_flags);
+    let flags = match value.flags {
+        ImportFlags::None => binary::ImportFlags::None,
+        ImportFlags::MachO { n_type, n_desc } => {
+            binary::ImportFlags::MachO(binary::SymbolImportFlags {
+                n_type: n_type.into_inner(),
+                n_desc: n_desc.into_inner(),
+            })
+        }
+        ImportFlags::MachOBind { dylib, flags } => {
+            binary::ImportFlags::MachOBind(binary::BindImportFlags {
+                dylib: dylib.into_inner(),
+                flags: flags.into_inner(),
+            })
+        }
+        flags => binary::ImportFlags::Other(format!("{flags:?}")),
+    };
+    binary::ImportedSymbol {
+        name: byte_string(value.name),
+        library: byte_string(value.library),
+        weak: value.weak,
+        association,
+        flags,
     }
 }
 
@@ -106,5 +184,42 @@ fn error_kind(kind: core::ErrorKind) -> binary::ErrorKind {
         core::ErrorKind::RangeOverflow => binary::ErrorKind::RangeOverflow,
         core::ErrorKind::UnsupportedImage => binary::ErrorKind::UnsupportedImage,
         core::ErrorKind::Decode(error) => binary::ErrorKind::Decode(error.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use object::macho;
+
+    #[test]
+    fn dependency_projection_keeps_non_utf8_names_and_special_signed_associations() {
+        let projected = dependency_evidence(
+            core::DependencyEvidence {
+                libraries: Vec::new(),
+                imports: vec![core::ImportedSymbol {
+                    name: vec![b'_', 0xff],
+                    library: Vec::new(),
+                    weak: true,
+                    flags: ImportFlags::MachOBind {
+                        dylib: macho::BIND_SPECIAL_DYLIB_FLAT_LOOKUP,
+                        flags: macho::BIND_SYMBOL_FLAGS_WEAK_IMPORT,
+                    },
+                }],
+                runpaths: Vec::new(),
+                install_names: Vec::new(),
+            },
+            0,
+        );
+        let import = &projected.imports[0];
+        assert_eq!(import.name.bytes, [b'_', 0xff]);
+        assert_eq!(import.name.display, "_\\xff");
+        assert_eq!(import.association, "BIND_SPECIAL_DYLIB_FLAT_LOOKUP");
+        assert!(import.weak);
+        let binary::ImportFlags::MachOBind(flags) = &import.flags else {
+            panic!("special bind association was narrowed to a library name");
+        };
+        assert_eq!(flags.dylib, -2);
+        assert_eq!(flags.flags, 1);
     }
 }
