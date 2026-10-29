@@ -263,6 +263,7 @@ fn hydration_restores_file_ancestry_and_preserves_loaded_branches_within_a_mount
         vec![entry(2, "selected", File)],
     );
     let mut selected = mounted(&root, &deep);
+    selected.scope = Some(filesystem_data::SelectionScope::Application);
     selected.file = Some(SelectedResource {
         name: "selected".into(),
         resource: "f".repeat(64),
@@ -271,7 +272,8 @@ fn hydration_restores_file_ancestry_and_preserves_loaded_branches_within_a_mount
         directory: deep.directory.resource.clone(),
         entry_id: 2,
     });
-    let cursor_root = mounted(&root, &root);
+    let mut cursor_root = mounted(&root, &root);
+    cursor_root.scope = selected.scope;
     let (mut client, _) = session([
         reply(Response::Selection(selected.clone())),
         reply(Response::Directory(root.clone())),
@@ -283,6 +285,7 @@ fn hydration_restores_file_ancestry_and_preserves_loaded_branches_within_a_mount
     ]);
 
     let restored = client.current_selection().unwrap();
+    assert_eq!(restored.scope, selected.scope);
     assert_eq!(restored.file, selected.file);
     assert_eq!(restored.file_entry, selected.file_entry);
     assert_eq!(restored.directories.len(), 3);
@@ -468,4 +471,123 @@ fn failed_expansion_reports_failure_and_preserves_the_observed_selection() {
             .count(),
         1
     );
+}
+
+#[test]
+fn scoped_pickers_reject_legacy_owners_without_sending_unknown_requests() {
+    for application in [true, false] {
+        let (mut client, observed) = session([
+            reply(Response::Selection(SelectionState::default())),
+            reply(Response::Selection(SelectionState::default())),
+        ]);
+        let outcome = if application {
+            client.select_application()
+        } else {
+            client.select_binary()
+        };
+        assert!(
+            outcome.steps[0]
+                .result
+                .as_ref()
+                .unwrap_err()
+                .to_string()
+                .contains("Update Native Workbench")
+        );
+        assert!(outcome.steps[1].result.is_ok());
+        assert!(
+            observed
+                .borrow()
+                .requests
+                .iter()
+                .all(|request| matches!(request, Request::CurrentSelection))
+        );
+    }
+}
+
+#[test]
+fn a_new_empty_owner_can_select_a_binary_subject_without_guessing_from_its_name() {
+    use filesystem_data::SelectionScope;
+    let empty = SelectionState {
+        scope: Some(SelectionScope::Empty),
+        ..SelectionState::default()
+    };
+    let file = SelectedResource {
+        name: "opaque-name".into(),
+        resource: "f".repeat(64),
+    };
+    let selected = SelectionState {
+        scope: Some(SelectionScope::Binary),
+        file: Some(file.clone()),
+        ..SelectionState::default()
+    };
+    let (mut client, observed) = session([
+        reply(Response::Selection(empty)),
+        reply(Response::SelectedBinary(Some(file.clone()))),
+        reply(Response::Selection(selected)),
+    ]);
+    let outcome = client.select_binary();
+    assert!(outcome.steps[0].result.is_ok());
+    let state = outcome.steps[1].result.as_ref().unwrap().as_ref().unwrap();
+    assert_eq!(state.scope, Some(SelectionScope::Binary));
+    assert_eq!(state.file, Some(file));
+    assert!(state.root.is_none());
+    assert!(
+        observed
+            .borrow()
+            .requests
+            .iter()
+            .any(|request| matches!(request, Request::ChooseBinary))
+    );
+}
+
+#[test]
+fn cancelled_application_selection_keeps_the_observed_subject() {
+    use filesystem_data::SelectionScope;
+    let existing = SelectionState {
+        scope: Some(SelectionScope::File),
+        file: Some(SelectedResource {
+            name: "existing".into(),
+            resource: "e".repeat(64),
+        }),
+        ..SelectionState::default()
+    };
+    let (mut client, _) = session([
+        reply(Response::Selection(existing.clone())),
+        reply(Response::SelectedApplication(None)),
+        reply(Response::Selection(existing.clone())),
+    ]);
+    let outcome = client.select_application();
+    assert!(outcome.steps[0].result.is_ok());
+    let state = outcome.steps[1].result.as_ref().unwrap().as_ref().unwrap();
+    assert_eq!(state.scope, existing.scope);
+    assert_eq!(state.file, existing.file);
+}
+
+#[test]
+fn inconsistent_scope_and_resource_shapes_are_rejected_before_hydration() {
+    use filesystem_data::SelectionScope;
+    let file = SelectedResource {
+        name: "file".into(),
+        resource: "f".repeat(64),
+    };
+    for state in [
+        SelectionState {
+            scope: Some(SelectionScope::Empty),
+            file: Some(file.clone()),
+            ..SelectionState::default()
+        },
+        SelectionState {
+            scope: Some(SelectionScope::Binary),
+            ..SelectionState::default()
+        },
+        SelectionState {
+            scope: Some(SelectionScope::Application),
+            file: Some(file),
+            ..SelectionState::default()
+        },
+    ] {
+        let (mut client, observed) = session([reply(Response::Selection(state))]);
+        assert!(client.current_selection().is_err());
+        assert_eq!(observed.borrow().requests.len(), 1);
+    }
 }

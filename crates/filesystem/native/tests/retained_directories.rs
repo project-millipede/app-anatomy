@@ -133,3 +133,94 @@ fn retained_directory_limit_rejects_new_expansion_without_evicting_loaded_childr
     }
     Ok(())
 }
+
+#[test]
+fn application_scope_includes_resources_and_survives_file_and_cursor_changes() -> io::Result<()> {
+    use filesystem_data::SelectionScope;
+
+    // 1. Acquire one modern app root, including non-code resource contents.
+    let fixture = tempfile::tempdir()?;
+    let application = fixture.path().join("Chosen.app");
+    fs::create_dir_all(application.join("Contents/Resources"))?;
+    fs::create_dir(application.join("Contents/MacOS"))?;
+    // Only the file/layout is validated; plist parsing is deliberately out of scope.
+    fs::write(
+        application.join("Contents/Info.plist"),
+        b"unparsed metadata",
+    )?;
+    fs::write(application.join("Contents/Resources/image"), b"resource")?;
+    let mut selection = NativeSelection::default();
+    assert_eq!(selection.scope(), SelectionScope::Empty);
+    selection.select_application(&application)?;
+    let root = selection.root_directory().unwrap();
+    assert_eq!(selection.scope(), SelectionScope::Application);
+    let contents = selection.load_child(root, entry(&selection, root, "Contents"))?;
+    let resources_entry = entry(&selection, contents, "Resources");
+    let resources = selection.load_child(contents, resources_entry)?;
+    selection.open_file_from(resources, entry(&selection, resources, "image"))?;
+    assert_eq!(selection.scope(), SelectionScope::Application);
+    assert_eq!(selection.root_directory(), Some(root));
+
+    // 2. Cursor navigation retains application identity and loaded resource siblings.
+    selection.open_directory_from(contents, entry(&selection, contents, "MacOS"))?;
+    assert_eq!(selection.scope(), SelectionScope::Application);
+    assert!(selection.file().is_none());
+    assert!(selection.directory(resources).is_some());
+    assert_eq!(selection.root_directory(), Some(root));
+
+    // 3. Generic folder acquisition is never promoted merely by its .app name.
+    selection.select_directory(&application)?;
+    assert_eq!(selection.scope(), SelectionScope::Directory);
+    Ok(())
+}
+
+#[test]
+fn invalid_subjects_preserve_application_and_valid_binary_replaces_it()
+-> Result<(), Box<dyn std::error::Error>> {
+    use filesystem_data::SelectionScope;
+
+    // 1. Keep a selected resource under an accepted app root.
+    let fixture = tempfile::tempdir()?;
+    let application = fixture.path().join("Chosen.app");
+    fs::create_dir_all(application.join("Contents"))?;
+    fs::write(application.join("Contents/Info.plist"), b"metadata")?;
+    let mut selection = NativeSelection::default();
+    selection.select_application(&application)?;
+    let root = selection.root_directory().unwrap();
+    let contents = selection.load_child(root, entry(&selection, root, "Contents"))?;
+    selection.open_file_from(contents, entry(&selection, contents, "Info.plist"))?;
+    let origin = selection.file_entry();
+
+    // 2. Neither an arbitrary folder, invalid .app nor nonbinary file can replace it.
+    let invalid_app = fixture.path().join("Invalid.app");
+    fs::create_dir(&invalid_app)?;
+    let invalid_file = fixture.path().join("not-a-binary");
+    fs::write(&invalid_file, b"text")?;
+    for result in [
+        selection.select_application(fixture.path()),
+        selection.select_application(&invalid_app),
+        selection.select_binary(&invalid_file),
+    ] {
+        assert!(result.is_err());
+        assert_eq!(selection.scope(), SelectionScope::Application);
+        assert_eq!(selection.root_directory(), Some(root));
+        assert_eq!(selection.file_entry(), origin);
+    }
+
+    // 3. An extensionless Mach-O header is eligible without dependency inspection.
+    let binary = fixture.path().join("standalone");
+    let header: Vec<u8> = [0xfeed_facf_u32, 0x0100_000c, 0, 2, 0, 0, 0, 0]
+        .into_iter()
+        .flat_map(u32::to_le_bytes)
+        .collect();
+    fs::write(&binary, header)?;
+    selection.select_binary(&binary)?;
+    assert_eq!(selection.scope(), SelectionScope::Binary);
+    assert_eq!(selection.root_directory(), None);
+    assert_eq!(selection.file_entry(), None);
+    assert!(selection.directory(root).is_none());
+    assert_eq!(selection.file().unwrap().byte_length(), 32);
+    selection.select_file(&binary)?;
+    assert_eq!(selection.scope(), SelectionScope::File);
+    Ok(())
+}

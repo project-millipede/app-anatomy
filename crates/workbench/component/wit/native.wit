@@ -1,4 +1,4 @@
-package apple-code:analysis@0.8.0;
+package apple-code:analysis@0.9.0;
 
 interface native {
   use binary.{report};
@@ -7,6 +7,8 @@ interface native {
   enum failure-kind { transport, provider }
   record failure { kind: failure-kind, message: string }
   record selected-resource { name: string, %resource: string }
+  /// Explicit selected subject; absent scope identifies an older native owner.
+  enum selection-scope { empty, file, directory, application, binary }
   enum entry-kind { file, directory, symlink, other }
   record directory-entry { id: u32, name: string, kind: entry-kind }
   record directory-entry-ref { directory: string, entry-id: u32 }
@@ -16,6 +18,7 @@ interface native {
     entries: list<directory-entry>,
   }
   record selection-state {
+    scope: option<selection-scope>,
     file: option<selected-resource>,
     directory: option<selected-resource>,
     entries: list<directory-entry>,
@@ -24,7 +27,7 @@ interface native {
     /// Loaded snapshots assembled and validated by the ordinary Rust client.
     directories: list<directory-listing>,
   }
-  enum step-kind { select-file, select-directory, open-entry, query-selection, inspect, expand-directory }
+  enum step-kind { select-file, select-directory, open-entry, query-selection, inspect, expand-directory, select-application, select-binary }
   record selection-step-outcome {
     kind: step-kind,
     /// Successful actions return none; successful queries return some state,
@@ -54,6 +57,8 @@ interface native {
     query-selection: func() -> selection-outcome;
     choose-file: func() -> selection-outcome;
     choose-folder: func() -> selection-outcome;
+    choose-application: func() -> selection-outcome;
+    choose-binary: func() -> selection-outcome;
     open-file: func(directory: string, entry-id: u32) -> selection-outcome;
     open-directory: func(directory: string, entry-id: u32) -> selection-outcome;
     /// Lazily load a child while preserving the mounted root and selected file.

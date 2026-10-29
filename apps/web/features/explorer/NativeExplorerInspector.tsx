@@ -77,7 +77,7 @@ export function NativeExplorerInspector({
               ? 'Recorded declaration · target not evaluated'
               : image
                 ? cpuLabel(image.cpu)
-                : 'Choose a native file and inspect its dependencies.'}
+                : 'Select a file in an opened application, or open a binary, then inspect its dependencies.'}
           </p>
         </div>
       }
@@ -172,7 +172,7 @@ export function NativeExplorerInspector({
                 </p>
                 <dl className={styles.metadata}>
                   <div>
-                    <dt>Bundle location</dt>
+                    <dt>Target bundle location</dt>
                     <dd>Unknown</dd>
                   </div>
                   <div>

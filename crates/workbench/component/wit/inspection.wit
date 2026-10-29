@@ -1,4 +1,4 @@
-package apple-code:analysis@0.8.0;
+package apple-code:analysis@0.9.0;
 
 interface inspection {
   use apple-code:filesystem/source@0.2.0.{read-error};

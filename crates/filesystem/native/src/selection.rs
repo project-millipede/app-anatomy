@@ -1,8 +1,8 @@
 use std::{fs::File, io, path::Path};
 
-use filesystem_data::DirectoryEntry;
+use filesystem_data::{DirectoryEntry, SelectionScope};
 
-use crate::{NativeDirectory, NativeFileSource};
+use crate::{NativeApplication, NativeBinary, NativeDirectory, NativeFileSource};
 
 /// Maximum captured directories retained under one selected root, including the root.
 pub const MAX_RETAINED_DIRECTORIES: usize = 64;
@@ -79,9 +79,43 @@ pub struct NativeSelection {
     root: Option<DirectoryId>,
     current_directory: Option<DirectoryId>,
     next_directory_id: u64,
+    scope: SelectionScope,
 }
 
 impl NativeSelection {
+    /// Acquire one application root before replacing the retained input.
+    pub fn select_application(&mut self, path: impl AsRef<Path>) -> io::Result<()> {
+        self.install_application(NativeApplication::open(path)?)?;
+        Ok(())
+    }
+
+    /// Acquire a supported standalone binary before replacing the retained input.
+    pub fn select_binary(&mut self, path: impl AsRef<Path>) -> io::Result<()> {
+        self.install_binary(NativeBinary::open(path)?);
+        Ok(())
+    }
+
+    /// Install only an application root that already passed native/core validation.
+    pub fn install_application(
+        &mut self,
+        application: NativeApplication,
+    ) -> io::Result<DirectoryId> {
+        let id = self.install_directory(application.name, application.directory)?;
+        self.scope = SelectionScope::Application;
+        Ok(id)
+    }
+
+    /// Install only a standalone source that already passed binary header inspection.
+    pub fn install_binary(&mut self, binary: NativeBinary) {
+        self.install_file(binary.name, binary.source);
+        self.scope = SelectionScope::Binary;
+    }
+
+    /// Acquisition scope, independent of the current file/listing cursor.
+    pub fn scope(&self) -> SelectionScope {
+        self.scope
+    }
+
     /// Open a regular external file before replacing the file and directory tree.
     pub fn select_file(&mut self, path: impl AsRef<Path>) -> io::Result<()> {
         let path = path.as_ref();
@@ -109,6 +143,7 @@ impl NativeSelection {
         self.directories.clear();
         self.root = None;
         self.current_directory = None;
+        self.scope = SelectionScope::File;
     }
 
     /// Install an acquired root and listing, dropping the old tree and file.
@@ -130,6 +165,7 @@ impl NativeSelection {
         self.current_directory = Some(id);
         self.file = None;
         self.file_entry = None;
+        self.scope = SelectionScope::Directory;
         Ok(id)
     }
 

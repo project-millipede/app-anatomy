@@ -13,6 +13,7 @@ import { NativeExplorerInspector } from './NativeExplorerInspector';
 import { ExplorerWorkspaceLayout } from './layout/ExplorerWorkspaceLayout';
 import { useVirtualizedTree } from './capabilities/tree-virtualization/useVirtualizedTree';
 import {
+  nativeExplorerSubject,
   nativeSelectedRowId,
   nativeTreePresentation,
   type NativeTreeNode,
@@ -22,13 +23,10 @@ import styles from './NativeExplorerWorkspace.module.css';
 
 /** Mount replacement resets navigation; file changes and inspection retain its tree. */
 export function NativeExplorerWorkspace({ model }: { model: WorkbenchModel }) {
+  const { application, file } = nativeExplorerSubject(model.nativeWorkspace);
   return (
     <SelectedFileWorkspace
-      key={
-        model.nativeWorkspace?.root?.resource ??
-        model.selectedFile?.resource ??
-        'native-empty'
-      }
+      key={application?.resource ?? file?.resource ?? 'native-empty'}
       model={model}
     />
   );
@@ -36,7 +34,10 @@ export function NativeExplorerWorkspace({ model }: { model: WorkbenchModel }) {
 
 /** Ark owns navigation; Rust's selected file alone determines the center and SEL row. */
 function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
-  const { selectedFile, report, selectedSliceIndex, selectSlice } = model;
+  const { report, selectedSliceIndex, selectSlice } = model;
+  const { application, file: selectedFile } = nativeExplorerSubject(
+    model.nativeWorkspace,
+  );
   const image =
     report?.resource === selectedFile?.resource
       ? report?.analysis.images[selectedSliceIndex]
@@ -51,9 +52,9 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
   const [treeError, setTreeError] = useState<string | null>(null);
   // Inspection and file selection do not change the retained physical topology.
   const topology = JSON.stringify([
-    model.nativeWorkspace?.root,
-    model.nativeWorkspace?.directories,
-    model.nativeWorkspace?.fileEntry ? undefined : selectedFile,
+    application,
+    application ? model.nativeWorkspace?.directories : undefined,
+    application ? undefined : selectedFile,
   ]);
   const collection = useMemo(() => {
     const { rootNode } = nativeTreePresentation(model.nativeWorkspace);
@@ -150,6 +151,7 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
     selectedFile,
     report,
     selectedSliceIndex,
+    application,
   );
   const displayedTreeError =
     treeError !== null &&
@@ -197,19 +199,21 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
           datasetSelector={null}
           description={null}
           summary={
-            model.nativeWorkspace?.directory && !model.nativeWorkspace.root
-              ? 'Update Native Workbench to mount this folder in Files. Single-file inspection remains available.'
-              : model.nativeWorkspace?.root
-                ? 'Mounted native folder · Only loaded directories are shown'
-                : selectedFile
-                  ? 'Selected native file · No folder mounted'
-                  : 'Select a file or browse a native folder.'
+            application
+              ? `${application.name} · Application scope · Select an internal file to inspect`
+              : selectedFile
+                ? 'Standalone binary · No application scope'
+                : model.nativeWorkspace &&
+                    model.nativeWorkspace.scope !== 'empty'
+                  ? 'This selection is not an Explorer application or binary. Open an application or binary to continue.'
+                  : 'Open an application or standalone binary.'
           }
         />
       }
       canvas={
         <ExplorerRelationshipCanvas
           mode="declarations"
+          applicationName={application?.name}
           actions={
             <Button
               className={styles.inspectButton}

@@ -9,6 +9,8 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc, oneshot};
 pub enum PickMode {
     File,
     Folder,
+    Application,
+    Binary,
 }
 
 struct Request {
@@ -71,6 +73,10 @@ impl DialogDispatcher {
             PickMode::Folder => rfd::FileDialog::new()
                 .set_title("Choose a folder to inspect")
                 .pick_folder(),
+            PickMode::Application => application_dialog(),
+            PickMode::Binary => rfd::FileDialog::new()
+                .set_title("Open a standalone binary")
+                .pick_file(),
         })
         .await;
     }
@@ -88,6 +94,24 @@ impl DialogDispatcher {
                 let _ = request.response.send(path);
             }
         }
+    }
+}
+
+fn application_dialog() -> Option<PathBuf> {
+    let dialog = rfd::FileDialog::new()
+        .set_title("Open an application")
+        .add_filter("Applications", &["app"]);
+    #[cfg(target_os = "macos")]
+    {
+        // AppKit presents packages as files by default. Generic folder picking
+        // cannot apply rfd's filters, so application acquisition uses pick_file.
+        dialog.set_directory("/Applications").pick_file()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        // On other native hosts an .app is an ordinary directory. The same
+        // core/native validation remains authoritative after this convenience UI.
+        dialog.pick_folder()
     }
 }
 

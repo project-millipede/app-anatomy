@@ -64,6 +64,8 @@ const { files } = await transpile(await readFile(component), {
   asyncExports: [
     'native#[method]session.choose-file',
     'native#[method]session.choose-folder',
+    'native#[method]session.choose-application',
+    'native#[method]session.choose-binary',
     'native#[method]session.query-selection',
     'native#[method]session.open-file',
     'native#[method]session.open-directory',

@@ -40,6 +40,10 @@
 //! distinct from acquired provider files; these APIs do not expand paths, select
 //! candidates or perform runtime symbol binding.
 //!
+//! [`validate_application_bundle_root`] separately checks the supported modern
+//! `.app` root shape using caller-observed facts. It does not access a filesystem,
+//! parse a plist or establish signature validity or execution eligibility.
+//!
 //! # Native use
 //!
 //! ```
@@ -57,6 +61,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+mod application;
 mod error;
 pub mod explorer;
 pub mod input;
@@ -64,6 +69,9 @@ mod macho;
 mod model;
 mod object_report;
 
+pub use application::{
+    ApplicationBundleRootError, ApplicationBundleRootFacts, validate_application_bundle_root,
+};
 pub use error::{AnalysisError, ErrorKind};
 pub use macho::{
     InspectionError, inspect, inspect_dependencies, inspect_dependencies_source, inspect_source,

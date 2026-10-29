@@ -7,6 +7,7 @@ import {
 
 function mounted(): SelectionState {
   return {
+    scope: 'application',
     root: { resource: 'root', name: 'Application' },
     directory: { resource: 'root', name: 'Application' },
     file: { resource: 'opened-right-file', name: 'same' },
@@ -99,12 +100,55 @@ test('file replacement changes the authoritative selection without changing the 
   expect(after.selectedId).not.toBe(before.selectedId);
 });
 
-test('an acquired file without a Rust parent association is shown outside the mounted folder', () => {
-  const state = { ...mounted(), fileEntry: undefined };
+test('generic directories and legacy roots never become application scope by name', () => {
+  for (const scope of ['directory', 'file', undefined] as const) {
+    const state = {
+      ...mounted(),
+      scope,
+      root: { resource: 'root', name: 'LooksLike.app' },
+    };
+    const view = nativeTreePresentation(state);
+    expect(view.rootNode.children).toEqual([]);
+    expect(view.selectedId).toBeUndefined();
+    expect(view.mountId).toBe('native-empty');
+  }
+});
+
+test('application contents retain resource, helper, framework and unsupported entry rows without filtering', () => {
+  const state = mounted();
+  const root = state.directories.find((listing) => !listing.parent)!;
+  root.entries = [
+    { id: 0, name: 'Contents', kind: 'directory' },
+    { id: 1, name: 'Info.plist', kind: 'file' },
+    { id: 2, name: 'Render Helper', kind: 'file' },
+    { id: 3, name: 'Example.framework', kind: 'directory' },
+    { id: 4, name: 'Current', kind: 'symlink' },
+    { id: 5, name: '.metadata', kind: 'other' },
+  ];
+  const rows = nativeTreePresentation(state).rootNode.children![0]!.children!;
+  expect(rows.map(({ name, kind }) => ({ name, kind }))).toEqual(
+    root.entries.map(({ name, kind }) => ({ name, kind })),
+  );
+});
+
+test('opening a standalone binary replaces application navigation with only that binary', () => {
+  const application = nativeTreePresentation(mounted());
+  const binary = nativeTreePresentation({
+    scope: 'binary',
+    file: { resource: 'standalone-binary', name: 'Tool' },
+    entries: [],
+    directories: [],
+  });
+  expect(binary.rootNode.children).toHaveLength(1);
+  expect(binary.rootNode.children![0]!.name).toBe('Tool');
+  expect(binary.selectedId).toBe(binary.rootNode.children![0]!.id);
+  expect(binary.mountId).not.toBe(application.mountId);
+  expect(binary.rootNode.children![0]!.children).toBeUndefined();
+});
+
+test('an application root remains the center selection until an internal file is chosen', () => {
+  const state = { ...mounted(), file: undefined, fileEntry: undefined };
   const view = nativeTreePresentation(state);
-  expect(view.rootNode.children).toHaveLength(2);
-  const standalone = view.rootNode.children![1]!;
-  expect(view.selectedId).toBe(standalone.id);
-  expect(standalone.parentDirectory).toBeUndefined();
-  expect(standalone.id).not.toBe(nativeEntryRowId('right', 0));
+  expect(view.selectedId).toBe(view.rootNode.children![0]!.id);
+  expect(view.rootNode.children![0]!.children).toHaveLength(3);
 });

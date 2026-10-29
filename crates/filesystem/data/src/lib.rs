@@ -35,3 +35,22 @@ pub struct DirectoryEntry {
     /// Type observed when the entry was listed, without following symbolic links.
     pub kind: DirectoryEntryKind,
 }
+
+/// Acquisition scope established by the native owner, distinct from a file cursor.
+/// Application scope survives choosing files or navigating within its retained root.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+pub enum SelectionScope {
+    /// No native input has been acquired.
+    #[default]
+    Empty,
+    /// A generic file chosen through the workbench's file control.
+    File,
+    /// A generic folder chosen through the workbench's folder control.
+    Directory,
+    /// One structurally eligible modern `.app` root, with its full contents in scope.
+    Application,
+    /// One standalone file accepted by the supported binary header inspector.
+    Binary,
+}

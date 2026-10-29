@@ -31,6 +31,12 @@ impl wire::GuestSession for NativeSession {
     fn choose_folder(&self) -> wire::SelectionOutcome {
         selection_outcome(self.session.borrow_mut().select_directory())
     }
+    fn choose_application(&self) -> wire::SelectionOutcome {
+        selection_outcome(self.session.borrow_mut().select_application())
+    }
+    fn choose_binary(&self) -> wire::SelectionOutcome {
+        selection_outcome(self.session.borrow_mut().select_binary())
+    }
     fn open_file(&self, directory: String, entry_id: u32) -> wire::SelectionOutcome {
         selection_outcome(self.session.borrow_mut().select_child(
             &directory,
