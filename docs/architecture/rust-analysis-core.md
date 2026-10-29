@@ -309,3 +309,12 @@ outside production library sources. See the
 [Explorer relationship contract](capabilities/explorer-relationships.md) for
 contexts, presentation boundaries, unsupported capabilities and future native
 acquisition requirements.
+
+Native Explorer integration will start with upstream dependency declarations and
+static import/library associations. `object` already maps ordinary import
+ordinals to recorded library names. Candidate
+file lookup against an acquired inventory and explicit context is a separate,
+optional capability. Actual runtime provider selection, symbol lookup and binding
+remain outside the current Explorer. This direction adds no extraction API and
+does not broaden the existing header-only entry points; see the
+[upstream integration boundary](capabilities/explorer-relationships.md#upstream-reuse-and-integration-boundary).
