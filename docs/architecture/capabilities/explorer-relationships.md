@@ -153,15 +153,20 @@ independent of content and relationship counts. West/east headings and their thr
 vertical rows align. North/south use matching horizontal columns. Empty slots
 reserve coordinates without framed cards or Archer identities.
 
-Each corridor shows three relationships per page in Rust's evidence order. Counts
+Each corridor shows up to three relationships per page in Rust's evidence order.
+Slots are assigned from the current page's visible count: one card uses the middle
+slot; two use the first and middle slots; three use all slots. First/middle/last
+mean top/middle/bottom for west/east and left/middle/right for north/south. The rule
+restarts on every page, so a final page with one item centers that card. Counts
 refer to the complete corridor; controls give the visible range. Paging clears
 preview while retaining the center. Focus/Back restores the preview's containing
 page, candidate choice and existing navigation context. This windowing is
 presentation only and does not change candidate computation or tree markings.
 
 One decorative center-edge port per visible relationship uses ordered offsets at
-25%, 50% and 75%. The same visible-page array mounts cards, ports and Archer source
-declarations, so hidden pages leave no connectors. Incoming arrows end at their
+25%, 50% and 75%. The same physical-slot array mounts cards, matching ports and
+Archer source declarations. A lone card connects through the 50% port; empty slots
+have no ports or source declarations, so hidden pages leave no connectors. Incoming arrows end at their
 ports; outgoing arrows start there. Active card, port and route use the same
 directional color; inactive routes are subdued. Ports have no domain identity,
 keyboard stop or inspector entry. There is no shared center or south trunk.
@@ -190,8 +195,13 @@ All seven dense pages exposed the complete 19 relationships, with three matching
 cards/ports/routes on full pages and one on the final page. The long-path endpoint
 was revealed in the virtual tree; Focus/Back restored its final page and preview.
 Explicit paging cleared preview without moving the center. Both south pages in
-the incomplete dataset retained three cards/ports/routes. Alias activation and
-ambiguous endpoint choice were rechecked. Workspace typecheck, all 21 web tests,
+the incomplete dataset retained three cards/ports/routes. Per-page centering was
+checked for ambiguity's lone west card, its lone east card after architecture
+change, the dense final page and the broken alias's lone south reference. The
+single west/east cards aligned vertically with the center and their 50% ports;
+the single south card aligned horizontally and produced a straight vertical route.
+The centered dense preview also survived Focus/Back. Alias activation and
+ambiguous endpoint choice were rechecked. Workspace typecheck, all 22 web tests,
 the production web build and changed-file formatting passed. Rust, generated
 preview data and Archer source files were unchanged.
 

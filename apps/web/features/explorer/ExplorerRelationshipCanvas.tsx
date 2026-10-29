@@ -6,7 +6,7 @@ import { Button } from '../workspace/ark/Button';
 import { BridgeGrid, BridgeViewport } from './layout/BridgeGrid';
 import { BridgeSection, type BridgePosition } from './layout/BridgeSection';
 import { CanvasPane } from './layout/CanvasPane';
-import { CORRIDOR_CAPACITY, getCorridorPage } from './corridorLayout';
+import { getCorridorPage } from './corridorLayout';
 import type {
   PreviewDataset,
   PreviewEntry,
@@ -183,8 +183,7 @@ export function ExplorerRelationshipCanvas({
         }
       >
         <div className={styles.cardStack} data-direction={position}>
-          {Array.from({ length: CORRIDOR_CAPACITY }, (_, index) => {
-            const link = view.items[index];
+          {view.slots.map((link, index) => {
             if (!link)
               return (
                 <div
@@ -359,13 +358,15 @@ export function ExplorerRelationshipCanvas({
                     </div>
                   </div>
                   {views.flatMap((view) =>
-                    view.items.map((link, index) => {
+                    view.slots.map((link, index) => {
+                      if (!link) return null;
                       const incoming =
                         view.position === 'north' || view.position === 'west';
                       return (
                         <div
                           className={styles.portSlot}
                           data-side={view.position}
+                          data-slot={index}
                           style={{ '--port-index': index } as CSSProperties}
                           aria-hidden="true"
                           key={endpointId(view.position, link, 'port')}

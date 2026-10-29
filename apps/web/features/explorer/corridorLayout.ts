@@ -3,6 +3,7 @@ export const CORRIDOR_CAPACITY = 3;
 
 /**
  * Select a bounded presentation window without changing relationship records.
+ * Single cards occupy the middle slot; pairs occupy the first two slots.
  * Pages are zero-based; nonempty start/end ranges are one-based and inclusive.
  * An active relationship wins so restored previews remain visible. Explicit page
  * navigation should clear the preview before requesting another page.
@@ -13,6 +14,7 @@ export function getCorridorPage<T extends { relationshipId: string }>(
   activeRelationshipId: string | null,
 ): {
   items: readonly T[];
+  slots: readonly (T | undefined)[];
   page: number;
   pageCount: number;
   start: number;
@@ -34,6 +36,10 @@ export function getCorridorPage<T extends { relationshipId: string }>(
 
   return {
     items,
+    slots:
+      items.length === 1
+        ? [undefined, items[0], undefined]
+        : [items[0], items[1], items[2]],
     page,
     pageCount,
     start: total === 0 ? 0 : offset + 1,

@@ -43,6 +43,7 @@ test('shrinking or empty corridors clamp stale page requests without phantom car
   });
   expect(getCorridorPage([], smaller.page, null)).toEqual({
     items: [],
+    slots: [undefined, undefined, undefined],
     page: 0,
     pageCount: 1,
     start: 0,
@@ -52,11 +53,16 @@ test('shrinking or empty corridors clamp stale page requests without phantom car
   expect(getCorridorPage(links, -1, null).page).toBe(0);
 });
 
-test('restored previews reveal their relationship page while stale previews allow ordinary paging', () => {
-  const restored = getCorridorPage(links, 0, 'relationship-6');
-  expect(restored.page).toBe(2);
-  expect(restored.items).toContain(links[6]);
-  expect(restored).toMatchObject({ start: 7, end: 8 });
+test('a lone fourth relationship stays centered on its page when its preview is restored', () => {
+  const fourLinks = links.slice(0, 4);
+  const secondPage = getCorridorPage(fourLinks, 1, null);
+  expect(secondPage.slots).toEqual([undefined, links[3], undefined]);
+  expect(secondPage.items).toEqual([links[3]]);
+
+  const restored = getCorridorPage(fourLinks, 0, 'relationship-3');
+  expect(restored.page).toBe(1);
+  expect(restored.slots).toEqual([undefined, links[3], undefined]);
+  expect(restored).toMatchObject({ start: 4, end: 4, total: 4 });
 
   const changedContext = getCorridorPage(links, 1, 'previous-context-relation');
   expect(changedContext.page).toBe(1);
@@ -64,5 +70,23 @@ test('restored previews reveal their relationship page while stale previews allo
     'relationship-3',
     'relationship-4',
     'relationship-5',
+  ]);
+});
+
+test('visible card counts center singles and fill ordered slots for pairs and triples', () => {
+  expect(getCorridorPage(links.slice(0, 1), 0, null).slots).toEqual([
+    undefined,
+    links[0],
+    undefined,
+  ]);
+  expect(getCorridorPage(links.slice(0, 2), 0, null).slots).toEqual([
+    links[0],
+    links[1],
+    undefined,
+  ]);
+  expect(getCorridorPage(links.slice(0, 3), 0, null).slots).toEqual([
+    links[0],
+    links[1],
+    links[2],
   ]);
 });
