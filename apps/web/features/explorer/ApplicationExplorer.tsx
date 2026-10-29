@@ -19,7 +19,7 @@ export function ApplicationExplorer() {
       }
       headerActions={
         <span className={styles.headerMeta}>
-          Ark workspace · Layout preview
+          Ark workspace · Synthetic relationships
         </span>
       }
       title={
@@ -34,12 +34,12 @@ export function ApplicationExplorer() {
           <span>↕ External / unresolved</span>
         </div>
       }
-      notice="Interactive preview · The tree uses authored example nodes. Evidence panels are placeholders; connections illustrate positioning only."
+      notice="Synthetic preview · Rust computes bounded dependency candidates from authored inventory facts. No files are acquired; results do not establish runtime loading."
       workspace={<ExplorerWorkspace />}
       footer={
         <>
-          <span>Application Explorer · Layout preview</span>
-          <span>Illustrative connections · No files inspected</span>
+          <span>Application Explorer · Synthetic preview</span>
+          <span>Rust-computed candidates · No files inspected</span>
         </>
       }
     />

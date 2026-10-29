@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useCallback, type ReactNode, type RefObject } from 'react';
 import { TreeView, type TreeNode } from '@ark-ui/react/tree-view';
 import type { VirtualizedTree } from './useVirtualizedTree';
 import { useTreeViewport } from './useTreeViewport';
@@ -9,6 +9,8 @@ import styles from './VirtualTreeViewport.module.css';
 
 /** The owner-created Ark model and the presentation contract for its viewport. */
 type VirtualTreeViewportProps<T extends TreeNode> = VirtualizedTree<T> & {
+  /** Optional presentation owner access for reveal and navigation scroll restoration. */
+  viewportElementRef?: RefObject<HTMLDivElement | null>;
   /** Classes applied to the inner TreeView.Tree element alongside positioning styles. */
   className: string;
   /** Space-separated instruction element IDs used by the tree's aria-describedby. */
@@ -51,6 +53,7 @@ export function VirtualTreeViewport<T extends TreeNode>({
   rowHeight,
   padding,
   renderNode,
+  viewportElementRef,
 }: VirtualTreeViewportProps<T>) {
   const { index, viewportRef, virtualizer } = useTreeViewport({
     tree,
@@ -58,6 +61,13 @@ export function VirtualTreeViewport<T extends TreeNode>({
     rowHeight,
     padding,
   });
+  const setViewportElement = useCallback(
+    (element: HTMLDivElement | null) => {
+      viewportRef.current = element;
+      if (viewportElementRef) viewportElementRef.current = element;
+    },
+    [viewportElementRef, viewportRef],
+  );
   const mountedGroups = groupMountedTreeRows(
     index,
     virtualizer.getVirtualItems().map((item) => item.index),
@@ -98,7 +108,7 @@ export function VirtualTreeViewport<T extends TreeNode>({
   }
 
   return (
-    <div ref={viewportRef} className={styles.viewport}>
+    <div ref={setViewportElement} className={styles.viewport}>
       <TreeView.Tree
         className={`${className} ${styles.tree}`}
         aria-describedby={describedBy}

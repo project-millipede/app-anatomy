@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode } from 'react';
 import { TreeView, useTreeViewContext } from '@ark-ui/react/tree-view';
 import { tree as treeRecipe } from '../../styled-system/recipes';
 import type { PreviewNode } from './previewInventory';
+import styles from './ExplorerLayout.module.css';
 
 const parts = treeRecipe();
 
@@ -10,6 +11,9 @@ type ExplorerTreeNodeProps = TreeView.NodeProviderBaseProps<PreviewNode> & {
   siblingCount: number;
   /** Nested children positioned by the viewport. */
   children: ReactNode;
+  relationRole?: 'in' | 'out' | 'inout';
+  activeEndpoint?: boolean;
+  hiddenCount?: number;
 };
 
 /**
@@ -23,11 +27,38 @@ export function ExplorerTreeNode({
   indexPath,
   siblingCount,
   children,
+  relationRole,
+  activeEndpoint = false,
+  hiddenCount = 0,
 }: ExplorerTreeNodeProps) {
   const positionInSet = indexPath[indexPath.length - 1]! + 1;
   const isLastSibling = positionInSet === siblingCount;
   const tree = useTreeViewContext();
   const state = tree.getNodeState({ node, indexPath });
+  const roleLabel = state.selected
+    ? 'SEL'
+    : relationRole === 'inout'
+      ? 'IN/OUT'
+      : relationRole?.toUpperCase();
+  const hiddenLabel =
+    !state.expanded && hiddenCount > 0
+      ? `, ${hiddenCount} related resources in collapsed branch`
+      : '';
+  const accessibleName = `${node.name}${roleLabel ? `, ${roleLabel === 'SEL' ? 'selected center' : roleLabel === 'IN' ? 'incoming source' : roleLabel === 'OUT' ? 'outgoing target or candidate' : 'incoming and outgoing'}` : ''}${activeEndpoint ? ', active relationship endpoint' : ''}${hiddenLabel}`;
+  const badge = (
+    <>
+      {roleLabel && (
+        <span className={styles.treeBadge} aria-hidden="true">
+          {roleLabel}
+        </span>
+      )}
+      {!state.expanded && hiddenCount > 0 && (
+        <span className={styles.collapsedBadge} aria-hidden="true">
+          +{hiddenCount}
+        </span>
+      )}
+    </>
+  );
 
   /**
    * Opens a folder on an eligible row click without toggling it closed.
@@ -64,13 +95,13 @@ export function ExplorerTreeNode({
         {state.isBranch ? (
           <TreeView.Branch
             className={parts.branch}
-            aria-label={node.name}
+            aria-label={accessibleName}
             aria-posinset={positionInSet}
             aria-setsize={siblingCount}
           >
             <TreeView.BranchControl
               className={parts.branchControl}
-              aria-label={node.name}
+              aria-label={accessibleName}
               onClick={handleBranchControlClick}
             >
               <TreeView.BranchTrigger
@@ -87,7 +118,12 @@ export function ExplorerTreeNode({
                   </svg>
                 </TreeView.BranchIndicator>
               </TreeView.BranchTrigger>
-              <span className={parts.content} data-tree-content="">
+              <span
+                className={parts.content}
+                data-tree-content=""
+                data-relation-role={state.selected ? 'selected' : relationRole}
+                data-active-endpoint={activeEndpoint || undefined}
+              >
                 <NodeIcon kind="folder" />
                 <TreeView.BranchText
                   className={parts.branchText}
@@ -95,6 +131,7 @@ export function ExplorerTreeNode({
                 >
                   {node.name}
                 </TreeView.BranchText>
+                {badge}
               </span>
             </TreeView.BranchControl>
             <TreeView.BranchContent className={parts.branchContent}>
@@ -103,16 +140,23 @@ export function ExplorerTreeNode({
           </TreeView.Branch>
         ) : (
           <TreeView.Item
+            aria-label={accessibleName}
             className={parts.item}
             aria-posinset={positionInSet}
             aria-setsize={siblingCount}
           >
             <span className={parts.disclosureSpacer} aria-hidden="true" />
-            <span className={parts.content} data-tree-content="">
-              <NodeIcon kind="file" />
+            <span
+              className={parts.content}
+              data-tree-content=""
+              data-relation-role={state.selected ? 'selected' : relationRole}
+              data-active-endpoint={activeEndpoint || undefined}
+            >
+              <NodeIcon kind={node.kind === 'alias' ? 'alias' : 'file'} />
               <TreeView.ItemText className={parts.itemText} title={node.name}>
                 {node.name}
               </TreeView.ItemText>
+              {badge}
             </span>
           </TreeView.Item>
         )}
@@ -124,6 +168,7 @@ export function ExplorerTreeNode({
 const nodeIconPaths = {
   folder: 'M1.5 4V2.5h4L7 4h7.5v9.5h-13Z',
   file: 'M4 1.5h5L12.5 5v9.5H4Zm5 0V5h3.5',
+  alias: 'm6 10 4-4m-5 5H4a3 3 0 0 1 0-6h2m4 0h2a3 3 0 0 1 0 6h-2',
 } as const;
 
 function NodeIcon({ kind }: { kind: keyof typeof nodeIconPaths }) {
