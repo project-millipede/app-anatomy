@@ -158,7 +158,7 @@ requests and is not limited to header-sized reads. It returns no partial report.
 
 ## Adapter and UI
 
-The WIT contract is `apple-code:analysis@0.7.0`, which exposes zero-argument native
+The WIT contract is `apple-code:analysis@0.8.0`, which exposes zero-argument native
 session construction, persistent selection and inspection outcomes.
 Its `macho-value` record carries `value: u32` and `name: option<string>` for CPU,
 file-type, platform and load-command values. The platform field is optional to

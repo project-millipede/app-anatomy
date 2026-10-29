@@ -107,6 +107,7 @@ export function useWorkbenchModel(
         const outcome = await request(session);
         if (activeOperation.current !== operation) return;
         applySelectionOutcome(outcome);
+        return outcome;
       } catch (caught) {
         if (activeOperation.current !== operation) return;
         setSelectionState(null);
@@ -142,16 +143,16 @@ export function useWorkbenchModel(
    * Ask Rust to open the native file dialog.
    * @returns Completion of the request's presentation updates, or immediately when busy.
    */
-  const chooseNativeFile = useCallback(() => {
-    return runSelection((session) => session.chooseFile());
+  const chooseNativeFile = useCallback(async () => {
+    await runSelection((session) => session.chooseFile());
   }, [runSelection]);
 
   /**
    * Ask Rust to open the native folder dialog.
    * @returns Completion of the request's presentation updates, or immediately when busy.
    */
-  const chooseNativeDirectory = useCallback(() => {
-    return runSelection((session) => session.chooseFolder());
+  const chooseNativeDirectory = useCallback(async () => {
+    await runSelection((session) => session.chooseFolder());
   }, [runSelection]);
 
   /**
@@ -160,26 +161,56 @@ export function useWorkbenchModel(
    * @returns Completion, or immediately for a missing/unsupported entry or busy view.
    */
   const openNativeEntry = useCallback(
-    async (entryId: number) => {
-      const directory = selectionState?.directory;
+    async (entryId: number, parentDirectory?: string) => {
+      const directory = parentDirectory ?? selectionState?.directory?.resource;
       if (!directory) return;
-      const entry = selectionState.entries.find(
-        (entry) => entry.id === entryId,
-      );
+      const entries = parentDirectory
+        ? selectionState?.directories.find(
+            (listing) => listing.directory.resource === directory,
+          )?.entries
+        : selectionState?.entries;
+      const entry = entries?.find((entry) => entry.id === entryId);
       if (!entry) return;
 
       if (entry.kind === 'directory') {
-        return runSelection((session) =>
-          session.openDirectory(directory.resource, entry.id),
+        await runSelection((session) =>
+          session.openDirectory(directory, entry.id),
         );
-      }
-      if (entry.kind === 'file') {
-        return runSelection((session) =>
-          session.openFile(directory.resource, entry.id),
-        );
+      } else if (entry.kind === 'file') {
+        await runSelection((session) => session.openFile(directory, entry.id));
       }
     },
     [runSelection, selectionState],
+  );
+
+  const expandNativeDirectory = useCallback(
+    async (
+      parentDirectory: string,
+      entryId: number,
+    ): Promise<SelectionState> => {
+      if (activeOperation.current)
+        throw new Error('Another operation is in progress. Try again.');
+      const observed = await runSelection((session) =>
+        session.expandDirectory(parentDirectory, entryId),
+      );
+      if (!observed)
+        throw new Error('Directory expansion was not completed. Try again.');
+      const failed = observed.steps.find((step) => step.result.tag === 'err');
+      if (failed?.result.tag === 'err')
+        throw new Error(failed.result.val.message);
+      const state = selectionFromOutcome(observed);
+      const listing = state?.directories.find(
+        (listing) =>
+          listing.parent?.directory === parentDirectory &&
+          listing.parent.entryId === entryId,
+      );
+      if (!listing)
+        throw new Error(
+          'No loaded directory snapshot was returned. Try again.',
+        );
+      return state!;
+    },
+    [runSelection],
   );
 
   /**
@@ -245,11 +276,13 @@ export function useWorkbenchModel(
     hostError,
     selectedFile,
     nativeDirectory,
+    nativeWorkspace: selectionState,
     report,
     selectedSliceIndex,
     chooseNativeFile,
     chooseNativeDirectory,
     openNativeEntry,
+    expandNativeDirectory,
     inspectNative,
     inspectNativeDependencies,
     selectSlice: setSelectedSliceIndex,
