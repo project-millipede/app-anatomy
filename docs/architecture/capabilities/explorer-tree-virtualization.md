@@ -70,8 +70,8 @@ zoom applies to CSS and JS coordinates together. Ark's existing Collapsible may
 measure its own branch content; this adapter adds no row measurement machinery.
 
 NavigationPane allocates space with a zero minimum block size and no overflow
-owner. The virtual viewport owns overflow and overscroll containment. No workspace
-breakpoint, pane ratio, header/footer spacing or canvas/inspector styles change.
+owner. The virtual viewport owns overflow and overscroll containment. Workspace breakpoints, pane widths, header/footer spacing and canvas/inspector
+styles belong to the Explorer layouts rather than this virtualization adapter.
 
 ## Cache and focus contracts
 

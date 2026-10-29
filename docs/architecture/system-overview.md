@@ -162,11 +162,18 @@ renders Rust-computed direct relationships through Archer. It composes `BridgeVi
 `ArcherSurface` and `BridgeGrid` through ordinary JSX nesting. `BridgeViewport`
 owns the scrolling viewport and minimum-width wrapper; Archer's surface surrounds
 all grid endpoints and owns their registration and connector coordinates. Pane
-scrolling fits below the route's navigation. The navigation, canvas and inspector retain a
-`1 : 3 : 1` ratio at every width, with no container queries or breakpoint stacking.
-North and south share a width policy and matching flexible grid rows, so their
-complete bridge sections have equal, content-driven heights without fixed height
-values. Authored styles throughout the web app use natural letter spacing.
+scrolling fits below compact page chrome. Desktop navigation and inspector widths
+follow the linked-tree prototype: 294px and 310px around a fluid canvas, reduced to
+230px and 280px below 1190px. Below 780px the panes stack in one page scroller;
+the tree retains its bounded viewport. The canvas context, legend and status stay
+outside its independent graph scroller on desktop.
+Bridge rows use their own content heights. North is centered and capped at 500px;
+south spans the canvas, with horizontal cards. West and east surround the selected
+file. Archer uses orthogonal paths; candidate links are dashed and external links
+solid. A presentation-only routing port at the middle row's bottom keeps south
+connections below the side cards. It is not an inventory entry or an inspector
+node. The Archer surface owns the shared stacking context, with edges below
+cards and compass headings. Authored styles retain natural letter spacing.
 The tree uses a fixed 32 CSS-pixel row height; the Panda recipe and viewport
 configuration must agree. Mounted nodes retain their real Ark ancestor branches; positioned
 child groups reserve the complete expanded extent without spacer nodes. Nested
@@ -176,8 +183,8 @@ updates retain the index and item-key function. Range calculation retains actual
 DOM focus without a second focus model. Ark's own keyboard traversal remains
 independent and can still scan the collection. See the
 [tree virtualization contract](capabilities/explorer-tree-virtualization.md).
-Selection and keyboard focus decorate only the compact
-icon-and-name surface; disclosure controls and connectors occupy separate space.
+Selection and keyboard focus decorate the icon/name/badge surface filling the
+remaining row width; disclosure controls and connectors occupy separate space.
 The inspector presents synthetic evidence, candidate attempts and alias chains.
 Ordinary Rust APIs compute bounded candidates and neighborhoods; a build-time
 xtask exports preview data. React owns relationship preview, candidate choice and

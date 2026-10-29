@@ -2,6 +2,7 @@ import { defineSlotRecipe } from '@pandacss/dev';
 
 const nodeText = {
   display: 'block',
+  flex: 1,
   minWidth: 0,
   overflow: 'hidden',
   whiteSpace: 'nowrap',
@@ -64,9 +65,9 @@ export const tree = defineSlotRecipe({
   ],
   base: {
     root: {
-      '--tree-indent': '1.25rem',
+      '--tree-indent': '0.75rem',
       '--tree-disclosure-size': '1rem',
-      '--tree-icon-size': '1rem',
+      '--tree-icon-size': '0.875rem',
       '--tree-row-padding': '0.25rem',
       '--tree-content-padding': '0.125rem',
       '--tree-row-anchor':
@@ -90,7 +91,7 @@ export const tree = defineSlotRecipe({
       margin: 0,
       // Keep aligned with the viewport's padding in ExplorerFileTree.
       padding: '3px',
-      fontSize: 'sm',
+      fontSize: '0.6875rem',
       lineHeight: 1.5,
     },
     node: {
@@ -176,7 +177,7 @@ export const tree = defineSlotRecipe({
       display: 'inline-flex',
       alignItems: 'flex-start',
       gap: '0.375rem',
-      width: 'fit-content',
+      width: '100%',
       maxWidth: '100%',
       minWidth: 0,
       paddingBlock: 'var(--tree-content-padding)',

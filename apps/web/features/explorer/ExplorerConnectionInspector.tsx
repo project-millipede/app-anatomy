@@ -27,8 +27,9 @@ export function ExplorerConnectionInspector({
   const endpoint = candidateId ? entries.get(candidateId) : undefined;
   const endpointName = incoming ? 'source' : 'target';
   const canNavigate = Boolean(endpoint);
-  const sourceName = relationship?.sourceId
-    ? entries.get(relationship.sourceId)?.name
+  const source = relationship ? entries.get(relationship.sourceId) : undefined;
+  const sourceName = source
+    ? `${source.name}${source.kind === 'alias' ? ' (alias)' : ''}`
     : undefined;
   const targetNames =
     relationship?.targetIds.map((id) => entries.get(id)?.name ?? id) ?? [];
@@ -177,10 +178,18 @@ export function ExplorerConnectionInspector({
       }
       actions={
         <>
-          <Button disabled={!canNavigate} onClick={onReveal}>
+          <Button
+            className={styles.compactButton}
+            disabled={!canNavigate}
+            onClick={onReveal}
+          >
             Reveal {endpointName}
           </Button>
-          <Button disabled={!canNavigate} onClick={onFocus}>
+          <Button
+            className={styles.compactButton}
+            disabled={!canNavigate}
+            onClick={onFocus}
+          >
             Focus {endpointName} →
           </Button>
         </>

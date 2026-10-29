@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, type ReactNode } from 'react';
+import { useId } from 'react';
 import { Archer, type ArcherTypes } from '@apple-code/archer';
 import { Button } from '../workspace/ark/Button';
 import { BridgeGrid, BridgeViewport } from './layout/BridgeGrid';
@@ -39,7 +39,6 @@ export function ExplorerRelationshipCanvas({
   onContextChange,
   onPreview,
   onBack,
-  datasetSelector,
 }: {
   dataset: PreviewDataset;
   selectedEntry: PreviewEntry | undefined;
@@ -50,10 +49,15 @@ export function ExplorerRelationshipCanvas({
   onContextChange: (id: string) => void;
   onPreview: (connection: PreviewConnection) => void;
   onBack: () => void;
-  datasetSelector: ReactNode;
 }) {
   const instanceId = useId();
   const selectedResourceId = `${instanceId}-selected-resource`;
+  const southPortId = `${instanceId}-south-routing-port`;
+  const rootEntry = dataset.entries.find((entry) => entry.parentId === null);
+  const displayPath = (path: string) =>
+    rootEntry && path.startsWith(`${rootEntry.path}/Contents/`)
+      ? path.slice(`${rootEntry.path}/Contents/`.length)
+      : path;
   const relations = new Map(
     dataset.relationships.map((relationship) => [
       relationship.id,
@@ -67,6 +71,7 @@ export function ExplorerRelationshipCanvas({
     position: BridgePosition,
     targetId: string,
     active: boolean,
+    candidate: boolean,
   ): ArcherTypes.Relation {
     const incoming = position === 'north' || position === 'west';
     return {
@@ -86,7 +91,7 @@ export function ExplorerRelationshipCanvas({
           ? 'top'
           : 'left',
       layout: 'default',
-      pathStyle: 'smooth',
+      pathStyle: 'sharp',
       style: {
         strokeColor:
           position === 'west'
@@ -95,7 +100,7 @@ export function ExplorerRelationshipCanvas({
               ? 'var(--explorer-outgoing)'
               : 'var(--explorer-external)',
         strokeWidth: active ? 2.5 : 1.5,
-        ...(position === 'south' ? { strokeDasharray: '5 4' } : {}),
+        ...(candidate ? { strokeDasharray: '4 3' } : {}),
       },
     };
   }
@@ -109,7 +114,7 @@ export function ExplorerRelationshipCanvas({
         title={`${title} (${links.length})`}
         description={description}
       >
-        <div className={styles.cardStack}>
+        <div className={styles.cardStack} data-direction={position}>
           {links.length === 0 && (
             <p className={styles.emptyBridge}>
               No{' '}
@@ -123,13 +128,28 @@ export function ExplorerRelationshipCanvas({
             const relationship = relations.get(link.relationshipId)!;
             const active = relationship.id === activeRelationshipId;
             const incoming = position === 'north' || position === 'west';
+            const endpoint =
+              link.endpointIds.length === 1
+                ? entries.get(link.endpointIds[0]!)
+                : undefined;
+            const ownerBundle = endpoint?.bundleId
+              ? entries.get(endpoint.bundleId)
+              : rootEntry;
             return (
               <ArcherElement
                 key={relationship.id}
                 id={cardId(relationship.id)}
                 relations={
                   incoming
-                    ? [connection(position, selectedResourceId, active)]
+                    ? [
+                        connection(
+                          position,
+                          selectedResourceId,
+                          active,
+                          relationship.status === 'candidates' &&
+                            relationship.kind !== 'alias',
+                        ),
+                      ]
                     : []
                 }
               >
@@ -145,18 +165,26 @@ export function ExplorerRelationshipCanvas({
                     {relationship.kind.replaceAll('-', ' ')}
                   </span>
                   <strong>
-                    {link.endpointIds.length === 1
-                      ? (entries.get(link.endpointIds[0]!)?.name ??
-                        relationship.label)
+                    {endpoint
+                      ? `${endpoint.name}${endpoint.kind === 'alias' ? ' · alias' : ''}`
                       : relationship.label}
                   </strong>
-                  <code>{relationship.reference}</code>
+                  <code>
+                    {endpoint
+                      ? displayPath(endpoint.path)
+                      : relationship.reference}
+                  </code>
                   <span className={styles.cardStatus}>
                     {relationship.status.replaceAll('-', ' ')}
                     {link.endpointIds.length > 1
                       ? ` · ${link.endpointIds.length} endpoints`
                       : ''}
                   </span>
+                  {endpoint && ownerBundle && (
+                    <span className={styles.cardLocation}>
+                      Inside {ownerBundle.name}
+                    </span>
+                  )}
                 </button>
               </ArcherElement>
             );
@@ -166,16 +194,22 @@ export function ExplorerRelationshipCanvas({
     );
   }
 
-  const outgoing = positions.flatMap((position) =>
-    position === 'east' || position === 'south'
-      ? (neighborhood?.[position] ?? []).map((link) =>
-          connection(
-            position,
-            cardId(link.relationshipId),
-            link.relationshipId === activeRelationshipId,
-          ),
-        )
-      : [],
+  const outgoing = (neighborhood?.east ?? []).map((link) =>
+    connection(
+      'east',
+      cardId(link.relationshipId),
+      link.relationshipId === activeRelationshipId,
+      relations.get(link.relationshipId)?.status === 'candidates' &&
+        relations.get(link.relationshipId)?.kind !== 'alias',
+    ),
+  );
+  const southConnections = (neighborhood?.south ?? []).map((link) =>
+    connection(
+      'south',
+      cardId(link.relationshipId),
+      link.relationshipId === activeRelationshipId,
+      false,
+    ),
   );
 
   return (
@@ -184,6 +218,7 @@ export function ExplorerRelationshipCanvas({
         <Button
           disabled={!canGoBack}
           aria-label="Back to previous resource"
+          className={styles.compactButton}
           onClick={onBack}
         >
           ←
@@ -199,7 +234,6 @@ export function ExplorerRelationshipCanvas({
       }
       context={
         <div className={styles.previewControls}>
-          {datasetSelector}
           <label className={styles.selectLabel}>
             Architecture context
             <select
@@ -218,6 +252,9 @@ export function ExplorerRelationshipCanvas({
       canvas={
         <BridgeViewport>
           <ArcherSurface
+            className={styles.archerCanvas}
+            style={{ height: 'auto' }}
+            surfaceStyle={{ height: 'auto', overflow: 'visible' }}
             defaultArrowStyle={{ arrowLength: 6, strokeWidth: 1.5 }}
             svgElementProps={{ 'aria-hidden': true }}
           >
@@ -226,26 +263,52 @@ export function ExplorerRelationshipCanvas({
               west={bridge('west')}
               east={bridge('east')}
               south={bridge('south')}
+              southPort={
+                southConnections.length > 0 ? (
+                  <ArcherElement id={southPortId} relations={southConnections}>
+                    <span className={styles.routingPort} />
+                  </ArcherElement>
+                ) : undefined
+              }
               focus={
                 <ArcherElement id={selectedResourceId} relations={outgoing}>
                   <div className={styles.focusPlaceholder}>
                     <span className={styles.placeholderEyebrow}>
                       Selected entry
                     </span>
-                    <strong>{selectedEntry?.name ?? 'Choose an entry'}</strong>
-                    <code>{selectedEntry?.path}</code>
-                    <p>
-                      {selectedEntry?.kind.replaceAll('-', ' ')} ·{' '}
-                      {
-                        dataset.contexts.find(
-                          (context) => context.id === contextId,
-                        )?.label
-                      }
-                    </p>
-                    <p>
-                      Static evidence · Candidate matching does not establish
-                      runtime loading.
-                    </p>
+                    <div className={styles.focusTitle}>
+                      <span className={styles.fileGlyph} aria-hidden="true">
+                        ▧
+                      </span>
+                      <div>
+                        <strong>
+                          {selectedEntry?.name ?? 'Choose an entry'}
+                        </strong>
+                        <p>{selectedEntry?.kind.replaceAll('-', ' ')}</p>
+                      </div>
+                    </div>
+                    <code>
+                      {selectedEntry
+                        ? displayPath(selectedEntry.path)
+                        : undefined}
+                    </code>
+                    <div className={styles.focusMeta}>
+                      <span>
+                        {
+                          dataset.contexts.find(
+                            (context) => context.id === contextId,
+                          )?.label
+                        }
+                      </span>
+                      <span>
+                        Scope:{' '}
+                        {
+                          dataset.entries.find(
+                            (entry) => entry.parentId === null,
+                          )?.name
+                        }
+                      </span>
+                    </div>
                   </div>
                 </ArcherElement>
               }
@@ -266,6 +329,10 @@ export function ExplorerRelationshipCanvas({
           <span>
             <i className={`${styles.legendSwatch} ${styles.externalSwatch}`} />
             External / unresolved
+          </span>
+          <span>
+            <i className={`${styles.legendSwatch} ${styles.candidateSwatch}`} />
+            Candidate / inferred
           </span>
         </div>
       }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, type RefObject } from 'react';
+import { useId, type RefObject, type ReactNode } from 'react';
 import { TreeView } from '@ark-ui/react/tree-view';
 import type { VirtualizedTree } from './capabilities/tree-virtualization/useVirtualizedTree';
 import { VirtualTreeViewport } from './capabilities/tree-virtualization/VirtualTreeViewport';
@@ -19,8 +19,10 @@ export function ExplorerFileTree({
   roles,
   activeEndpointIds,
   hiddenCounts,
+  datasetSelector,
 }: VirtualizedTree<PreviewNode> & {
   viewportElementRef: RefObject<HTMLDivElement | null>;
+  datasetSelector: ReactNode;
   roles: ReadonlyMap<string, { incoming: boolean; outgoing: boolean }>;
   activeEndpointIds: ReadonlySet<string>;
   hiddenCounts: ReadonlyMap<string, number>;
@@ -41,14 +43,13 @@ export function ExplorerFileTree({
             <TreeView.Label asChild className={parts.label}>
               <h2>Files</h2>
             </TreeView.Label>
-            <span className={styles.muted}>Synthetic inventory</span>
+            {datasetSelector}
           </div>
         }
         description={
           <p id={hintId} className={styles.treeHint}>
-            SEL: center · IN: source · OUT: target or candidate. Outlined rows
-            are active endpoints. +count reveals related resources in a
-            collapsed branch.
+            SEL center · IN source · OUT target/candidate. Outline: active
+            endpoint. +count: collapsed related entries.
           </p>
         }
         tree={
