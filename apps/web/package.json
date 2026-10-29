@@ -16,8 +16,8 @@
     "@apple-code/browser": "workspace:*",
     "@ark-ui/react": "5.39.3",
     "@base-ui/react": "1.9.0",
-    "@tanstack/react-virtual": "^3.14.22",
-    "next": "16.4.2",
+    "@tanstack/react-virtual": "^3.14.23",
+    "next": "16.4.3",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
