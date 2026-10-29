@@ -167,13 +167,26 @@ follow the linked-tree prototype: 294px and 310px around a fluid canvas, reduced
 230px and 280px below 1190px. Below 780px the panes stack in one page scroller;
 the tree retains its bounded viewport. The canvas context, legend and status stay
 outside its independent graph scroller on desktop.
-Bridge rows use their own content heights. North is centered and capped at 500px;
-south spans the canvas, with horizontal cards. West and east surround the selected
-file. Archer uses orthogonal paths; candidate links are dashed and external links
-solid. A presentation-only routing port at the middle row's bottom keeps south
-connections below the side cards. It is not an inventory entry or an inspector
-node. The Archer surface owns the shared stacking context, with edges below
-cards and compass headings. Authored styles retain natural letter spacing.
+The graph uses fixed presentation slots: all relationship cards are 224×112 CSS
+pixels, and the selected file stays 280×168 pixels. West/east share heading and
+row baselines; north/south share three horizontal slot columns. Each corridor
+shows at most three relationships, preserving Rust's evidence order, with explicit
+paging for additional records. Empty slots retain geometry without graph nodes.
+Long paths are clamped in cards and remain available in the inspector.
+Each visible relationship has its own decorative center-edge port at the slot's
+25%, 50% or 75% offset. Cards and ports are mounted together from the same page;
+changing pages removes their Archer source declarations. A restored preview
+selects its containing page, while explicit paging clears the preview without
+changing Ark's center selection. Active cards, ports and routes share the
+relationship's directional color. Inactive routes are subdued; candidate links
+remain dashed and external links solid.
+Archer's existing sharp orthogonal paths are unchanged. Opposite sides share
+routing clearance: 48px horizontally and 144px vertically. North/south labels and
+page controls sit outside the connector-facing card edges, keeping midpoint
+elbows clear of headings and side cards. The ports are presentation elements,
+not inventory entries or inspector nodes. The Archer surface owns the shared
+stacking context, with edges below cards and compass headings. Authored styles
+retain natural letter spacing.
 The tree uses a fixed 32 CSS-pixel row height; the Panda recipe and viewport
 configuration must agree. Mounted nodes retain their real Ark ancestor branches; positioned
 child groups reserve the complete expanded extent without spacer nodes. Nested

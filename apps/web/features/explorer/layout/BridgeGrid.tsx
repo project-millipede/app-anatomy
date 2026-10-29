@@ -22,8 +22,6 @@ type BridgeGridProps = {
   west: ReactNode;
   /** The selected file at the center. */
   focus: ReactNode;
-  /** Invisible presentation routing port below the middle row, outside every card. */
-  southPort?: ReactNode;
   /** Internal targets of the selected file, to its right. */
   east: ReactNode;
   /** External or unresolved references of the selected file, below it. */
@@ -31,7 +29,7 @@ type BridgeGridProps = {
 };
 
 /**
- * Place the four bridges around the selected file.
+ * Place four fixed-slot corridors around a bounded selected file.
  * @param props Content for each bridge and the selected file.
  * @returns The directional grid, ready to be placed inside a drawing surface.
  */
@@ -39,7 +37,6 @@ export function BridgeGrid({
   north,
   west,
   focus,
-  southPort,
   east,
   south,
 }: BridgeGridProps) {
@@ -50,17 +47,8 @@ export function BridgeGrid({
       </div>
       <div className={styles.north}>{north}</div>
       <div className={styles.west}>{west}</div>
-      <section
-        className={styles.focus}
-        aria-label="Selected file"
-        data-has-south={southPort ? true : undefined}
-      >
+      <section className={styles.focus} aria-label="Selected file">
         {focus}
-        {southPort && (
-          <div className={styles.southPort} aria-hidden="true">
-            {southPort}
-          </div>
-        )}
       </section>
       <div className={styles.east}>{east}</div>
       <div className={styles.south}>{south}</div>

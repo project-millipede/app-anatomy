@@ -1,11 +1,12 @@
 'use client';
 
-import { useId } from 'react';
+import { useId, useState, type CSSProperties } from 'react';
 import { Archer, type ArcherTypes } from '@apple-code/archer';
 import { Button } from '../workspace/ark/Button';
 import { BridgeGrid, BridgeViewport } from './layout/BridgeGrid';
 import { BridgeSection, type BridgePosition } from './layout/BridgeSection';
 import { CanvasPane } from './layout/CanvasPane';
+import { CORRIDOR_CAPACITY, getCorridorPage } from './corridorLayout';
 import type {
   PreviewDataset,
   PreviewEntry,
@@ -28,7 +29,14 @@ const bridgeLabels = {
   ],
 } as const;
 const positions = ['north', 'west', 'east', 'south'] as const;
+const firstPages: Record<BridgePosition, number> = {
+  north: 0,
+  west: 0,
+  east: 0,
+  south: 0,
+};
 
+/** Fixed presentation slots pair each visible card with its own center-edge port. */
 export function ExplorerRelationshipCanvas({
   dataset,
   selectedEntry,
@@ -38,6 +46,7 @@ export function ExplorerRelationshipCanvas({
   canGoBack,
   onContextChange,
   onPreview,
+  onClearPreview,
   onBack,
 }: {
   dataset: PreviewDataset;
@@ -48,16 +57,31 @@ export function ExplorerRelationshipCanvas({
   canGoBack: boolean;
   onContextChange: (id: string) => void;
   onPreview: (connection: PreviewConnection) => void;
+  onClearPreview: () => void;
   onBack: () => void;
 }) {
   const instanceId = useId();
-  const selectedResourceId = `${instanceId}-selected-resource`;
-  const southPortId = `${instanceId}-south-routing-port`;
-  const rootEntry = dataset.entries.find((entry) => entry.parentId === null);
-  const displayPath = (path: string) =>
-    rootEntry && path.startsWith(`${rootEntry.path}/Contents/`)
-      ? path.slice(`${rootEntry.path}/Contents/`.length)
-      : path;
+  const layoutKey = JSON.stringify([dataset.id, selectedEntry?.id, contextId]);
+  const [pageState, setPageState] = useState({
+    key: layoutKey,
+    pages: firstPages,
+  });
+  const requestedPages =
+    pageState.key === layoutKey ? pageState.pages : firstPages;
+  const allLinks: Record<BridgePosition, readonly PreviewConnection[]> = {
+    north: neighborhood?.north ?? [],
+    west: neighborhood?.west ?? [],
+    east: neighborhood?.east ?? [],
+    south: neighborhood?.south ?? [],
+  };
+  const views = positions.map((position) => ({
+    position,
+    ...getCorridorPage(
+      allLinks[position],
+      requestedPages[position],
+      activeRelationshipId,
+    ),
+  }));
   const relations = new Map(
     dataset.relationships.map((relationship) => [
       relationship.id,
@@ -65,152 +89,182 @@ export function ExplorerRelationshipCanvas({
     ]),
   );
   const entries = new Map(dataset.entries.map((entry) => [entry.id, entry]));
-  const cardId = (id: string) => `${instanceId}-${id}`;
+  const rootEntry = dataset.entries.find((entry) => entry.parentId === null);
+  const displayPath = (path: string) =>
+    rootEntry && path.startsWith(`${rootEntry.path}/Contents/`)
+      ? path.slice(`${rootEntry.path}/Contents/`.length)
+      : path;
+  const endpointId = (
+    position: BridgePosition,
+    link: PreviewConnection,
+    kind: 'card' | 'port',
+  ) =>
+    `${instanceId}-${kind}-${encodeURIComponent(JSON.stringify([layoutKey, position, link.relationshipId]))}`;
 
   function connection(
     position: BridgePosition,
     targetId: string,
-    active: boolean,
-    candidate: boolean,
+    link: PreviewConnection,
   ): ArcherTypes.Relation {
-    const incoming = position === 'north' || position === 'west';
+    const relationship = relations.get(link.relationshipId)!;
+    const active = link.relationshipId === activeRelationshipId;
+    const color =
+      position === 'west'
+        ? 'var(--explorer-incoming)'
+        : position === 'east'
+          ? 'var(--explorer-outgoing)'
+          : 'var(--explorer-external)';
     return {
       targetId,
-      sourceAnchor: incoming
-        ? position === 'north'
-          ? 'bottom'
-          : 'right'
-        : position === 'south'
-          ? 'bottom'
-          : 'right',
-      targetAnchor: incoming
-        ? position === 'north'
-          ? 'top'
-          : 'left'
-        : position === 'south'
-          ? 'top'
-          : 'left',
+      sourceAnchor:
+        position === 'north' || position === 'south' ? 'bottom' : 'right',
+      targetAnchor:
+        position === 'north' || position === 'south' ? 'top' : 'left',
       layout: 'default',
       pathStyle: 'sharp',
       style: {
-        strokeColor:
-          position === 'west'
-            ? 'var(--explorer-incoming)'
-            : position === 'east'
-              ? 'var(--explorer-outgoing)'
-              : 'var(--explorer-external)',
-        strokeWidth: active ? 2.5 : 1.5,
-        ...(candidate ? { strokeDasharray: '4 3' } : {}),
+        strokeColor: active
+          ? color
+          : `color-mix(in srgb, ${color} 45%, transparent)`,
+        strokeWidth: active ? 2 : 1,
+        ...((position === 'west' || position === 'east') &&
+        relationship.status === 'candidates' &&
+        relationship.kind !== 'alias'
+          ? { strokeDasharray: '4 3' }
+          : {}),
       },
     };
   }
 
+  function changePage(position: BridgePosition, page: number) {
+    const pages = { ...firstPages };
+    for (const view of views) pages[view.position] = view.page;
+    pages[position] = page;
+    setPageState({ key: layoutKey, pages });
+    // An explicitly requested page replaces the preview; restored previews select
+    // their containing page through getCorridorPage when Focus/Back returns.
+    onClearPreview();
+  }
+
   function bridge(position: BridgePosition) {
-    const links = neighborhood?.[position] ?? [];
+    const view = views.find((value) => value.position === position)!;
     const [title, description] = bridgeLabels[position];
     return (
       <BridgeSection
         position={position}
-        title={`${title} (${links.length})`}
+        title={`${title} (${view.total})`}
         description={description}
+        controls={
+          <div className={styles.corridorPager}>
+            {view.pageCount > 1 && (
+              <>
+                <Button
+                  className={styles.compactButton}
+                  disabled={view.page === 0}
+                  aria-label={`Previous ${title.toLowerCase()} relationships`}
+                  onClick={() => changePage(position, view.page - 1)}
+                >
+                  ‹
+                </Button>
+                <span aria-live="polite">
+                  {view.start}–{view.end} of {view.total}
+                </span>
+                <Button
+                  className={styles.compactButton}
+                  disabled={view.page === view.pageCount - 1}
+                  aria-label={`Next ${title.toLowerCase()} relationships`}
+                  onClick={() => changePage(position, view.page + 1)}
+                >
+                  ›
+                </Button>
+              </>
+            )}
+          </div>
+        }
       >
         <div className={styles.cardStack} data-direction={position}>
-          {links.length === 0 && (
-            <p className={styles.emptyBridge}>
-              No{' '}
-              {position === 'north'
-                ? 'external incoming records supplied'
-                : 'references in this context'}
-              .
-            </p>
-          )}
-          {links.map((link) => {
+          {Array.from({ length: CORRIDOR_CAPACITY }, (_, index) => {
+            const link = view.items[index];
+            if (!link)
+              return (
+                <div
+                  className={styles.corridorSlot}
+                  data-empty="true"
+                  aria-hidden="true"
+                  key={`empty-${index}`}
+                />
+              );
             const relationship = relations.get(link.relationshipId)!;
-            const active = relationship.id === activeRelationshipId;
-            const incoming = position === 'north' || position === 'west';
             const endpoint =
               link.endpointIds.length === 1
                 ? entries.get(link.endpointIds[0]!)
                 : undefined;
-            const ownerBundle = endpoint?.bundleId
-              ? entries.get(endpoint.bundleId)
-              : rootEntry;
+            const label = endpoint
+              ? `${endpoint.name}${endpoint.kind === 'alias' ? ' · alias' : ''}`
+              : relationship.label;
+            const path = endpoint
+              ? displayPath(endpoint.path)
+              : relationship.reference;
+            const active = relationship.id === activeRelationshipId;
+            const incoming = position === 'north' || position === 'west';
             return (
-              <ArcherElement
-                key={relationship.id}
-                id={cardId(relationship.id)}
-                relations={
-                  incoming
-                    ? [
-                        connection(
-                          position,
-                          selectedResourceId,
-                          active,
-                          relationship.status === 'candidates' &&
-                            relationship.kind !== 'alias',
-                        ),
-                      ]
-                    : []
-                }
+              <div
+                className={styles.corridorSlot}
+                key={endpointId(position, link, 'card')}
               >
-                <button
-                  type="button"
-                  className={styles.relationshipCard}
-                  data-bridge={position}
-                  data-active={active || undefined}
-                  aria-pressed={active}
-                  onClick={() => onPreview(link)}
+                <ArcherElement
+                  id={endpointId(position, link, 'card')}
+                  relations={
+                    incoming
+                      ? [
+                          connection(
+                            position,
+                            endpointId(position, link, 'port'),
+                            link,
+                          ),
+                        ]
+                      : []
+                  }
                 >
-                  <span className={styles.placeholderEyebrow}>
-                    {relationship.kind.replaceAll('-', ' ')}
-                  </span>
-                  <strong>
-                    {endpoint
-                      ? `${endpoint.name}${endpoint.kind === 'alias' ? ' · alias' : ''}`
-                      : relationship.label}
-                  </strong>
-                  <code>
-                    {endpoint
-                      ? displayPath(endpoint.path)
-                      : relationship.reference}
-                  </code>
-                  <span className={styles.cardStatus}>
-                    {relationship.status.replaceAll('-', ' ')}
-                    {link.endpointIds.length > 1
-                      ? ` · ${link.endpointIds.length} endpoints`
-                      : ''}
-                  </span>
-                  {endpoint && ownerBundle && (
-                    <span className={styles.cardLocation}>
-                      Inside {ownerBundle.name}
+                  <button
+                    type="button"
+                    className={styles.relationshipCard}
+                    data-bridge={position}
+                    data-slot={index}
+                    data-active={active || undefined}
+                    aria-pressed={active}
+                    onClick={() => onPreview(link)}
+                  >
+                    <span className={styles.placeholderEyebrow}>
+                      {relationship.kind.replaceAll('-', ' ')}
                     </span>
-                  )}
-                </button>
-              </ArcherElement>
+                    <strong title={label}>{label}</strong>
+                    <code title={path}>{path}</code>
+                    <span
+                      className={styles.cardStatus}
+                      title={relationship.status.replaceAll('-', ' ')}
+                    >
+                      {relationship.status.replaceAll('-', ' ')}
+                      {link.endpointIds.length > 1
+                        ? ` · ${link.endpointIds.length} endpoints`
+                        : ''}
+                    </span>
+                  </button>
+                </ArcherElement>
+              </div>
             );
           })}
+          {view.total === 0 && (
+            <p className={styles.emptyBridge}>
+              {position === 'north'
+                ? 'No external incoming records supplied.'
+                : 'No references in this context.'}
+            </p>
+          )}
         </div>
       </BridgeSection>
     );
   }
-
-  const outgoing = (neighborhood?.east ?? []).map((link) =>
-    connection(
-      'east',
-      cardId(link.relationshipId),
-      link.relationshipId === activeRelationshipId,
-      relations.get(link.relationshipId)?.status === 'candidates' &&
-        relations.get(link.relationshipId)?.kind !== 'alias',
-    ),
-  );
-  const southConnections = (neighborhood?.south ?? []).map((link) =>
-    connection(
-      'south',
-      cardId(link.relationshipId),
-      link.relationshipId === activeRelationshipId,
-      false,
-    ),
-  );
 
   return (
     <CanvasPane
@@ -255,7 +309,7 @@ export function ExplorerRelationshipCanvas({
             className={styles.archerCanvas}
             style={{ height: 'auto' }}
             surfaceStyle={{ height: 'auto', overflow: 'visible' }}
-            defaultArrowStyle={{ arrowLength: 6, strokeWidth: 1.5 }}
+            defaultArrowStyle={{ arrowLength: 6, strokeWidth: 1 }}
             svgElementProps={{ 'aria-hidden': true }}
           >
             <BridgeGrid
@@ -263,15 +317,8 @@ export function ExplorerRelationshipCanvas({
               west={bridge('west')}
               east={bridge('east')}
               south={bridge('south')}
-              southPort={
-                southConnections.length > 0 ? (
-                  <ArcherElement id={southPortId} relations={southConnections}>
-                    <span className={styles.routingPort} />
-                  </ArcherElement>
-                ) : undefined
-              }
               focus={
-                <ArcherElement id={selectedResourceId} relations={outgoing}>
+                <div className={styles.focusNode}>
                   <div className={styles.focusPlaceholder}>
                     <span className={styles.placeholderEyebrow}>
                       Selected entry
@@ -281,36 +328,76 @@ export function ExplorerRelationshipCanvas({
                         ▧
                       </span>
                       <div>
-                        <strong>
+                        <strong title={selectedEntry?.name}>
                           {selectedEntry?.name ?? 'Choose an entry'}
                         </strong>
                         <p>{selectedEntry?.kind.replaceAll('-', ' ')}</p>
                       </div>
                     </div>
-                    <code>
+                    <code title={selectedEntry?.path}>
                       {selectedEntry
                         ? displayPath(selectedEntry.path)
                         : undefined}
                     </code>
                     <div className={styles.focusMeta}>
-                      <span>
+                      <span
+                        title={
+                          dataset.contexts.find(
+                            (context) => context.id === contextId,
+                          )?.label
+                        }
+                      >
                         {
                           dataset.contexts.find(
                             (context) => context.id === contextId,
                           )?.label
                         }
                       </span>
-                      <span>
-                        Scope:{' '}
-                        {
-                          dataset.entries.find(
-                            (entry) => entry.parentId === null,
-                          )?.name
-                        }
+                      <span title={rootEntry?.name}>
+                        Scope: {rootEntry?.name}
                       </span>
                     </div>
                   </div>
-                </ArcherElement>
+                  {views.flatMap((view) =>
+                    view.items.map((link, index) => {
+                      const incoming =
+                        view.position === 'north' || view.position === 'west';
+                      return (
+                        <div
+                          className={styles.portSlot}
+                          data-side={view.position}
+                          style={{ '--port-index': index } as CSSProperties}
+                          aria-hidden="true"
+                          key={endpointId(view.position, link, 'port')}
+                        >
+                          <ArcherElement
+                            id={endpointId(view.position, link, 'port')}
+                            relations={
+                              incoming
+                                ? []
+                                : [
+                                    connection(
+                                      view.position,
+                                      endpointId(view.position, link, 'card'),
+                                      link,
+                                    ),
+                                  ]
+                            }
+                          >
+                            <span
+                              className={styles.routingPort}
+                              data-side={view.position}
+                              data-active={
+                                link.relationshipId === activeRelationshipId ||
+                                undefined
+                              }
+                            />
+                          </ArcherElement>
+                        </div>
+                      );
+                    }),
+                  )}
+                </div>
               }
             />
           </ArcherSurface>
@@ -339,7 +426,7 @@ export function ExplorerRelationshipCanvas({
       status={
         activeRelationshipId
           ? positions.some((position) =>
-              neighborhood?.[position].some(
+              allLinks[position].some(
                 (link) =>
                   link.relationshipId === activeRelationshipId &&
                   link.endpointIds.length > 0,
@@ -347,7 +434,7 @@ export function ExplorerRelationshipCanvas({
             )
             ? 'Previewing a relationship. Its direct endpoints are outlined in the tree; the center selection is unchanged.'
             : 'Previewing recorded evidence. This reference has no internal tree endpoint.'
-          : 'Select a relationship to inspect its recorded evidence and direct endpoints.'
+          : 'Select a relationship to inspect its recorded evidence. Corridors show up to three relationships at a time.'
       }
     />
   );

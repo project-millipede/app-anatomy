@@ -308,6 +308,7 @@ function DatasetWorkspace({
           canGoBack={history.length > 0}
           onContextChange={changeContext}
           onPreview={previewConnection}
+          onClearPreview={() => setPreview(null)}
           onBack={goBack}
         />
       }

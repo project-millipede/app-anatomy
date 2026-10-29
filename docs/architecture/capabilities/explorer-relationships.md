@@ -137,33 +137,63 @@ Screen-reader behavior and other browser engines were not qualified. Real native
 bundle acquisition and execution of the new resolver through a live Wasm
 component remain future capabilities.
 
-### Reference layout correction
+### Fixed corridor layout
 
-The linked-tree-bridge-workspace prototype is the positioning reference. The
-Explorer uses fixed readable sidebars around a fluid center, compact page chrome
-and intrinsic bridge rows. North is capped at 500px; south spans the canvas with
-horizontal cards. Desktop pane scrollers are independent, and narrow screens
-stack the panes with a finite virtual-tree viewport.
+The linked-tree-bridge-workspace prototype remains the interaction reference.
+The Explorer uses fixed readable sidebars around a fluid canvas and compact page
+chrome. Desktop pane scrollers are independent; below 780px the panes stack and
+the virtual tree retains its finite viewport. The graph preserves its full
+848px width inside its own scroll region instead of shrinking cards.
 
-Archer's existing sharp path builder supplies orthogonal connectors. Its SVG
-shares a stacking context with cards, so paths remain below their headings. A
-private presentation routing port at the bottom of the middle row supplies the
-south corridor, keeping horizontal south segments below the side cards. The
-selected card supplies the visible trunk through its center lane. This port is
-not domain data, a selectable endpoint or another analysis operation.
+Every relationship card is 224×112 CSS pixels, including resource paths, aliases,
+ambiguous references and external evidence. Titles and status occupy fixed lines;
+paths are clamped to two lines. Full evidence remains in the inspector, and native
+titles expose the complete card name/path. The selected file is 280×168 pixels,
+independent of content and relationship counts. West/east headings and their three
+vertical rows align. North/south use matching horizontal columns. Empty slots
+reserve coordinates without framed cards or Archer identities.
 
-Physical paths and explicit alias captions appear on internal relationship
-cards; original references remain in the inspector. The synthetic-dataset chooser
-belongs to the tree pane, while the selected entry's architecture context stays
-above the canvas. Tree indentation and controls are compact while rows remain
-32px high and Ark retains selection and focus ownership.
+Each corridor shows three relationships per page in Rust's evidence order. Counts
+refer to the complete corridor; controls give the visible range. Paging clears
+preview while retaining the center. Focus/Back restores the preview's containing
+page, candidate choice and existing navigation context. This windowing is
+presentation only and does not change candidate computation or tree markings.
 
-Layout qualification used the in-app browser at 1533×1127, 1100×900 and
-740×900. Desktop pane widths measured 294/929/310px; the narrower desktop
-measured 230/590/280px without document horizontal overflow. At 740px the panes
-stacked and the graph retained its full 599px content height rather than being
-clipped; the virtual tree viewport remained bounded. North/south heights were
-independent, and south branch segments ran below the bottom of the side cards.
-Alias preview, retained center selection, Focus and Back were rechecked after
-the changes. Typecheck, the production web build, all 18 web tests and formatting
-of the changed files passed.
+One decorative center-edge port per visible relationship uses ordered offsets at
+25%, 50% and 75%. The same visible-page array mounts cards, ports and Archer source
+declarations, so hidden pages leave no connectors. Incoming arrows end at their
+ports; outgoing arrows start there. Active card, port and route use the same
+directional color; inactive routes are subdued. Ports have no domain identity,
+keyboard stop or inspector entry. There is no shared center or south trunk.
+
+Archer is unchanged: its existing sharp orthogonal path builder supplies all
+routes. Opposite corridors share clearance, with 48px horizontal and 144px
+vertical gaps. North's heading/controls precede its card row; south's card row
+precedes its controls/heading. Both connector-facing edges remain free of text,
+and vertical clearance keeps midpoint elbows outside west/east cards and
+headings. The SVG shares the surface's stacking context below presentation
+content. The outer application boundary stays fixed.
+
+The dataset chooser remains in the tree pane and architecture context above the
+canvas. Ark remains the sole tree selection, expansion and keyboard owner.
+Relationship preview, explicit candidate choice, Reveal, Focus and Back retain
+their existing semantics. No Rust facts, generated candidate data, component
+runtime or native adapter changed for this layout.
+
+Layout qualification in the in-app browser covered 1533×1127, 1100×900 and
+740×900 viewports. The graph measured 848×1112px, every relationship card
+224×112px and the center 280×168px. West/east row coordinates matched exactly.
+The canvas retained its full width without document horizontal overflow at both
+narrower sizes. South midpoint elbows cleared the final west/east row and labels.
+
+All seven dense pages exposed the complete 19 relationships, with three matching
+cards/ports/routes on full pages and one on the final page. The long-path endpoint
+was revealed in the virtual tree; Focus/Back restored its final page and preview.
+Explicit paging cleared preview without moving the center. Both south pages in
+the incomplete dataset retained three cards/ports/routes. Alias activation and
+ambiguous endpoint choice were rechecked. Workspace typecheck, all 21 web tests,
+the production web build and changed-file formatting passed. Rust, generated
+preview data and Archer source files were unchanged.
+
+Other browser engines and screen-reader behavior remain unqualified. Nonempty
+external ingress is not supplied by the current synthetic datasets.
