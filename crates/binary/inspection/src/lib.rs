@@ -53,6 +53,7 @@
 #![warn(missing_docs)]
 
 mod error;
+pub mod explorer;
 pub mod input;
 mod macho;
 mod model;
