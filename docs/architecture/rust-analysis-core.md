@@ -1,6 +1,6 @@
 # Rust analysis core
 
-**Status: Mach-O header analysis and ordinary Rust object-file identity APIs using `object` 0.40.0.**
+**Status: Mach-O header analysis, ordinary Rust object-file identity APIs and synthetic Explorer candidate APIs using `object` 0.40.0.**
 `object` owns format detection, thin and universal header decoding, and load-command
 iteration and decoding. Project code supplies bounded input, typed failures
 and report conversion.
@@ -298,3 +298,14 @@ The core forbids unsafe code and warns on undocumented public items. Keep public
 types documented with units and invariants, retain unknown values where inspection
 can continue, and add a focused report-conversion test when new evidence warrants
 one.
+
+## Synthetic Explorer APIs
+
+The ordinary `explorer` module validates supplied inventories and computes bounded
+reference candidates and one-hop relationship neighborhoods. It reuses upstream
+Mach-O dependency flags and CPU identities without extending `inspect`'s
+header-only parsing scope. Synthetic builders and preview serialization remain
+outside production library sources. See the
+[Explorer relationship contract](capabilities/explorer-relationships.md) for
+contexts, presentation boundaries, unsupported capabilities and future native
+acquisition requirements.
