@@ -14,10 +14,6 @@
   font-size: var(--acw-font-sizes-md);
   line-height: 1.5;
 }
-/* The route navigation already supplies application chrome. */
-.header {
-  display: none;
-}
 .toolbar,
 .footer {
   display: flex;
@@ -49,7 +45,7 @@
   font-size: var(--acw-font-sizes-sm);
   line-height: 1.35;
 }
-.axisKey {
+.controls {
   min-inline-size: 0;
   color: var(--acw-colors-muted);
   font-size: var(--acw-font-sizes-xs);

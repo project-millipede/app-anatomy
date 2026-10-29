@@ -1,17 +1,31 @@
+'use client';
+
+import { Dialog } from '@base-ui/react/dialog';
 import styles from './NativeServiceInstallation.module.css';
 
-/** Present setup instructions without owning the native session or runtime. */
+/** Shared application download and setup; owns no native session or runtime. */
 export function NativeServiceInstallation() {
   return (
-    <section
-      className={styles.installation}
-      aria-label="Native filesystem installation"
-    >
-      <details className={styles.panel}>
-        <summary>Set up native file access</summary>
-        <NativeServiceInstallationContent />
-      </details>
-    </section>
+    <Dialog.Root>
+      <Dialog.Trigger className={styles.trigger}>
+        Download Native Workbench
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Backdrop className={styles.backdrop} />
+        <Dialog.Popup className={styles.dialog}>
+          <div className={styles.dialogHeader}>
+            <Dialog.Title className={styles.title}>
+              Download Native Workbench
+            </Dialog.Title>
+            <Dialog.Close className={styles.close}>Close</Dialog.Close>
+          </div>
+          <Dialog.Description className={styles.description}>
+            Install Native Workbench to choose files and folders on your Mac.
+          </Dialog.Description>
+          <NativeServiceInstallationContent />
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -19,7 +33,6 @@ export function NativeServiceInstallation() {
 export function NativeServiceInstallationContent() {
   return (
     <div className={styles.content}>
-      <p>Install Native Workbench to choose files and folders on your Mac.</p>
       {/* The package must be staged in public/installers before serving this website. */}
       <a
         className={styles.download}

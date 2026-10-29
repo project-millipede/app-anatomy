@@ -380,7 +380,9 @@ below do not establish the later native Explorer's live browser behavior:
 
 ## Native Explorer qualification
 
-Recorded on 2026-10-29 for the native Explorer and WIT 0.7 ordinal grouping:
+Historical qualification recorded on 2026-10-29 for the native Explorer and WIT
+0.7 ordinal grouping, before the shared download dialog and source tabs. These
+checks do not qualify that subsequent presentation change:
 
 - The native remote example inspected the service's retained `date` selection:
   135,392 bytes and two images, each with one library, 37 imports, no runpaths and

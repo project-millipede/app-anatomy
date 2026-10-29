@@ -2,6 +2,7 @@ import { defineSlotRecipe } from '@pandacss/dev';
 
 export const tabs = defineSlotRecipe({
   className: 'acw-tabs',
+  staticCss: ['*'],
   slots: ['list', 'trigger', 'content'],
   base: {
     list: {
@@ -10,7 +11,6 @@ export const tabs = defineSlotRecipe({
       gap: '0.5rem',
       borderBottom: '1px solid',
       borderColor: 'border',
-      marginTop: '2rem',
     },
     trigger: {
       minWidth: 0,
@@ -26,14 +26,34 @@ export const tabs = defineSlotRecipe({
         borderBottomColor: 'accent',
       },
     },
-    content: {
-      paddingTop: '1.5rem',
-      '& h3': {
-        fontSize: '0.9375rem',
-        marginTop: '1.75rem',
-        fontWeight: 600,
+  },
+  variants: {
+    layout: {
+      report: {
+        list: { marginTop: '2rem' },
+        content: {
+          paddingTop: '1.5rem',
+          '& h3': {
+            fontSize: '0.9375rem',
+            marginTop: '1.75rem',
+            fontWeight: 600,
+          },
+          '& > p': { fontSize: '0.875rem' },
+        },
       },
-      '& > p': { fontSize: '0.875rem' },
+      workspace: {
+        list: { gap: '0.25rem', borderBottom: 0 },
+        trigger: { padding: '0.5rem 0.75rem', fontSize: '0.75rem' },
+        content: {
+          minWidth: 0,
+          minHeight: 0,
+          '&:not([hidden])': {
+            display: 'grid',
+            gridTemplateRows: 'minmax(0, 1fr)',
+          },
+        },
+      },
     },
   },
+  defaultVariants: { layout: 'report' },
 });

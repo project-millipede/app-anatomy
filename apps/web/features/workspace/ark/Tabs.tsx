@@ -3,27 +3,34 @@
 import { Tabs as ArkTabs } from '@ark-ui/react/tabs';
 import type { ComponentProps } from 'react';
 import { cx } from '../../../styled-system/css';
-import { tabs } from '../../../styled-system/recipes';
+import { tabs, type TabsVariantProps } from '../../../styled-system/recipes';
 
-const styles = tabs();
-
-function List({ className, ...props }: ComponentProps<typeof ArkTabs.List>) {
+function List({
+  layout,
+  className,
+  ...props
+}: ComponentProps<typeof ArkTabs.List> & TabsVariantProps) {
+  const styles = tabs({ layout });
   return <ArkTabs.List {...props} className={cx(styles.list, className)} />;
 }
 
 function Trigger({
+  layout,
   className,
   ...props
-}: ComponentProps<typeof ArkTabs.Trigger>) {
+}: ComponentProps<typeof ArkTabs.Trigger> & TabsVariantProps) {
+  const styles = tabs({ layout });
   return (
     <ArkTabs.Trigger {...props} className={cx(styles.trigger, className)} />
   );
 }
 
 function Content({
+  layout,
   className,
   ...props
-}: ComponentProps<typeof ArkTabs.Content>) {
+}: ComponentProps<typeof ArkTabs.Content> & TabsVariantProps) {
+  const styles = tabs({ layout });
   return (
     <ArkTabs.Content {...props} className={cx(styles.content, className)} />
   );

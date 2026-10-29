@@ -7,15 +7,17 @@ every accessibility or maintenance check has been completed.** The
 The workbench keeps Base UI available while evaluating Ark UI with Panda CSS. The comparison is an implementation experiment, not a decision to migrate the application.
 
 The Application Explorer lives on its own `/explorer` page with a dedicated Ark
-layout. Native selected-file evidence is the default source; the synthetic mode
-retains authored inventories, Rust-computed candidates and linked tree interaction.
+layout. Its Ark source tabs show **Native file** by default and **Synthetic preview**
+for authored inventories, Rust-computed candidates and linked tree interaction.
 Both use the reused [Archer renderer](../../packages/archer/README.md). Native
 library cards show declarations whose targets have not been evaluated; synthetic
 arrows retain their separate candidate/evidence meaning.
 
 The page reuses `useNativeSession` and `useWorkbenchModel` as its own owner, passing
-the model explicitly to native presentation. Native/synthetic source switches
-retain that runtime and model. Fixed corridor geometry and responsive pane layout
+the model explicitly to native presentation. Ownership stays above the tab root;
+source-tab switches retain that runtime and model. The existing Ark Tabs wrapper
+uses its `workspace` layout variant here; report tabs keep their default styling.
+Fixed corridor geometry and responsive pane layout
 are described in the [system overview](system-overview.md#application-ownership).
 
 ## Views
@@ -35,6 +37,11 @@ ends the previous owner and discards its in-memory report; the new owner queries
 retained native selection. Native dependency inspection remains explicit. Synthetic
 datasets remain available without successful service access, while native operations
 report connection failures through the shared model.
+
+`VariantNavigation` provides one shared **Download Native Workbench** control per
+view. Its self-contained `NativeServiceInstallation` uses a Base UI dialog for
+download and setup guidance, including on the Ark and Explorer pages. It owns no
+native runtime; comparison panes do not duplicate it.
 
 ## What we maintain
 

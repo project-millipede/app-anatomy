@@ -82,8 +82,19 @@ workflow. Inspection is explicit; entering the route or switching source modes
 does not trigger dependency analysis. The runtime, pending operation, native model
 and its report survive a source-mode switch. Route navigation disposes the old
 page owner; a new owner queries selection and begins without its previous report.
-The toolbar provides **Open** and **Native access**; dependency inspection is
-beside the canvas context, and service setup is in the native-access dialog.
+The Ark source tabs are **Native file** (default) and **Synthetic preview**. The
+page owns its runtime and model above the tab root. **Open** stays in the native
+toolbar, dependency inspection is beside the canvas context, and direction labels
+stay in the canvas legend. Shared navigation provides the **Download Native
+Workbench** setup dialog in every view; it owns no runtime.
+
+The shared-control increment was checked in the in-app browser on 2026-10-29:
+Arrow/Enter source switching preserved an inspected native report and its second
+architecture slice. Download dialog dismissal returned focus to its trigger in
+Explorer and Base UI; Ark and comparison each exposed the same single action.
+The default architecture-tab recipe retained its report spacing. Preview freshness,
+workspace typecheck, all 22 web tests and the production build passed. This
+increment changed presentation only; Rust, WIT and native acquisition were unchanged.
 
 The native tree has at most one selected-file node. Resource IDs identify it;
 display names do not supply an exact filesystem path or application containment.

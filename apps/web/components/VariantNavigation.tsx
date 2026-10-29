@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NativeServiceInstallation } from '../features/workspace/NativeServiceInstallation';
 import type { WorkbenchView } from '../features/workspace/types';
 import styles from './VariantNavigation.module.css';
 
@@ -32,6 +33,9 @@ export function VariantNavigation({
           {label}
         </Link>
       ))}
+      <div className={styles.utility}>
+        <NativeServiceInstallation />
+      </div>
     </nav>
   );
 }
