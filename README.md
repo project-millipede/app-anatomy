@@ -8,22 +8,31 @@ An optional Ark UI + Panda CSS implementation is available alongside the Base UI
 
 See [UI comparison](docs/architecture/base-ui-and-ark-panda-comparison.md) for the styling and maintenance tradeoffs. Base UI remains installed and is the default view.
 
-The Application Explorer has its own page at `/explorer` and a dedicated Ark layout:
+The Application Explorer has its own Ark page at `/explorer`. It opens in
+**Native selection** mode and also offers the existing **Synthetic datasets** mode.
 
-- **Layout:** Fluid file, canvas and inspector regions.
-- **Tree navigation:** Ark Tree View provides single selection, expansion and
-  keyboard navigation in an authored preview inventory. The center name and path
-  follow Ark's selection.
-- **Virtualization:** TanStack Virtual windows expanded rows while preserving
-  nested Ark branches and the existing connector styling.
-- **Connections and evidence:** Illustrative arrows use the reused
-  [Archer package](packages/archer/README.md). Evidence widgets remain placeholders;
-  the arrows are not analysis results.
-- **Runtime:** The Explorer initializes no native runtime. Base UI, Ark and
-  comparison views retain their native inspection controls and reports.
-- **Navigation lifecycle:** Leaving the workbench for the Explorer ends the current
-  owner. Returning queries retained native selection and starts without the earlier
-  in-memory report.
+- **Native evidence:** Select a file or browse the native listing, then explicitly
+  choose **Inspect dependencies**. The center and tree represent only the retained
+  selected file; its exact filesystem path and application containment are unavailable.
+  Declared libraries appear below it as **Target not evaluated** evidence, without
+  acquired target nodes or an application boundary. The inspector shows Rust-grouped
+  imports, special/flat associations, runpaths and ID-dylib names. **Open** and
+  **Native access** are in the toolbar; **Inspect dependencies** is beside the
+  canvas context, and native-service setup is in the access dialog.
+- **Synthetic exploration:** Authored inventories retain their linked tree roles,
+  Rust-computed candidates, relationship preview and Focus/Back behavior. Synthetic
+  facts do not become native input or runtime loading observations.
+- **Presentation:** Both modes use the existing fixed-slot canvas and
+  [Archer renderer](packages/archer/README.md). Synthetic inventories use the Ark
+  tree with TanStack virtualization; native mode currently has at most one file node.
+- **Ownership:** The Explorer page reuses `useNativeSession` and `useWorkbenchModel`.
+  Switching its source mode retains that page's native runtime, model and report.
+  Route navigation creates a fresh owner that queries retained native selection;
+  it does not retain the previous page's in-memory report or automatically inspect.
+
+See the [Explorer relationship contract](docs/architecture/capabilities/explorer-relationships.md)
+for source boundaries and qualification records. Native mode does not acquire a
+whole-bundle inventory, run the candidate evaluator or perform runtime binding.
 
 ## Primary requirement: portable ad-hoc signing
 
@@ -186,6 +195,6 @@ component and UI expose the dedicated Mach-O report. See the
 [Rust API scope](docs/architecture/rust-analysis-core.md#object-file-identity)
 for parser coverage and read behavior.
 
-The component contract is `apple-code:analysis@0.6.0`. Mach-O CPU, file-type, platform and command values cross as a numeric value and optional canonical name; generated jco types define the browser contract. The ordinary Rust API uses the pinned `object` types directly, so dependency upgrades require API compatibility review. Structured analysis errors carry a Rust-formatted message and typed failure details. All file offsets and sizes remain `u64` in Rust and `BigInt` in JavaScript.
+The component contract is `apple-code:analysis@0.7.0`. Mach-O CPU, file-type, platform and command values cross as a numeric value and optional canonical name; generated jco types define the browser contract. The ordinary Rust API uses the pinned `object` types directly, so dependency upgrades require API compatibility review. Structured analysis errors carry a Rust-formatted message and typed failure details. All file offsets and sizes remain `u64` in Rust and `BigInt` in JavaScript.
 
 No GitHub remote, deployment, external service or signing identity is configured.

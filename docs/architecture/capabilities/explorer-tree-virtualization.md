@@ -6,7 +6,9 @@ Bound mounted rows for large expanded inventories while preserving Ark Tree View
 as the sole collection, selection, expansion and keyboard owner. This is
 presentation and UI lifecycle behavior. The preview does not acquire files or implement filesystem protocol or analysis
 semantics in TypeScript. Its synthetic relationship projections come from Rust;
-see the [relationship contract](explorer-relationships.md).
+see the [relationship contract](explorer-relationships.md). This inventory
+virtualization contract describes synthetic mode. Native mode reuses the tree
+presentation for at most one selected file; it does not acquire a bundle tree.
 
 - `ExplorerWorkspace` owns one Ark tree through `useVirtualizedTree` and derives
   the selected canvas name/path from that same model.

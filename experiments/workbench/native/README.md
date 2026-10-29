@@ -50,7 +50,12 @@ cargo run --locked -p filesystem-native --example inspect_selection -- /path/to/
 ```
 
 The main [`workbench-component`](../../../crates/workbench/component/wit/native.wit)
-exports that session API through WIT and uses the shared Rust application address.
+exports that session API through WIT `apple-code:analysis@0.7.0` and uses the shared
+Rust application address. The native `/explorer` page reuses the application's
+session/model hooks, requires explicit dependency inspection and presents only
+the retained selected file. Its library cards do not acquire targets or invoke
+candidate evaluation. Rust groups imported-symbol indices by upstream declaration
+ordinal; WIT carries per-library and unassociated index lists to the inspector.
 This native experiment retains explicit endpoint arguments.
 The component socket adapter imports the unchanged
 upstream Polymorph WebSocket interface. Browser code supplies environment networking,
@@ -61,9 +66,14 @@ See [async helpers and runtime ownership](../../../docs/architecture/rust-runtim
 for the `futures-rs` dependency, the helpers used here, and the distinction between
 component execution and native Tokio networking.
 
-The dependency operation has been executed through the direct native adapter.
-The remote example is compiled but its new dependency operation still needs a live
-retained-file run; see the [qualification record](../../../docs/architecture/rust-analysis-core.md#dependency-inspection-qualification).
+The native remote example subsequently inspected the service's retained `date`
+selection: 135,392 bytes and two images, each with one library, 37 imports, no
+runpaths and no ID-dylib names. The
+[native Explorer qualification](../../../docs/architecture/rust-analysis-core.md#native-explorer-qualification)
+records this run and the browser's separate retained-`dd` run. Live picker/new
+acquisition remains unverified; these different inputs do not establish
+cross-adapter report equality. The preceding dependency-evidence record remains
+explicitly historical.
 
 ## Shared protocol
 
