@@ -12,6 +12,8 @@ Architecture and feature documents link to the relevant topic.
 
 - [Integer types and conversions](integer-types.md): memory sizes, file coordinates,
   fixed-width fields, local diagnostics and representation boundaries.
+- [Operation structure](operation-structure.md): named operation results, explicit
+  execution order, test verification, and ownership during expression cleanup.
 
 Add a focused topic here when another Rust implementation convention needs its
 own explanation. Keep its rationale and examples together in that topic.
