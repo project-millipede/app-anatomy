@@ -1,5 +1,6 @@
 use crate::{
-    Failure, FailureKind, InspectionFailure, Session, StepKind, Transport, TransportOperation,
+    Failure, FailureKind, InspectionFailure, StepKind, TransportOperation,
+    tests::{reply, resource, session},
 };
 use binary_inspection::{
     InspectionError,
@@ -7,53 +8,8 @@ use binary_inspection::{
 };
 use filesystem_protocol::{
     ProtocolError, ProtocolErrorKind, Request, Response, SelectedResource, SelectionState,
-    decode_request, encode_response,
 };
-use std::{cell::RefCell, collections::VecDeque, error::Error, io, rc::Rc};
-
-fn resource() -> String {
-    "a".repeat(64)
-}
-
-#[derive(Default)]
-struct Observed {
-    requests: Vec<Request>,
-    resets: usize,
-}
-
-struct Replies {
-    replies: VecDeque<Result<Vec<u8>, Failure>>,
-    observed: Rc<RefCell<Observed>>,
-}
-
-impl Transport for Replies {
-    fn exchange(&mut self, bytes: Vec<u8>) -> Result<Vec<u8>, Failure> {
-        self.observed
-            .borrow_mut()
-            .requests
-            .push(decode_request(&bytes).unwrap());
-        self.replies.pop_front().expect("unexpected exchange")
-    }
-
-    fn reset(&mut self) {
-        self.observed.borrow_mut().resets += 1;
-    }
-}
-
-fn session(
-    replies: impl IntoIterator<Item = Result<Vec<u8>, Failure>>,
-) -> (Session, Rc<RefCell<Observed>>) {
-    let observed = Rc::new(RefCell::new(Observed::default()));
-    let transport = Replies {
-        replies: replies.into_iter().collect(),
-        observed: observed.clone(),
-    };
-    (Session::new(Box::new(transport)), observed)
-}
-
-fn reply(response: Response) -> Result<Vec<u8>, Failure> {
-    Ok(encode_response(&response).unwrap())
-}
+use std::{error::Error, io};
 
 fn backend_failure() -> Failure {
     Failure::transport(
@@ -66,7 +22,8 @@ fn backend_failure() -> Failure {
 fn response_mismatch_and_backend_failure_remain_distinguishable() {
     let (mut session, observed) =
         session([reply(Response::Read(Vec::new())), Err(backend_failure())]);
-    let mismatch = session.byte_length(&resource()).unwrap_err();
+    let resource_id = resource();
+    let mismatch = session.byte_length(&resource_id).unwrap_err();
     assert_eq!(mismatch.kind, FailureKind::Transport);
     assert_eq!(
         mismatch.protocol_error().unwrap().kind(),
@@ -75,7 +32,7 @@ fn response_mismatch_and_backend_failure_remain_distinguishable() {
     assert!(mismatch.operation().is_none());
     assert!(mismatch.source().unwrap().is::<ProtocolError>());
 
-    let backend = session.byte_length(&resource()).unwrap_err();
+    let backend = session.byte_length(&resource_id).unwrap_err();
     assert_eq!(backend.kind, FailureKind::Transport);
     assert!(backend.protocol_error().is_none());
     assert_eq!(backend.operation(), Some(TransportOperation::Receive));
@@ -148,7 +105,8 @@ fn inspection_keeps_core_read_diagnostics_and_the_detailed_client_cause() {
         reply(Response::ByteLength(32)),
         Err(backend_failure()),
     ]);
-    let outcome = session.inspect(&resource());
+    let resource_id = resource();
+    let outcome = session.inspect(&resource_id);
     let [step] = outcome.steps.as_slice() else {
         panic!("expected one inspection step");
     };

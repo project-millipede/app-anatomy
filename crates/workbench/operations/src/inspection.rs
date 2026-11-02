@@ -105,3 +105,6 @@ impl ByteSource for RemoteSource<'_> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
