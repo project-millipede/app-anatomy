@@ -90,6 +90,25 @@ empty state when nothing was selected. Provider-reported cancellation and
 `SourceError::Cancelled` are separate conditions; ordinary picker dismissal must
 not be turned into either failure.
 
+### Workflow failure policy
+
+For new or revised workflows, define whether a failed operation ends processing
+or allows later operations to run. If processing continues, specify which
+encountered failures remain available to the caller and how the result represents
+them. The ordinary Rust contract owns that policy; adapters preserve the failure
+information declared by their boundary contracts.
+
+Keep independent failures in separate results or a collection. Do not connect
+them through an artificial `Error::source()` chain: that chain describes the
+underlying cause of one failure across abstraction boundaries. Each independent
+failure can retain its own cause chain.
+
+Make diagnostic loss explicit when choosing a smaller result representation.
+Neither a later success nor boundary conversion should silently discard failures
+the contract requires. Changing that contract is a behavioral change and must be
+reviewed together with its callers, rather than introduced during error-library
+or readability cleanup.
+
 ## Current libraries: thiserror and anyhow
 
 `thiserror` generates ordinary Rust error implementations while the project owns
