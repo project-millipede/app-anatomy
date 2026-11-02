@@ -198,14 +198,16 @@ owns the borrowed source and the first acquisition failure, completes partial
 reads, and preserves unexpected EOF, invalid read counts and original source
 errors with their offsets. After traversal, `ReadCache::into_inner()` returns the
 cursor; inspection returns its retained failure when present, otherwise the
-parser result. Remote sources supply larger logical ranges through multiple
-protocol-sized reads. Resident byte slices use the same parser and report
-conversion without a source cache.
+parser result. Remote providers can return successful short responses; the cursor
+continues at advancing offsets until the logical range is filled. Resident byte
+slices use the same parser and report conversion without a source cache.
 
 `object::ReadCache` retains requested ranges until inspection ends. Distinct
 offset-and-size pairs can retain overlapping bytes separately. A logical parser
-range can span several 64 KiB remote requests and occupy one larger cached buffer.
-Inspection memory includes all retained ranges and the report being constructed.
+range can require several bounded remote responses and occupy one larger cached
+buffer. The [service's response bounds](../../crates/services/filesystem/README.md#bounds-and-lifecycle)
+do not limit the requested range or total inspection memory. Inspection memory
+includes all retained ranges and the report being constructed.
 
 #### Example: reading a command region and displaying its evidence
 

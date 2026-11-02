@@ -235,12 +235,15 @@ impl Session {
 
     /// Request up to `length` bytes at `offset` from the retained file.
     ///
-    /// A successful response may be shorter than requested, including at EOF.
+    /// A successful response may be shorter than requested because of provider
+    /// response sizing or EOF. Callers needing the full range advance by the
+    /// returned byte count. For a nonzero request, an empty response means EOF;
+    /// stop and treat the remaining range as incomplete instead of retrying.
     ///
     /// # Errors
-    /// Rejects invalid resource identifiers, oversized requests and offset/length
-    /// overflow before sending. Also returns transport, response-validation and
-    /// provider failures, including an identifier that is no longer active.
+    /// Rejects invalid resource identifiers and offset/length overflow before
+    /// sending. Also returns transport, response-validation and provider failures,
+    /// including an identifier that is no longer active.
     pub fn read_at(
         &mut self,
         resource: &str,

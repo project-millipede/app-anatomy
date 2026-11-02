@@ -177,14 +177,17 @@ The Rust message contract covers file length, bounded reads, directory navigatio
 native selection/current state and structured errors. It defines exact integer
 handling, message limits and permitted response types. Each binary WebSocket
 message carries one MessagePack request or response directly. Client and service
-must be rebuilt and deployed together when the shared message schema changes.
-Matching schemas are a deployment requirement; decoding cannot detect every
-incompatible change in meaning.
+must be rebuilt and deployed together when incompatible changes affect the message
+schema, field meanings or validation rules. Successful decoding does not establish
+that both sides implement the same contract.
+
 Both sides cap complete messages before decoding owned values and validate the
-field bounds. Encoders validate those same bounds before allocating messages.
-File-byte buffers and strings must exist in the bounded input before copying.
-I/O failure replies carry the native error's message. The original
-`std::io::Error` remains available to in-process native callers.
+field bounds. Encoders validate fields before serialization, including rejecting
+read payloads that alone exceed the message budget. They check the complete
+encoded message size after serialization. File-byte buffers and strings must
+exist in the bounded input before copying. I/O failure replies carry the native
+error's message. The original `std::io::Error` remains available to in-process
+native callers.
 
 Repeated reads use a retained WebSocket connection with one outstanding request
 at a time and ordered replies. Rust owns failure and completion semantics.
@@ -209,7 +212,13 @@ including already-obtained sessions, pending invocations and admitted native wor
 Transport errors retain their original causes; provider-reported cancellation
 is a provider failure.
 
-Read allocations remain bounded to 64 KiB per request.
+The native service bounds each read-response buffer according to its
+[read policy](../../../crates/services/filesystem/README.md#bounds-and-lifecycle).
+Larger valid requested ranges produce successful short replies. The Rust source
+cursor continues from the returned byte count; the client does not duplicate the
+service's chunk-size policy. Protocol validation checks requested range arithmetic
+and that each response fits its request. Whole-message limits remain independent
+of this service read policy.
 
 Native acquisition and bounded listing complete before replacement. Cancellation
 of a dialog or failed acquisition preserves the preceding selection. Rust composes

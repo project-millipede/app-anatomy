@@ -10,9 +10,11 @@ pub use error::{ProtocolError, ProtocolErrorKind, ProtocolLimit};
 use filesystem_data::DirectoryEntry;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-pub const MAX_REQUEST_BYTES: u32 = 64 * 1024;
+/// Maximum encoded filesystem request message, including MessagePack overhead.
 pub const MAX_REQUEST_MESSAGE_BYTES: usize = 1024;
-// Includes named fields for up to 512 directory entries and 64 KiB of names.
+
+/// Maximum encoded filesystem response message, including payload and metadata.
+/// Accommodates directory listings with up to 512 entries and 64 KiB of names.
 pub const MAX_RESPONSE_MESSAGE_BYTES: usize = 96 * 1024;
 const MAX_ERROR_MESSAGE_BYTES: usize = 4096;
 
@@ -105,12 +107,6 @@ pub fn validate_resource(resource: &str) -> Result<(), ProtocolError> {
 
 /// Validate a byte range before a selected resource or transport is available.
 pub fn validate_read_range(offset: u64, length: u32) -> Result<(), ProtocolError> {
-    enforce_limit(
-        u64::from(length),
-        u64::from(MAX_REQUEST_BYTES),
-        ProtocolLimit::ReadRequestBytes,
-        "read exceeds the size limit",
-    )?;
     if offset.checked_add(u64::from(length)).is_none() {
         return Err(ProtocolError::validation(
             ProtocolErrorKind::RangeOverflow { offset, length },
@@ -133,11 +129,12 @@ pub fn validate_request(request: &Request) -> Result<(), ProtocolError> {
 fn validate_response_fields(response: &Response) -> Result<(), ProtocolError> {
     match response {
         Response::Read(bytes) => {
+            // A payload larger than the frame budget cannot encode into one response.
             enforce_limit(
                 bytes.len() as u64,
-                u64::from(MAX_REQUEST_BYTES),
-                ProtocolLimit::ReadResponseBytes,
-                "read response exceeds the size limit",
+                MAX_RESPONSE_MESSAGE_BYTES as u64,
+                ProtocolLimit::ResponseMessageBytes,
+                "read payload alone exceeds response message byte limit",
             )?;
         }
         Response::Failed(FileError::Io { message }) => {
@@ -366,15 +363,18 @@ mod tests {
     }
 
     #[test]
-    fn preserves_full_size_binary_payload() {
-        let bytes = (0..MAX_REQUEST_BYTES).map(|value| value as u8).collect();
-        let response = Response::Read(bytes);
-        let encoded = encode_response(&response).unwrap();
-        // Binary encoding adds little overhead, even for bytes above 127.
-        assert!(encoded.len() < MAX_REQUEST_BYTES as usize + 32);
-        assert!(encoded.len() <= MAX_RESPONSE_MESSAGE_BYTES);
-        assert_eq!(decode_response(&encoded).unwrap(), response);
-        validate_response(&read_request(0, MAX_REQUEST_BYTES), &response).unwrap();
+    fn large_requested_ranges_accept_short_responses() -> Result<(), ProtocolError> {
+        let request = read_request(32, u32::MAX);
+        let encoded_request = encode_request(&request)?;
+        let decoded_request = decode_request(&encoded_request)?;
+        // A substantial binary payload must fit alongside its encoded metadata.
+        let expected_response = Response::Read(vec![255; MAX_RESPONSE_MESSAGE_BYTES / 4 * 3]);
+        let encoded_response = encode_response(&expected_response)?;
+        let decoded_response = decode_response(&encoded_response)?;
+
+        assert_eq!(decoded_response, expected_response);
+        validate_response(&decoded_request, &decoded_response)?;
+        Ok(())
     }
 
     #[test]
@@ -425,15 +425,12 @@ mod tests {
             assert!(encode_request(&request).is_err());
             assert!(decode_request(&rmp_serde::to_vec_named(&request).unwrap()).is_err());
         }
-        for request in [
-            read_request(0, MAX_REQUEST_BYTES + 1),
-            read_request(u64::MAX, 1),
-        ] {
+        for request in [read_request(u64::MAX, 1)] {
             assert!(encode_request(&request).is_err());
             assert!(decode_request(&rmp_serde::to_vec_named(&request).unwrap()).is_err());
         }
         for response in [
-            Response::Read(vec![0; MAX_REQUEST_BYTES as usize + 1]),
+            Response::Read(vec![0; MAX_RESPONSE_MESSAGE_BYTES]),
             Response::Failed(FileError::Io {
                 message: "\u{e9}".repeat(MAX_ERROR_MESSAGE_BYTES / 2 + 1),
             }),

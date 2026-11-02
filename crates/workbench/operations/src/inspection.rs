@@ -3,7 +3,6 @@ use binary_inspection::{
     BinaryReport, InspectionError,
     input::{ByteSource, SourceError},
 };
-use filesystem_protocol::MAX_REQUEST_BYTES;
 
 /// Identifies the inspection stage while retaining its complete error chain.
 ///
@@ -92,11 +91,19 @@ impl ByteSource for RemoteSource<'_> {
         if destination.is_empty() {
             return Ok(0);
         }
-        // Supply one protocol-sized chunk. The inspection's source cursor
-        // completes larger cache reads through subsequent calls at later offsets.
-        let length = destination.len().min(MAX_REQUEST_BYTES as usize) as u32;
-        let result = self.session.read_at(self.resource, offset, length);
-        match result {
+        let requested_length_conversion = u32::try_from(destination.len());
+        let requested_length = match requested_length_conversion {
+            Ok(requested_length) => requested_length,
+            Err(_) => {
+                // The destination exceeds u32::MAX bytes, so request a
+                // representable prefix.
+                u32::MAX
+            }
+        };
+        let read_result = self
+            .session
+            .read_at(self.resource, offset, requested_length);
+        match read_result {
             Ok(bytes) => {
                 destination[..bytes.len()].copy_from_slice(&bytes);
                 Ok(bytes.len())

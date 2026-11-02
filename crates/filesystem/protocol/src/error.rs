@@ -3,8 +3,6 @@
 /// A protocol allowance whose validation failed.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProtocolLimit {
-    ReadRequestBytes,
-    ReadResponseBytes,
     RequestedReadBytes,
     ErrorMessageBytes,
     SelectionNameBytes,

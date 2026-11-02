@@ -117,8 +117,10 @@ application configuration.
 
 ## Bounds and lifecycle
 
-Native reads are bounded to 64 KiB per request with checked range arithmetic and
-bounded allocation. Empty reads perform no native I/O. See the
+The service returns at most 64 KiB from each native read. Larger valid requested
+ranges produce successful short responses; callers continue from the returned
+byte count. The shared protocol validates range arithmetic, and the reader bounds
+allocation before native I/O. Zero-length requests perform no native I/O. See the
 [parser contract](../../../docs/architecture/rust-analysis-core.md#reads-and-memory)
 for analyzer memory behavior.
 
@@ -127,9 +129,10 @@ named-field overhead. The shared codec checks message size before decoding owned
 fields, rejects trailing bytes and
 configures the decoder's nesting limit to 32. It validates resources, offsets,
 lengths and response variants. Directory responses contain at most 512 distinct
-entry IDs and 64 KiB of combined name bytes. Read payloads and error messages have their
-own limits. Decoding returns owned values; the frame limit is not a strict bound
-on decoder allocations.
+entry IDs and 64 KiB of combined name bytes. Read responses must fit their
+requested length; the 64 KiB service chunk size is not a protocol validity limit.
+Error messages have their own limit. Decoding returns owned values; the frame
+limit is not a strict bound on decoder allocations.
 
 The service admits at most eight connection tasks. Handshakes have a five-second
 deadline. Connections may wait before their first request and between user actions

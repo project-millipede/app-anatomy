@@ -216,9 +216,10 @@ The analyzer's adapter to `object::ReadCacheOps` still retains its input diagnos
 separately because that upstream interface returns only `()` on failure.
 `inspect_source(source)` borrows a `ByteSource` directly. The cache
 cursor fills requested ranges, including partial reads, while native and remote
-sources keep their own access mechanisms. Protocol chunk sizes belong to the remote source;
-they do not limit the size of a parser request. Requested ranges remain in
-`object::ReadCache` until inspection ends, with memory behavior defined by the
+sources keep their own access mechanisms. The remote provider chooses each
+response size; the client forwards requested ranges without duplicating that policy.
+Short replies do not limit the size of a parser request. Requested ranges remain
+in `object::ReadCache` until inspection ends, with memory behavior defined by the
 [parser contract](../rust-analysis-core.md#reads-and-memory).
 
 Convert errors at the actual consumer boundary. Executables may use `anyhow` for
