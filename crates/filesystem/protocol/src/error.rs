@@ -20,12 +20,12 @@ pub enum ProtocolLimit {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProtocolErrorKind {
     InvalidResource {
-        length: u64,
+        length: usize,
     },
     LimitExceeded {
         resource: ProtocolLimit,
-        limit: u64,
-        actual: u64,
+        limit: usize,
+        actual: usize,
     },
     RangeOverflow {
         offset: u64,
@@ -35,12 +35,12 @@ pub enum ProtocolErrorKind {
         id: u32,
     },
     DirectoryNamesOverflow {
-        used: u64,
-        additional: u64,
+        used: usize,
+        additional: usize,
     },
     ResponseMismatch,
     TrailingBytes {
-        remaining: u64,
+        remaining: usize,
     },
     Encode,
     Decode,

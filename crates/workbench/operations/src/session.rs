@@ -1,8 +1,8 @@
 use crate::{Failure, Outcome, StepOutcome, Transport};
 use filesystem_data::DirectoryEntryKind;
 use filesystem_protocol::{
-    FileError, Request, Response, SelectionState, decode_response, encode_request,
-    validate_response,
+    FileError, Request, Response, SelectionState, check_response_matches_request, decode_response,
+    encode_request,
 };
 
 /// Identifies a completed filesystem-client action.
@@ -61,7 +61,7 @@ impl Session {
             .exchange(bytes)
             .and_then(|bytes| decode_response(&bytes).map_err(Failure::protocol))
             .and_then(|response| {
-                validate_response(&request, &response).map_err(Failure::protocol)?;
+                check_response_matches_request(&request, &response).map_err(Failure::protocol)?;
                 Ok(response)
             });
         // 3. If exchange or reply processing failed, reset before returning.
@@ -90,7 +90,8 @@ impl Session {
     /// # Errors
     /// Returns transport, protocol or provider failures from the query.
     pub fn current_selection(&mut self) -> Result<SelectionState, Failure> {
-        let Response::Selection(state) = self.request(Request::CurrentSelection)? else {
+        let response = self.request(Request::CurrentSelection)?;
+        let Response::Selection(state) = response else {
             unreachable!("response was validated against its request");
         };
         Ok(state)
@@ -224,10 +225,11 @@ impl Session {
     /// Returns transport, protocol or provider failures, including a resource
     /// identifier that is no longer active.
     pub fn byte_length(&mut self, resource: &str) -> Result<u64, Failure> {
-        let Response::ByteLength(length) = self.request(Request::ByteLength {
+        let request = Request::ByteLength {
             resource: resource.into(),
-        })?
-        else {
+        };
+        let response = self.request(request)?;
+        let Response::ByteLength(length) = response else {
             unreachable!("response was validated against its request");
         };
         Ok(length)
@@ -255,7 +257,8 @@ impl Session {
             offset,
             length,
         };
-        let Response::Read(bytes) = self.request(request)? else {
+        let response = self.request(request)?;
+        let Response::Read(bytes) = response else {
             unreachable!("response was validated against its request");
         };
         Ok(bytes)

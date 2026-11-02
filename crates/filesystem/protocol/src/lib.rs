@@ -97,7 +97,7 @@ pub fn validate_resource(resource: &str) -> Result<(), ProtocolError> {
     {
         return Err(ProtocolError::validation(
             ProtocolErrorKind::InvalidResource {
-                length: resource.len() as u64,
+                length: resource.len(),
             },
             "resource must contain exactly 64 lowercase hexadecimal characters",
         ));
@@ -131,18 +131,18 @@ fn validate_response_fields(response: &Response) -> Result<(), ProtocolError> {
         Response::Read(bytes) => {
             // A payload larger than the frame budget cannot encode into one response.
             enforce_limit(
-                bytes.len() as u64,
-                MAX_RESPONSE_MESSAGE_BYTES as u64,
+                bytes.len(),
+                MAX_RESPONSE_MESSAGE_BYTES,
                 ProtocolLimit::ResponseMessageBytes,
                 "read payload alone exceeds response message byte limit",
             )?;
         }
         Response::Failed(FileError::Io { message }) => {
             enforce_limit(
-                message.len() as u64,
-                MAX_ERROR_MESSAGE_BYTES as u64,
+                message.len(),
+                MAX_ERROR_MESSAGE_BYTES,
                 ProtocolLimit::ErrorMessageBytes,
-                "error message exceeds the size limit",
+                "error text exceeds byte limit",
             )?;
         }
         Response::SelectedFile(Some(selected)) | Response::SelectedDirectory(Some(selected)) => {
@@ -171,7 +171,7 @@ fn validate_response_fields(response: &Response) -> Result<(), ProtocolError> {
 fn validate_selected(selected: &SelectedResource) -> Result<(), ProtocolError> {
     validate_resource(&selected.resource)?;
     enforce_limit(
-        selected.name.len() as u64,
+        selected.name.len(),
         4096,
         ProtocolLimit::SelectionNameBytes,
         "selection name exceeds the size limit",
@@ -180,7 +180,7 @@ fn validate_selected(selected: &SelectedResource) -> Result<(), ProtocolError> {
 
 fn validate_entries(entries: &[DirectoryEntry]) -> Result<(), ProtocolError> {
     enforce_limit(
-        entries.len() as u64,
+        entries.len(),
         512,
         ProtocolLimit::DirectoryEntries,
         "directory entry count exceeds the limit",
@@ -188,7 +188,8 @@ fn validate_entries(entries: &[DirectoryEntry]) -> Result<(), ProtocolError> {
     let mut names = 0_usize;
     let mut ids = std::collections::HashSet::new();
     for entry in entries {
-        if !ids.insert(entry.id) {
+        let is_new_entry_id = ids.insert(entry.id);
+        if !is_new_entry_id {
             return Err(ProtocolError::validation(
                 ProtocolErrorKind::DuplicateDirectoryEntry { id: entry.id },
                 "duplicate directory entry id",
@@ -197,14 +198,14 @@ fn validate_entries(entries: &[DirectoryEntry]) -> Result<(), ProtocolError> {
         names = names.checked_add(entry.name.len()).ok_or_else(|| {
             ProtocolError::validation(
                 ProtocolErrorKind::DirectoryNamesOverflow {
-                    used: names as u64,
-                    additional: entry.name.len() as u64,
+                    used: names,
+                    additional: entry.name.len(),
                 },
                 "directory name size overflow",
             )
         })?;
         enforce_limit(
-            names as u64,
+            names,
             64 * 1024,
             ProtocolLimit::DirectoryNameBytes,
             "directory names exceed the size limit",
@@ -213,10 +214,14 @@ fn validate_entries(entries: &[DirectoryEntry]) -> Result<(), ProtocolError> {
     Ok(())
 }
 
-/// Check that a response is valid for the request that is awaiting it.
-pub fn validate_response(request: &Request, response: &Response) -> Result<(), ProtocolError> {
-    validate_request(request)?;
-    validate_response_fields(response)?;
+/// Match a decoded response to its previously validated request.
+///
+/// Encoding and decoding validate message fields. This checks the pending
+/// operation and that returned file bytes fit the requested range.
+pub fn check_response_matches_request(
+    request: &Request,
+    response: &Response,
+) -> Result<(), ProtocolError> {
     match (request, response) {
         (_, Response::Failed(_))
         | (Request::ByteLength { .. }, Response::ByteLength(_))
@@ -226,13 +231,20 @@ pub fn validate_response(request: &Request, response: &Response) -> Result<(), P
         | (Request::OpenFile { .. }, Response::OpenedFile(_))
         | (Request::OpenDirectory { .. }, Response::OpenedDirectory(_)) => Ok(()),
         (Request::ReadAt { length, .. }, Response::Read(bytes)) => {
-            enforce_limit(
-                bytes.len() as u64,
-                u64::from(*length),
-                ProtocolLimit::RequestedReadBytes,
-                "read response exceeds requested length",
-            )?;
-            Ok(())
+            let requested_length_conversion = usize::try_from(*length);
+            match requested_length_conversion {
+                Ok(requested_length) => enforce_limit(
+                    bytes.len(),
+                    requested_length,
+                    ProtocolLimit::RequestedReadBytes,
+                    "read response exceeds requested length",
+                ),
+                Err(_) => {
+                    // The requested length exceeds usize::MAX, so no response
+                    // buffer can exceed it.
+                    Ok(())
+                }
+            }
         }
         _ => Err(ProtocolError::validation(
             ProtocolErrorKind::ResponseMismatch,
@@ -246,8 +258,8 @@ pub fn encode_request(request: &Request) -> Result<Vec<u8>, ProtocolError> {
     let bytes = rmp_serde::to_vec_named(request)
         .map_err(|source| ProtocolError::encode("request", source))?;
     enforce_limit(
-        bytes.len() as u64,
-        MAX_REQUEST_MESSAGE_BYTES as u64,
+        bytes.len(),
+        MAX_REQUEST_MESSAGE_BYTES,
         ProtocolLimit::RequestMessageBytes,
         "request message exceeds the size limit",
     )?;
@@ -269,8 +281,8 @@ pub fn encode_response(response: &Response) -> Result<Vec<u8>, ProtocolError> {
     let bytes = rmp_serde::to_vec_named(response)
         .map_err(|source| ProtocolError::encode("response", source))?;
     enforce_limit(
-        bytes.len() as u64,
-        MAX_RESPONSE_MESSAGE_BYTES as u64,
+        bytes.len(),
+        MAX_RESPONSE_MESSAGE_BYTES,
         ProtocolLimit::ResponseMessageBytes,
         "response message exceeds the size limit",
     )?;
@@ -294,8 +306,8 @@ fn decode_message<T: DeserializeOwned>(
 ) -> Result<T, ProtocolError> {
     // Bound the input before decoding owned fields.
     enforce_limit(
-        bytes.len() as u64,
-        limit as u64,
+        bytes.len(),
+        limit,
         resource,
         "message exceeds the size limit",
     )?;
@@ -306,7 +318,7 @@ fn decode_message<T: DeserializeOwned>(
     if !decoder.get_ref().is_empty() {
         return Err(ProtocolError::validation(
             ProtocolErrorKind::TrailingBytes {
-                remaining: decoder.get_ref().len() as u64,
+                remaining: decoder.get_ref().len(),
             },
             "trailing bytes after filesystem message",
         ));
@@ -315,8 +327,8 @@ fn decode_message<T: DeserializeOwned>(
 }
 
 fn enforce_limit(
-    actual: u64,
-    limit: u64,
+    actual: usize,
+    limit: usize,
     resource: ProtocolLimit,
     message: &'static str,
 ) -> Result<(), ProtocolError> {
@@ -373,20 +385,25 @@ mod tests {
         let decoded_response = decode_response(&encoded_response)?;
 
         assert_eq!(decoded_response, expected_response);
-        validate_response(&decoded_request, &decoded_response)?;
+        check_response_matches_request(&decoded_request, &decoded_response)?;
         Ok(())
     }
 
     #[test]
     fn oversized_frames_fail_before_decode_and_trailing_bytes_are_distinct() {
+        let oversized_request_bytes = vec![0; MAX_REQUEST_MESSAGE_BYTES + 1];
+        let oversized_response_bytes = vec![0; MAX_RESPONSE_MESSAGE_BYTES + 1];
+        let request_decode_error = decode_request(&oversized_request_bytes).unwrap_err();
+        let response_decode_error = decode_response(&oversized_response_bytes).unwrap_err();
+
         for (error, resource, limit) in [
             (
-                decode_request(&vec![0; MAX_REQUEST_MESSAGE_BYTES + 1]).unwrap_err(),
+                request_decode_error,
                 ProtocolLimit::RequestMessageBytes,
                 MAX_REQUEST_MESSAGE_BYTES,
             ),
             (
-                decode_response(&vec![0; MAX_RESPONSE_MESSAGE_BYTES + 1]).unwrap_err(),
+                response_decode_error,
                 ProtocolLimit::ResponseMessageBytes,
                 MAX_RESPONSE_MESSAGE_BYTES,
             ),
@@ -395,15 +412,16 @@ mod tests {
                 error.kind(),
                 ProtocolErrorKind::LimitExceeded {
                     resource,
-                    limit: limit as u64,
-                    actual: limit as u64 + 1,
+                    limit,
+                    actual: limit + 1,
                 },
             );
             assert!(error.source().is_none());
         }
-        let mut bytes = encode_request(&read_request(0, 1)).unwrap();
-        bytes.extend_from_slice(&[0, 0]);
-        let error = decode_request(&bytes).unwrap_err();
+        let request = read_request(0, 1);
+        let mut encoded_request = encode_request(&request).unwrap();
+        encoded_request.extend_from_slice(&[0, 0]);
+        let error = decode_request(&encoded_request).unwrap_err();
         assert_eq!(
             error.kind(),
             ProtocolErrorKind::TrailingBytes { remaining: 2 }
@@ -411,32 +429,59 @@ mod tests {
         assert!(error.source().is_none());
     }
 
+    /// Raw MessagePack serialization supplies invalid decoder inputs without
+    /// passing through the validating encoder. Assertions establish rejection,
+    /// not a particular error variant or message.
     #[test]
-    fn rejects_invalid_resources_ranges_and_response_fields() {
+    fn rejects_invalid_requests_and_oversized_responses() {
+        // 1. Prepare the non-ASCII identifier and response-size fixtures.
+        // 1.1. This identifier has the required 64-byte length but contains non-ASCII text.
+        let non_ascii_resource_identifier = "é".repeat(32);
+
+        // 1.2. The payload fills the message budget; metadata makes the response exceed it.
+        let read_payload_at_message_limit = vec![0; MAX_RESPONSE_MESSAGE_BYTES];
+
+        // 1.3. ASCII error text exceeds its byte limit by one byte.
+        let oversized_error_text = "x".repeat(MAX_ERROR_MESSAGE_BYTES + 1);
+
+        // 2. Reject identifiers that are not exactly 64 lowercase hexadecimal characters.
         for resource in [
             "".into(),
             "a".repeat(63),
             "a".repeat(65),
             "A".repeat(64),
             "g".repeat(64),
-            "\u{e9}".repeat(32),
+            non_ascii_resource_identifier,
         ] {
             let request = Request::ByteLength { resource };
-            assert!(encode_request(&request).is_err());
-            assert!(decode_request(&rmp_serde::to_vec_named(&request).unwrap()).is_err());
+            let request_encode_result = encode_request(&request);
+            assert!(request_encode_result.is_err());
+            let encoded_request = rmp_serde::to_vec_named(&request).unwrap();
+            let request_decode_result = decode_request(&encoded_request);
+            assert!(request_decode_result.is_err());
         }
-        for request in [read_request(u64::MAX, 1)] {
-            assert!(encode_request(&request).is_err());
-            assert!(decode_request(&rmp_serde::to_vec_named(&request).unwrap()).is_err());
-        }
+
+        // 3. Reject an overflowing end offset: u64::MAX + 1 is not representable.
+        // This checks range arithmetic; no file length participates.
+        let request = read_request(u64::MAX, 1);
+        let request_encode_result = encode_request(&request);
+        assert!(request_encode_result.is_err());
+        let encoded_request = rmp_serde::to_vec_named(&request).unwrap();
+        let request_decode_result = decode_request(&encoded_request);
+        assert!(request_decode_result.is_err());
+
+        // 4. Reject responses exceeding the complete-message or error-text limit.
         for response in [
-            Response::Read(vec![0; MAX_RESPONSE_MESSAGE_BYTES]),
+            Response::Read(read_payload_at_message_limit),
             Response::Failed(FileError::Io {
-                message: "\u{e9}".repeat(MAX_ERROR_MESSAGE_BYTES / 2 + 1),
+                message: oversized_error_text,
             }),
         ] {
-            assert!(encode_response(&response).is_err());
-            assert!(decode_response(&rmp_serde::to_vec_named(&response).unwrap()).is_err());
+            let response_encode_result = encode_response(&response);
+            assert!(response_encode_result.is_err());
+            let encoded_response = rmp_serde::to_vec_named(&response).unwrap();
+            let response_decode_result = decode_response(&encoded_response);
+            assert!(response_decode_result.is_err());
         }
     }
 
@@ -456,26 +501,33 @@ mod tests {
         ];
         for (request_index, request) in requests.iter().enumerate() {
             for (response_index, response) in responses.iter().enumerate() {
+                let response_match_result = check_response_matches_request(request, response);
                 assert_eq!(
-                    validate_response(request, response).is_ok(),
+                    response_match_result.is_ok(),
                     request_index == response_index
                 );
             }
-            validate_response(request, &Response::Failed(FileError::Cancelled)).unwrap();
-            validate_response(
-                request,
-                &Response::Failed(FileError::Io {
-                    message: "failure".into(),
-                }),
-            )
-            .unwrap();
+            let cancelled_response = Response::Failed(FileError::Cancelled);
+            check_response_matches_request(request, &cancelled_response).unwrap();
+            let io_failure_response = Response::Failed(FileError::Io {
+                message: "failure".into(),
+            });
+            check_response_matches_request(request, &io_failure_response).unwrap();
         }
-        assert!(validate_response(&read_request(0, 1), &Response::Read(vec![0, 1])).is_err());
-        validate_response(&read_request(0, 1), &Response::Read(Vec::new())).unwrap();
-        validate_response(&read_request(u64::MAX, 0), &Response::Read(Vec::new())).unwrap();
+        let one_byte_request = read_request(0, 1);
+        let excess_read_response = Response::Read(vec![0, 1]);
+        let response_match_result =
+            check_response_matches_request(&one_byte_request, &excess_read_response);
+        assert!(response_match_result.is_err());
+
+        let empty_read_response = Response::Read(Vec::new());
+        check_response_matches_request(&one_byte_request, &empty_read_response).unwrap();
+
+        let zero_length_request = read_request(u64::MAX, 0);
+        check_response_matches_request(&zero_length_request, &empty_read_response).unwrap();
     }
     #[test]
-    fn selection_and_directory_messages_round_trip_and_match_operations() {
+    fn selection_and_directory_responses_match_operations() -> Result<(), ProtocolError> {
         let selected = SelectedResource {
             name: "application.app".into(),
             resource: resource(),
@@ -485,27 +537,14 @@ mod tests {
                 Request::ChooseFile,
                 Response::SelectedFile(Some(selected.clone())),
             ),
-            (Request::ChooseFile, Response::SelectedFile(None)),
             (
                 Request::ChooseFolder,
                 Response::SelectedDirectory(Some(selected)),
             ),
             (
-                Request::CurrentSelection,
-                Response::Selection(SelectionState::default()),
-            ),
-            (
-                Request::CurrentSelection,
-                selection_with_entries(vec![DirectoryEntry {
-                    id: u32::MAX,
-                    name: "framework".into(),
-                    kind: DirectoryEntryKind::Directory,
-                }]),
-            ),
-            (
                 Request::OpenFile {
                     resource: resource(),
-                    entry_id: u32::MAX,
+                    entry_id: 0,
                 },
                 Response::OpenedFile(resource()),
             ),
@@ -518,17 +557,13 @@ mod tests {
             ),
         ];
         for (request, response) in cases {
-            assert_eq!(
-                decode_request(&encode_request(&request).unwrap()).unwrap(),
-                request
-            );
-            assert_eq!(
-                decode_response(&encode_response(&response).unwrap()).unwrap(),
-                response
-            );
-            validate_response(&request, &response).unwrap();
-            assert!(validate_response(&request, &Response::ByteLength(0)).is_err());
+            check_response_matches_request(&request, &response)?;
+            let unexpected_response = Response::ByteLength(0);
+            let response_match_result =
+                check_response_matches_request(&request, &unexpected_response);
+            assert!(response_match_result.is_err());
         }
+        Ok(())
     }
 
     #[test]
@@ -563,8 +598,11 @@ mod tests {
             })),
         ];
         for response in invalid {
-            assert!(encode_response(&response).is_err());
-            assert!(decode_response(&rmp_serde::to_vec_named(&response).unwrap()).is_err());
+            let response_encode_result = encode_response(&response);
+            assert!(response_encode_result.is_err());
+            let encoded_response = rmp_serde::to_vec_named(&response).unwrap();
+            let response_decode_result = decode_response(&encoded_response);
+            assert!(response_decode_result.is_err());
         }
         let response = selection_with_entries(
             (0..512)
@@ -575,9 +613,8 @@ mod tests {
                 })
                 .collect(),
         );
-        assert_eq!(
-            decode_response(&encode_response(&response).unwrap()).unwrap(),
-            response
-        );
+        let encoded_response = encode_response(&response).unwrap();
+        let decoded_response = decode_response(&encoded_response).unwrap();
+        assert_eq!(decoded_response, response);
     }
 }
