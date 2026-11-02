@@ -38,7 +38,8 @@ impl client::Transport for SocketTransport {
             // 2. Connect when no usable socket remains.
             // Polymorph owns the connection deadline; await its result directly.
             if self.socket.is_none() {
-                self.socket = Some(connect().await?);
+                let connected_socket = connect().await?;
+                self.socket = Some(connected_socket);
             }
 
             // 3. Send one encoded binary filesystem request.

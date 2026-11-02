@@ -102,10 +102,11 @@ impl Session {
     /// Query failure is preserved in the step rather than interpreted as an
     /// empty selection. This does not open a dialog or replace native resources.
     pub fn query_selection(&mut self) -> SelectionOutcome {
+        let selection_query_result = self.current_selection().map(Some);
         Outcome {
             steps: vec![StepOutcome {
                 kind: StepKind::QuerySelection,
-                result: self.current_selection().map(Some),
+                result: selection_query_result,
             }],
         }
     }
@@ -197,15 +198,17 @@ impl Session {
         kind: StepKind,
         result: Result<(), Failure>,
     ) -> SelectionOutcome {
+        let action_step = StepOutcome {
+            kind,
+            result: result.map(|()| None),
+        };
+        let selection_query_result = self.current_selection().map(Some);
         Outcome {
             steps: vec![
-                StepOutcome {
-                    kind,
-                    result: result.map(|()| None),
-                },
+                action_step,
                 StepOutcome {
                     kind: StepKind::QuerySelection,
-                    result: self.current_selection().map(Some),
+                    result: selection_query_result,
                 },
             ],
         }

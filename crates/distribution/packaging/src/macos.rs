@@ -27,8 +27,9 @@ pub(super) fn create_installer(
     let application_parent = application_path
         .parent()
         .context("The macOS application has no parent directory")?;
+    let main_binary_name = package_config.main_binary_name()?;
     let mut package_specification = PkgSpec {
-        name: package_config.main_binary_name()?,
+        name: main_binary_name,
         display_name: package_config.product_name.clone(),
         identifier: package_config.identifier().to_owned(),
         version: package_config.version.clone(),
@@ -86,8 +87,11 @@ fn append_application_payload(
             dest: destination,
             mode,
         });
-        for entry in fs::read_dir(source_path)? {
-            append_application_payload(&entry?.path(), application_parent, package_specification)?;
+        let directory_entries = fs::read_dir(source_path)?;
+        for directory_entry_result in directory_entries {
+            let directory_entry = directory_entry_result?;
+            let entry_path = directory_entry.path();
+            append_application_payload(&entry_path, application_parent, package_specification)?;
         }
         return Ok(());
     }

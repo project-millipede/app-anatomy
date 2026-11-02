@@ -54,7 +54,8 @@ fn main() -> anyhow::Result<ExitCode> {
         ExitCode::FAILURE
     };
     let mut stdout = io::stdout().lock();
-    serde_json::to_writer(&mut stdout, &OutcomeOutput::from(read))?;
+    let output = OutcomeOutput::from(read);
+    serde_json::to_writer(&mut stdout, &output)?;
     writeln!(stdout)?;
     stdout.flush()?;
     Ok(exit_code)

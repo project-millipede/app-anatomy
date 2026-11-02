@@ -122,14 +122,21 @@ fn acquire_resource(mode: PickMode, path: &Path) -> Result<AcquiredResource, Sou
         .to_string_lossy()
         .into_owned();
     Ok(match mode {
-        PickMode::File => AcquiredResource::File {
-            name,
-            source: NativeFileSource::new(File::open(path)?)?,
-        },
-        PickMode::Folder => AcquiredResource::Directory {
-            name,
-            directory: NativeDirectory::open(path)?,
-        },
+        PickMode::File => {
+            let opened_file = File::open(path)?;
+            let file_source = NativeFileSource::new(opened_file)?;
+            AcquiredResource::File {
+                name,
+                source: file_source,
+            }
+        }
+        PickMode::Folder => {
+            let native_directory = NativeDirectory::open(path)?;
+            AcquiredResource::Directory {
+                name,
+                directory: native_directory,
+            }
+        }
     })
 }
 
@@ -152,20 +159,30 @@ fn selected(mode: PickMode, resource: Option<SelectedResource>) -> Response {
 
 fn operate(selection: &mut Selection, request: Request) -> Result<Response, SourceError> {
     Ok(match request {
-        Request::CurrentSelection => Response::Selection(selection.current()?),
+        Request::CurrentSelection => {
+            let current_selection = selection.current()?;
+            Response::Selection(current_selection)
+        }
         Request::ByteLength { resource } => {
-            Response::ByteLength(selection.file(&resource)?.byte_length())
+            let file_source = selection.file(&resource)?;
+            Response::ByteLength(file_source.byte_length())
         }
         Request::ReadAt {
             resource,
             offset,
             length,
-        } => Response::Read(read_at(selection.file(&resource)?, offset, length)?),
+        } => {
+            let file_source = selection.file(&resource)?;
+            let returned_bytes = read_at(file_source, offset, length)?;
+            Response::Read(returned_bytes)
+        }
         Request::OpenFile { resource, entry_id } => {
-            Response::OpenedFile(selection.open_file(&resource, entry_id)?)
+            let file_resource_id = selection.open_file(&resource, entry_id)?;
+            Response::OpenedFile(file_resource_id)
         }
         Request::OpenDirectory { resource, entry_id } => {
-            Response::OpenedDirectory(selection.open_directory(&resource, entry_id)?)
+            let directory_resource_id = selection.open_directory(&resource, entry_id)?;
+            Response::OpenedDirectory(directory_resource_id)
         }
         Request::ChooseFile | Request::ChooseFolder => {
             unreachable!("picker requests are dispatched asynchronously")

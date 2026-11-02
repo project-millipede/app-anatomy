@@ -40,7 +40,8 @@ pub fn try_acquire_instance_lock(instance_lock_path: &Path) -> io::Result<Option
 
     // File owns the OS lock. Only contention means another owner; propagate
     // permission and I/O failures instead of silently suppressing startup.
-    match instance_lock.try_lock() {
+    let lock_result = instance_lock.try_lock();
+    match lock_result {
         Ok(()) => Ok(Some(instance_lock)),
         Err(TryLockError::WouldBlock) => Ok(None),
         Err(TryLockError::Error(error)) => Err(error),

@@ -63,7 +63,8 @@ use binary_inspection::input::{ByteSource, SourceError};
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// // 2. Keep the native source and its file under the caller's ownership.
-/// let mut native_source = NativeFileSource::new(File::open("input.bin")?)?;
+/// let opened_file = File::open("input.bin")?;
+/// let mut native_source = NativeFileSource::new(opened_file)?;
 ///
 /// // 3. Pass a borrow as the consumer's source value: S = &mut NativeFileSource.
 /// let result = inspect_input(&mut native_source);

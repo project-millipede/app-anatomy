@@ -60,11 +60,10 @@ fn main() -> Result<()> {
 
     if requested_selection == "--list" {
         for service_bundle in &available_bundles {
+            let main_binary_name = service_bundle.package_config.main_binary_name()?;
             println!(
                 "{}: {} / {}",
-                service_bundle.selection_name,
-                service_bundle.cargo_package_name,
-                service_bundle.package_config.main_binary_name()?
+                service_bundle.selection_name, service_bundle.cargo_package_name, main_binary_name
             );
         }
         return Ok(());
@@ -168,7 +167,8 @@ fn build_installed_executable(
         "Service build failed: {build_status}"
     );
 
-    let executable_path = package_config.binary_path(package_config.main_binary()?);
+    let main_binary_configuration = package_config.main_binary()?;
+    let executable_path = package_config.binary_path(main_binary_configuration);
     // Config stores the extensionless path expected by cargo-packager. Cargo's
     // Windows output has .exe; only the actual artifact lookup adds that suffix.
     #[cfg(windows)]

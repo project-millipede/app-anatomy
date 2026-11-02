@@ -19,7 +19,8 @@ pub struct NativeTransport {
 impl NativeTransport {
     /// Create the runtime without opening a socket. The backend parses the endpoint on exchange.
     pub fn new(endpoint: String) -> Result<Self, Failure> {
-        if tokio::runtime::Handle::try_current().is_ok() {
+        let current_runtime_result = tokio::runtime::Handle::try_current();
+        if current_runtime_result.is_ok() {
             return Err(Failure::local(
                 TransportOperation::Configure,
                 "Call the synchronous filesystem client outside an entered Tokio runtime.",

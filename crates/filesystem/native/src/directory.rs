@@ -104,7 +104,8 @@ impl NativeDirectory {
             ));
         }
         let path = self.path.join(&self.native_names[index]);
-        if !fs::symlink_metadata(&path)?.file_type().is_dir() {
+        let path_metadata = fs::symlink_metadata(&path)?;
+        if !path_metadata.file_type().is_dir() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "Directory entry is no longer a directory",
@@ -134,14 +135,16 @@ impl NativeDirectory {
             ));
         }
         let path = self.path.join(&self.native_names[index]);
-        if !fs::symlink_metadata(&path)?.file_type().is_file() {
+        let path_metadata = fs::symlink_metadata(&path)?;
+        if !path_metadata.file_type().is_file() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "Directory entry is no longer a regular file",
             ));
         }
         let file = File::open(path)?;
-        if !file.metadata()?.is_file() {
+        let opened_file_metadata = file.metadata()?;
+        if !opened_file_metadata.is_file() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "Directory entry is no longer a regular file",

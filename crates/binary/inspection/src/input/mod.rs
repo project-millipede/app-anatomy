@@ -43,14 +43,17 @@ impl ByteSource for &[u8] {
     }
 
     fn read_at(&mut self, offset: u64, destination: &mut [u8]) -> Result<usize, SourceError> {
-        let Ok(start) = usize::try_from(offset) else {
+        let source_index_conversion = usize::try_from(offset);
+        let source_index = match source_index_conversion {
+            Ok(source_index) => source_index,
+            // An offset beyond usize::MAX cannot address a resident slice: it is EOF.
+            Err(_) => return Ok(0),
+        };
+        let Some(remaining_bytes) = self.get(source_index..) else {
             return Ok(0);
         };
-        let Some(remaining) = self.get(start..) else {
-            return Ok(0);
-        };
-        let count = remaining.len().min(destination.len());
-        destination[..count].copy_from_slice(&remaining[..count]);
-        Ok(count)
+        let read_byte_count = remaining_bytes.len().min(destination.len());
+        destination[..read_byte_count].copy_from_slice(&remaining_bytes[..read_byte_count]);
+        Ok(read_byte_count)
     }
 }

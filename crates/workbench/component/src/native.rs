@@ -23,27 +23,31 @@ impl wire::Guest for Component {
 }
 impl wire::GuestSession for NativeSession {
     fn query_selection(&self) -> wire::SelectionOutcome {
-        selection_outcome(self.session.borrow_mut().query_selection())
+        let outcome = self.session.borrow_mut().query_selection();
+        selection_outcome(outcome)
     }
     fn choose_file(&self) -> wire::SelectionOutcome {
-        selection_outcome(self.session.borrow_mut().select_file())
+        let outcome = self.session.borrow_mut().select_file();
+        selection_outcome(outcome)
     }
     fn choose_folder(&self) -> wire::SelectionOutcome {
-        selection_outcome(self.session.borrow_mut().select_directory())
+        let outcome = self.session.borrow_mut().select_directory();
+        selection_outcome(outcome)
     }
     fn open_file(&self, directory: String, entry_id: u32) -> wire::SelectionOutcome {
-        selection_outcome(self.session.borrow_mut().select_child(
-            &directory,
-            entry_id,
-            DirectoryEntryKind::File,
-        ))
+        let outcome =
+            self.session
+                .borrow_mut()
+                .select_child(&directory, entry_id, DirectoryEntryKind::File);
+        selection_outcome(outcome)
     }
     fn open_directory(&self, directory: String, entry_id: u32) -> wire::SelectionOutcome {
-        selection_outcome(self.session.borrow_mut().select_child(
+        let outcome = self.session.borrow_mut().select_child(
             &directory,
             entry_id,
             DirectoryEntryKind::Directory,
-        ))
+        );
+        selection_outcome(outcome)
     }
     fn inspect(&self, resource: String) -> wire::InspectionOutcome {
         let outcome = self.session.borrow_mut().inspect(&resource);
@@ -79,10 +83,12 @@ fn inspection_failure(error: client::InspectionFailure) -> wire::InspectionFailu
     let message = error.to_string();
     let detail = match error {
         client::InspectionFailure::Selection(error) => {
-            inspection_error::selection(inspection_error::client_failure(error))
+            let failure_cause = inspection_error::client_failure(error);
+            inspection_error::selection(failure_cause)
         }
         client::InspectionFailure::Metadata(error) => {
-            inspection_error::byte_length(inspection_error::client_failure(error))
+            let failure_cause = inspection_error::client_failure(error);
+            inspection_error::byte_length(failure_cause)
         }
         client::InspectionFailure::Inspection(error) => inspection_error::inspection(error),
     };

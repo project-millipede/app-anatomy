@@ -31,8 +31,9 @@ impl NativeSelection {
     /// Open a regular file before replacing the file and directory context.
     pub fn select_file(&mut self, path: impl AsRef<Path>) -> io::Result<()> {
         let path = path.as_ref();
-        let source = NativeFileSource::new(File::open(path)?)?;
-        self.install_file(display_name(path), source);
+        let opened_file = File::open(path)?;
+        let file_source = NativeFileSource::new(opened_file)?;
+        self.install_file(display_name(path), file_source);
         Ok(())
     }
 
@@ -68,11 +69,12 @@ impl NativeSelection {
     /// Open one captured file entry before replacing the file, retaining its parent.
     pub fn open_file(&mut self, entry_id: u32) -> io::Result<()> {
         let directory = self.directory.as_ref().ok_or_else(no_directory)?;
-        let source = NativeFileSource::new(directory.resource.open_file(entry_id)?)?;
+        let opened_file = directory.resource.open_file(entry_id)?;
+        let file_source = NativeFileSource::new(opened_file)?;
         let name = directory.resource.entries()[entry_id as usize].name.clone();
         self.file = Some(Selected {
             name,
-            resource: source,
+            resource: file_source,
         });
         Ok(())
     }

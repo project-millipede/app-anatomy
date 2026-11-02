@@ -62,7 +62,8 @@ fn fetch(root: &Path) -> Result<()> {
 
     for (destination, bytes) in &downloads {
         let path = vendor.join(destination);
-        fs::create_dir_all(path.parent().context("download has no parent directory")?)?;
+        let output_parent = path.parent().context("download has no parent directory")?;
+        fs::create_dir_all(output_parent)?;
         fs::write(&path, bytes).with_context(|| format!("failed to write {}", path.display()))?;
     }
 
@@ -78,8 +79,10 @@ fn fetch(root: &Path) -> Result<()> {
     // Compare the compiler inputs against the actual HTTP response bytes.
     for (destination, bytes) in downloads {
         let path = dependencies.join(destination);
+        let dependency_contents =
+            fs::read(&path).with_context(|| format!("failed to read {}", path.display()))?;
         ensure!(
-            fs::read(&path).with_context(|| format!("failed to read {}", path.display()))? == bytes,
+            dependency_contents == bytes,
             "{} differs from the upstream download; refusing to build",
             path.display()
         );
@@ -92,8 +95,9 @@ fn fetch(root: &Path) -> Result<()> {
 fn check(root: &Path) -> Result<()> {
     let before = snapshot(root)?;
     fetch(root)?;
+    let after = snapshot(root)?;
     ensure!(
-        before == snapshot(root)?,
+        before == after,
         "WIT dependencies changed; review the refreshed files and wkg/wkg.lock, then rerun wit:check"
     );
     println!("WIT dependencies are current.");
@@ -105,7 +109,8 @@ fn snapshot(root: &Path) -> Result<BTreeMap<String, Vec<u8>>> {
     collect(root, &root.join(WIT_DIRECTORY).join("deps"), &mut files)?;
     let lock = root.join("wkg/wkg.lock");
     if lock.exists() {
-        files.insert("wkg/wkg.lock".to_owned(), fs::read(lock)?);
+        let lockfile_contents = fs::read(lock)?;
+        files.insert("wkg/wkg.lock".to_owned(), lockfile_contents);
     }
     Ok(files)
 }
@@ -114,8 +119,10 @@ fn collect(root: &Path, directory: &Path, files: &mut BTreeMap<String, Vec<u8>>)
     if !directory.exists() {
         return Ok(());
     }
-    for entry in fs::read_dir(directory)? {
-        let path = entry?.path();
+    let directory_entries = fs::read_dir(directory)?;
+    for directory_entry_result in directory_entries {
+        let directory_entry = directory_entry_result?;
+        let path = directory_entry.path();
         if path.is_dir() {
             collect(root, &path, files)?;
             continue;
@@ -124,7 +131,8 @@ fn collect(root: &Path, directory: &Path, files: &mut BTreeMap<String, Vec<u8>>)
             .strip_prefix(root)?
             .to_string_lossy()
             .replace(std::path::MAIN_SEPARATOR, "/");
-        files.insert(name, fs::read(path)?);
+        let file_contents = fs::read(path)?;
+        files.insert(name, file_contents);
     }
     Ok(())
 }

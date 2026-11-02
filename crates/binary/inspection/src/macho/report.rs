@@ -25,16 +25,14 @@ pub(super) fn inspect_bytes(bytes: &[u8]) -> Result<BinaryReport, AnalysisError>
             let image = inspect_image(bytes, kind, file_range)?;
             (ContainerKind::Thin, image.endianness, vec![image])
         }
-        FileKind::MachOFat32 => (
-            ContainerKind::Universal32,
-            Endianness::Big,
-            inspect_universal_bytes::<macho::FatArch32>(bytes, file_range)?,
-        ),
-        FileKind::MachOFat64 => (
-            ContainerKind::Universal64,
-            Endianness::Big,
-            inspect_universal_bytes::<macho::FatArch64>(bytes, file_range)?,
-        ),
+        FileKind::MachOFat32 => {
+            let images = inspect_universal_bytes::<macho::FatArch32>(bytes, file_range)?;
+            (ContainerKind::Universal32, Endianness::Big, images)
+        }
+        FileKind::MachOFat64 => {
+            let images = inspect_universal_bytes::<macho::FatArch64>(bytes, file_range)?;
+            (ContainerKind::Universal64, Endianness::Big, images)
+        }
         _ => return Err(AnalysisError::new(ErrorKind::UnsupportedImage)),
     };
     Ok(BinaryReport {
@@ -59,16 +57,14 @@ pub(super) fn inspect_cached<Reader: ReadCacheOps>(
             let image = inspect_image(cache, kind, file_range)?;
             (ContainerKind::Thin, image.endianness, vec![image])
         }
-        FileKind::MachOFat32 => (
-            ContainerKind::Universal32,
-            Endianness::Big,
-            inspect_universal_cached::<macho::FatArch32, _>(cache, file_range)?,
-        ),
-        FileKind::MachOFat64 => (
-            ContainerKind::Universal64,
-            Endianness::Big,
-            inspect_universal_cached::<macho::FatArch64, _>(cache, file_range)?,
-        ),
+        FileKind::MachOFat32 => {
+            let images = inspect_universal_cached::<macho::FatArch32, _>(cache, file_range)?;
+            (ContainerKind::Universal32, Endianness::Big, images)
+        }
+        FileKind::MachOFat64 => {
+            let images = inspect_universal_cached::<macho::FatArch64, _>(cache, file_range)?;
+            (ContainerKind::Universal64, Endianness::Big, images)
+        }
         _ => return Err(AnalysisError::new(ErrorKind::UnsupportedImage)),
     };
     Ok(BinaryReport {
@@ -92,7 +88,8 @@ fn inspect_universal_bytes<Arch: FatArch>(
         // FatArch::data borrows this already-resident member without copying it.
         let member = arch.data(bytes).map_err(decode_error)?;
         let kind = FileKind::parse(member).map_err(decode_error)?;
-        images.push(inspect_image(member, kind, range)?);
+        let image = inspect_image(member, kind, range)?;
+        images.push(image);
     }
     Ok(images)
 }
@@ -110,7 +107,8 @@ fn inspect_universal_cached<Arch: FatArch, Reader: ReadCacheOps>(
         // the existing cache; creating it acquires no bytes.
         let member = cache.range(offset, size);
         let kind = FileKind::parse(member).map_err(decode_error)?;
-        images.push(inspect_image(member, kind, range)?);
+        let image = inspect_image(member, kind, range)?;
+        images.push(image);
     }
     Ok(images)
 }
@@ -167,7 +165,8 @@ fn inspect_header<'data, Header: MachHeader<Endian = Endianness>, Data: ReadRef<
             kind: command.cmd(),
             file_range: command_range,
         };
-        match command.variant().map_err(decode_error)? {
+        let command_variant = command.variant().map_err(decode_error)?;
+        match command_variant {
             LoadCommandVariant::BuildVersion(fields, tools) => {
                 fields.tools(endian, tools).map_err(decode_error)?;
                 image.platforms.push(PlatformDeclaration {
@@ -188,13 +187,14 @@ fn inspect_header<'data, Header: MachHeader<Endian = Endianness>, Data: ReadRef<
             LoadCommandVariant::LinkeditData(fields)
                 if command.cmd() == macho::LC_CODE_SIGNATURE =>
             {
+                let signature_data_range = absolute_range(
+                    file_range,
+                    u64::from(fields.dataoff.get(endian)),
+                    u64::from(fields.datasize.get(endian)),
+                )?;
                 image.signature_commands.push(SignatureCommand {
                     command_range,
-                    data_range: absolute_range(
-                        file_range,
-                        u64::from(fields.dataoff.get(endian)),
-                        u64::from(fields.datasize.get(endian)),
-                    )?,
+                    data_range: signature_data_range,
                 });
             }
             _ => {}

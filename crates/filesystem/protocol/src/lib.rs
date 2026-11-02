@@ -185,27 +185,32 @@ fn validate_entries(entries: &[DirectoryEntry]) -> Result<(), ProtocolError> {
         ProtocolLimit::DirectoryEntries,
         "directory entry count exceeds the limit",
     )?;
-    let mut names = 0_usize;
-    let mut ids = std::collections::HashSet::new();
+    let mut total_name_bytes = 0_usize;
+    let mut seen_entry_ids = std::collections::HashSet::new();
     for entry in entries {
-        let is_new_entry_id = ids.insert(entry.id);
+        let is_new_entry_id = seen_entry_ids.insert(entry.id);
         if !is_new_entry_id {
             return Err(ProtocolError::validation(
                 ProtocolErrorKind::DuplicateDirectoryEntry { id: entry.id },
                 "duplicate directory entry id",
             ));
         }
-        names = names.checked_add(entry.name.len()).ok_or_else(|| {
-            ProtocolError::validation(
-                ProtocolErrorKind::DirectoryNamesOverflow {
-                    used: names,
-                    additional: entry.name.len(),
-                },
-                "directory name size overflow",
-            )
-        })?;
+        let entry_name_bytes = entry.name.len();
+        let name_bytes_addition = total_name_bytes.checked_add(entry_name_bytes);
+        total_name_bytes = match name_bytes_addition {
+            Some(name_bytes) => name_bytes,
+            None => {
+                return Err(ProtocolError::validation(
+                    ProtocolErrorKind::DirectoryNamesOverflow {
+                        used: total_name_bytes,
+                        additional: entry_name_bytes,
+                    },
+                    "directory name size overflow",
+                ));
+            }
+        };
         enforce_limit(
-            names,
+            total_name_bytes,
             64 * 1024,
             ProtocolLimit::DirectoryNameBytes,
             "directory names exceed the size limit",

@@ -19,9 +19,9 @@ fn main() -> Result<()> {
     let instance_lock_path = user_directories.data_local_dir().join("instance.lock");
 
     // Acquire ownership before creating workers or opening native resources.
-    let Some(instance_lock) = try_acquire_instance_lock(&instance_lock_path)
-        .with_context(|| format!("Cannot acquire {}", instance_lock_path.display()))?
-    else {
+    let optional_instance_lock = try_acquire_instance_lock(&instance_lock_path)
+        .with_context(|| format!("Cannot acquire {}", instance_lock_path.display()))?;
+    let Some(instance_lock) = optional_instance_lock else {
         // This is duplicate suppression, not a readiness or identity handshake.
         eprintln!("A Native Workbench startup owner already exists.");
         return Ok(());

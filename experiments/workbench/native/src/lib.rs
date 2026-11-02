@@ -21,14 +21,16 @@ pub struct FileRead {
 pub fn read_range(request: FileRequest) -> Result<FileRead, Failure> {
     filesystem_protocol::validate_read_range(request.offset, request.length)
         .map_err(Failure::protocol)?;
-    let mut session = Session::new(Box::new(NativeTransport::new(request.endpoint)?));
-    let selected = session.current_selection()?.file.ok_or_else(|| {
+    let native_transport = NativeTransport::new(request.endpoint)?;
+    let mut session = Session::new(Box::new(native_transport));
+    let selection_state = session.current_selection()?;
+    let selected_file = selection_state.file.ok_or_else(|| {
         Failure::local(
             workbench_operations::TransportOperation::Configure,
             "No native file is selected",
         )
     })?;
-    let byte_length = session.byte_length(&selected.resource)?;
-    let bytes = session.read_at(&selected.resource, request.offset, request.length)?;
+    let byte_length = session.byte_length(&selected_file.resource)?;
+    let bytes = session.read_at(&selected_file.resource, request.offset, request.length)?;
     Ok(FileRead { byte_length, bytes })
 }
