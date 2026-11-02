@@ -54,25 +54,35 @@ impl Session {
 
     fn request(&mut self, request: Request) -> Result<Response, Failure> {
         // 1. Validate and encode before touching the transport.
-        let bytes = encode_request(&request).map_err(Failure::protocol)?;
-        // 2. Exchange once, then decode and validate the reply against this request.
-        let result = self
-            .transport
-            .exchange(bytes)
-            .and_then(|bytes| decode_response(&bytes).map_err(Failure::protocol))
-            .and_then(|response| {
-                check_response_matches_request(&request, &response).map_err(Failure::protocol)?;
-                Ok(response)
-            });
-        // 3. If exchange or reply processing failed, reset before returning.
-        let response = match result {
+        let encoded_request = encode_request(&request).map_err(Failure::protocol)?;
+        // 2. Exchange the encoded request once.
+        let exchange_result = self.transport.exchange(encoded_request);
+        // 3. Decode returned bytes; preserve any transport failure for the reset step.
+        let decoded_response_result = match exchange_result {
+            Ok(response_bytes) => decode_response(&response_bytes).map_err(Failure::protocol),
+            Err(error) => Err(error),
+        };
+        // 4. Validate the response against the request; preserve any earlier failure.
+        let matched_response_result = match decoded_response_result {
+            Ok(response) => {
+                let response_match_result =
+                    check_response_matches_request(&request, &response).map_err(Failure::protocol);
+                match response_match_result {
+                    Ok(()) => Ok(response),
+                    Err(error) => Err(error),
+                }
+            }
+            Err(error) => Err(error),
+        };
+        // 5. If exchange or reply processing failed, reset before returning.
+        let response = match matched_response_result {
             Ok(response) => response,
             Err(error) => {
                 self.transport.reset();
                 return Err(error);
             }
         };
-        // 4. A valid provider failure is an operation result; keep the connection.
+        // 6. A valid provider failure is an operation result; keep the connection.
         match response {
             Response::Failed(FileError::Cancelled) => {
                 Err(Failure::provider("The filesystem operation was cancelled."))
