@@ -14,3 +14,7 @@ apps/web/public/installers/*.pkg
 apps/web/styled-system/
 wkg/vendor/
 wkg/wit/deps/
+
+# Local follow-up implementation notes.
+/docs/architecture/inspection-acquisition-errors-plan.md
+/docs/architecture/rust-readability-cleanup-plan.md
