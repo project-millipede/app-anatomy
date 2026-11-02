@@ -209,6 +209,10 @@ buffer. The [service's response bounds](../../crates/services/filesystem/README.
 do not limit the requested range or total inspection memory. Inspection memory
 includes all retained ranges and the report being constructed.
 
+The [integer type policy](../rust/integer-types.md)
+explains why logical file coordinates use `u64`, memory operations use `usize`,
+and the remote request-length field uses `u32`.
+
 #### Example: reading a command region and displaying its evidence
 
 Consider an illustrative thin 64-bit Mach-O with three commands. Its 32-byte

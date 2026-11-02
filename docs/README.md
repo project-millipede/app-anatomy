@@ -27,6 +27,11 @@ and signing studies contribute evidence for particular stages.
   Reuse the stage plans' fixture designs; do not treat an isolated success as a
   qualified complete workflow.
 
+## Rust implementation conventions
+
+The [Rust conventions overview](rust/README.md) indexes the language behavior,
+standard-library APIs and implementation choices explained for this repository.
+
 ## Architecture
 
 These documents distinguish the implemented application from accepted future

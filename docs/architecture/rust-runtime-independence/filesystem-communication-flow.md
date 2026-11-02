@@ -180,6 +180,9 @@ must be rebuilt and deployed together when incompatible changes affect the messa
 schema, field meanings or validation rules. Successful decoding does not establish
 that both sides implement the same contract.
 
+The [Rust integer conventions](../../rust/integer-types.md) explain the reasons
+for the numeric types used at file, memory and protocol boundaries.
+
 Both sides cap complete messages before decoding owned values and validate the
 field bounds. Encoders validate fields before serialization, including rejecting
 read payloads that alone exceed the message budget. They check the complete

@@ -124,6 +124,10 @@ allocation before native I/O. Zero-length requests perform no native I/O. See th
 [parser contract](../../../docs/architecture/rust-analysis-core.md#reads-and-memory)
 for analyzer memory behavior.
 
+See [integer types and conversions](../../../docs/rust/integer-types.md)
+for the reasons behind `u64` file coordinates, `usize` memory sizes and the
+protocol's `u32` requested read length.
+
 Messages are capped at 1 KiB for requests and 96 KiB for responses, including
 named-field overhead. The shared codec checks message size before decoding owned
 fields, rejects trailing bytes and
