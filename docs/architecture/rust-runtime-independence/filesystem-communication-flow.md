@@ -167,10 +167,9 @@ storage do not participate in service configuration. Refresh creates a new compo
 queries the same native owner.
 
 Any local client can query and change the shared selection and read the selected
-file. Startup still publishes the endpoint and maximum request size for ordinary
-native callers, probes and tests. Those consumers may supply explicit endpoints
-to their adapters. WebSocket backends report connection failures; the filesystem
-protocol validates messages independently. See the [service configuration](../../../crates/services/filesystem/README.md#launch)
+file. Startup publishes the endpoint for ordinary native callers, probes and tests.
+Those consumers may supply explicit endpoints to their adapters. WebSocket backends
+report connection failures; the filesystem protocol validates messages independently. See the [service configuration](../../../crates/services/filesystem/README.md#launch)
 for the address, startup behavior and rebuild requirements.
 
 The Rust message contract covers file length, bounded reads, directory navigation,

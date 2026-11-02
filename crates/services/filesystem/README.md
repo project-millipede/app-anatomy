@@ -105,12 +105,12 @@ pnpm engine:build
 Startup prints a JSON readiness record containing the WebSocket `endpoint`.
 The service runs until explicitly stopped.
 
-Open `/`, `/ark` or `/compare` in the separately running web app. All presentations
-use the same service. Their Rust components use the configured service address; React
-presents their results and connection failures. Refresh and route switching create
-new component instances that query the retained native owner. Restarting the service
-starts an empty owner at the same address. The user must start the local service before
-using native selection.
+Open `/`, `/?view=ark` or `/?view=compare` in the separately running web app.
+All presentations share one component runtime and use the same service. React
+presents their results and connection failures. Switching views preserves the
+runtime and model. A full page refresh creates a new component instance that
+queries the retained native owner. Restarting the service starts an empty owner
+at the same address. Start the local service before using native selection.
 
 Ordinary native clients accept explicit endpoint arguments independently of this
 application configuration.
