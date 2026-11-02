@@ -260,8 +260,10 @@ expose an underlying allocator error or distinguish those causes. Allocation
 failures that abort or trap the runtime are not made recoverable by this adapter.
 
 Input diagnostics describe the requested range, read offset or provider contract
-failure as applicable. Inspection stops at the first failure and returns no
-partial report.
+failure as applicable. An acquisition failure ends that read without disabling
+later cache requests. The adapter does not automatically retry failed reads.
+Inspection retains the first acquisition error and returns it instead of a report,
+even if later reads succeed.
 
 Dependency upgrades must review these acceptance, read and diagnostic behaviors,
 the public `object` types and the native/component conversion together. Measure

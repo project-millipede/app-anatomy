@@ -29,13 +29,18 @@ pub fn inspect(bytes: &[u8]) -> Result<BinaryReport, AnalysisError> {
 ///
 /// The upstream parser requests headers and complete architecture/command tables.
 /// Signature ranges are checked against their image without reading payloads.
-/// `object` bounds parser reads through cache views. Cache borrows remain local
-/// to this call; the returned report owns its data.
+/// `object` bounds parser reads through cache views.
 ///
-/// Acquisition failures retain their original causes. Providers own consistency:
-/// inspection does not establish a snapshot. Short successful reads are completed;
-/// failed source reads are not retried. A retained acquisition failure takes
-/// precedence over the parser result.
+/// 1. **Reading.** The cache completes short successful reads.
+/// 2. **Acquisition failure.** A failed read does not prevent later parser reads.
+///    The first acquisition error is preserved and takes precedence over the
+///    parser result, even if later reads succeed.
+/// 3. **Return.** The cache and source borrow are released before returning.
+///    The caller still owns the source; a successful report owns its data.
+/// 4. **Reuse.** A later call creates a new cache and can read from the source again.
+///    Successful reads are not guaranteed.
+///
+/// The source determines consistency; inspection does not establish a snapshot.
 pub fn inspect_source<Source: ByteSource>(
     source: &mut Source,
 ) -> Result<BinaryReport, InspectionError> {
@@ -44,7 +49,8 @@ pub fn inspect_source<Source: ByteSource>(
     let report = inspect_cached(cache.cache(), cache.byte_length());
     // 2. Consume the cache and recover the cursor's first acquisition failure.
     // This takes precedence even if object produced a report.
-    if let Some(error) = cache.into_error() {
+    let retained_input_error = cache.into_error();
+    if let Some(error) = retained_input_error {
         return Err(error.into());
     }
     // 3. Otherwise, return the owned report or upstream parsing error.

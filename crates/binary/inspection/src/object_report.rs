@@ -46,15 +46,15 @@ pub fn inspect_object(bytes: &[u8]) -> Result<ObjectReport, AnalysisError> {
 
 /// Inspect an ELF, PE, COFF or thin Mach-O file through a caller-owned source.
 ///
-/// Shares the byte adapter and `object::ReadCache` used by Mach-O inspection.
+/// Uses the acquisition and lifetime contract of [`crate::inspect_source`].
 /// Upstream parsing determines which ranges are read, including section and
-/// symbol tables where required. The cache is released before returning.
+/// symbol tables where required.
 ///
 /// # Errors
 ///
-/// Preserves the first acquisition failure, including failures in optional
-/// upstream reads. Otherwise returns the upstream parsing error. No source
-/// error is retried, and inspection does not establish a filesystem snapshot.
+/// An acquisition failure takes precedence over the parser result, even when
+/// the parser treats the failed read as optional.
+/// Otherwise, returns the upstream parsing error.
 pub fn inspect_object_source<Source: ByteSource>(
     source: &mut Source,
 ) -> Result<ObjectReport, InspectionError> {
@@ -63,7 +63,8 @@ pub fn inspect_object_source<Source: ByteSource>(
     let report = inspect_data(cache.cache());
     // 2. Consume the cache and recover the cursor's first acquisition failure.
     // This takes precedence even if object produced a report.
-    if let Some(error) = cache.into_error() {
+    let retained_input_error = cache.into_error();
+    if let Some(error) = retained_input_error {
         return Err(error.into());
     }
     // 3. Otherwise, return the owned report or upstream parsing error.
