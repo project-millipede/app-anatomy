@@ -142,21 +142,24 @@ mod tests {
 
     #[test]
     fn file_replacement_rejects_previous_identifier() -> anyhow::Result<()> {
+        // 1. Install the original file before preparing its replacement.
         let mut selection = Selection::new(NativeSelection::default());
-        let first = selection.install_file(
-            "first".into(),
-            NativeFileSource::new(tempfile::tempfile()?)?,
-        )?;
-        let second = selection.install_file(
-            "second".into(),
-            NativeFileSource::new(tempfile::tempfile()?)?,
-        )?;
+        let original_file = tempfile::tempfile()?;
+        let original_source = NativeFileSource::new(original_file)?;
+        let original_selection = selection.install_file("first".into(), original_source)?;
 
-        // The previous identifier must be rejected after replacement.
-        assert!(selection.file(&first.resource).is_err());
+        // 2. Acquire and install the replacement file.
+        let replacement_file = tempfile::tempfile()?;
+        let replacement_source = NativeFileSource::new(replacement_file)?;
+        let replacement_selection = selection.install_file("second".into(), replacement_source)?;
 
-        // The replacement identifier must allow access to the selected file.
-        assert!(selection.file(&second.resource).is_ok());
+        // 3. The previous identifier must be rejected after replacement.
+        let previous_identifier_lookup = selection.file(&original_selection.resource);
+        assert!(previous_identifier_lookup.is_err());
+
+        // 4. The replacement identifier must allow access to the selected file.
+        let replacement_identifier_lookup = selection.file(&replacement_selection.resource);
+        assert!(replacement_identifier_lookup.is_ok());
 
         Ok(())
     }

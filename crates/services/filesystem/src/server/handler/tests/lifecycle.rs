@@ -32,20 +32,24 @@ async fn file_picker_result_after_owner_shutdown_is_rejected() -> anyhow::Result
     let shared_selection = Arc::clone(&handler.selection);
     let dispatcher_task = tokio::spawn(dispatcher.run_with(move |requested_mode| {
         assert_eq!(requested_mode, PickMode::File);
-        shared_selection
-            .try_lock()
-            .expect("the handler must not hold the selection lock while awaiting the picker")
-            .shutdown();
+        {
+            let mut selection_guard = shared_selection
+                .try_lock()
+                .expect("the handler must not hold the selection lock while awaiting the picker");
+            selection_guard.shutdown();
+        }
         Some(picker_file.path().to_path_buf())
     }));
 
     // 3. Reject the returned path and keep the native selection owner unavailable.
+    let late_selection_response = handler.dispatch(Request::ChooseFile).await?;
     assert_eq!(
-        handler.dispatch(Request::ChooseFile).await?,
+        late_selection_response,
         Response::Failed(FileError::Cancelled)
     );
+    let selection_after_shutdown_response = handler.dispatch(Request::CurrentSelection).await?;
     assert_eq!(
-        handler.dispatch(Request::CurrentSelection).await?,
+        selection_after_shutdown_response,
         Response::Failed(FileError::Cancelled)
     );
 
@@ -126,7 +130,8 @@ fn waiting_requests_do_not_occupy_blocking_workers() {
         // 3. Poll the request once, then drop it while keeping the selection lock held.
         // An unpolled future would never exercise the handler.
         let mut request = Box::pin(handler.dispatch(Request::CurrentSelection));
-        assert!(futures::poll!(&mut request).is_pending());
+        let request_poll_result = futures::poll!(&mut request);
+        assert!(request_poll_result.is_pending());
         drop(request);
 
         // 4. Submit an unrelated blocking task and wait while the lock stays held.

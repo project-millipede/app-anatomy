@@ -19,10 +19,8 @@ struct Replies {
 
 impl Transport for Replies {
     fn exchange(&mut self, bytes: Vec<u8>) -> Result<Vec<u8>, Failure> {
-        self.observed
-            .borrow_mut()
-            .requests
-            .push(decode_request(&bytes).unwrap());
+        let decoded_request = decode_request(&bytes).unwrap();
+        self.observed.borrow_mut().requests.push(decoded_request);
         self.replies.pop_front().expect("unexpected exchange")
     }
 
@@ -43,5 +41,6 @@ pub(super) fn session(
 }
 
 pub(super) fn reply(response: Response) -> Result<Vec<u8>, Failure> {
-    Ok(encode_response(&response).unwrap())
+    let encoded_response = encode_response(&response).unwrap();
+    Ok(encoded_response)
 }

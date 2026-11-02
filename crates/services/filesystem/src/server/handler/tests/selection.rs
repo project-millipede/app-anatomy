@@ -58,10 +58,12 @@ async fn dismissed_pickers_preserve_selection() -> anyhow::Result<()> {
             assert_eq!(requested_mode, mode);
             None
         }));
-        assert_eq!(handler.dispatch(request).await?, dismissed);
+        let dismissal_response = handler.dispatch(request).await?;
+        assert_eq!(dismissal_response, dismissed);
 
         // 3. Verify that dismissal preserved the selection established during setup.
-        assert_eq!(handler.dispatch(Request::CurrentSelection).await?, before);
+        let selection_after_dismissal = handler.dispatch(Request::CurrentSelection).await?;
+        assert_eq!(selection_after_dismissal, before);
 
         // 4. Close the picker request channel so its dispatcher can finish.
         drop(handler);
@@ -129,14 +131,12 @@ async fn failed_directory_navigation_preserves_selection() -> anyhow::Result<()>
     let selected_file = initial_selection
         .file
         .context("expected the initially selected file")?;
-    assert_eq!(
-        handler
-            .dispatch(Request::ByteLength {
-                resource: selected_file.resource,
-            })
-            .await?,
-        Response::ByteLength(16)
-    );
+    let selected_file_length_response = handler
+        .dispatch(Request::ByteLength {
+            resource: selected_file.resource,
+        })
+        .await?;
+    assert_eq!(selected_file_length_response, Response::ByteLength(16));
     Ok(())
 }
 
@@ -228,7 +228,7 @@ async fn successful_directory_navigation_replaces_selection() -> anyhow::Result<
         "{response:?}"
     );
 
-    // Use an entry from the current child listing. Otherwise, an invalid entry
+    // 5. Use an entry from the current child listing. Otherwise, an invalid entry
     // could explain the failure even if the old directory identifier were accepted.
     let response = handler
         .dispatch(Request::OpenFile {
@@ -241,9 +241,10 @@ async fn successful_directory_navigation_replaces_selection() -> anyhow::Result<
         "{response:?}"
     );
 
-    // Rejected requests must leave the child selection unchanged.
+    // 6. Rejected requests must leave the child selection unchanged.
+    let selection_after_rejected_requests = handler.dispatch(Request::CurrentSelection).await?;
     assert_eq!(
-        handler.dispatch(Request::CurrentSelection).await?,
+        selection_after_rejected_requests,
         Response::Selection(child_selection)
     );
     Ok(())

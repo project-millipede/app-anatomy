@@ -74,16 +74,16 @@ fn unified_reports_and_decode_causes_agree_for_resident_and_source_input() {
         let report = inspect_object(&bytes).unwrap();
         assert_eq!(report.format, format);
         let mut source = bytes.as_slice();
-        assert_eq!(report, inspect_object_source(&mut source).unwrap());
+        let source_report = inspect_object_source(&mut source).unwrap();
+        assert_eq!(report, source_report);
 
         let truncated = &bytes[..16];
         let error = inspect_object(truncated).unwrap_err();
         assert!(matches!(error.kind, ErrorKind::Decode(_)));
         assert!(error.source().unwrap().is::<object::Error>());
         let mut source = truncated;
-        let InspectionError::Analysis(source_error) =
-            inspect_object_source(&mut source).unwrap_err()
-        else {
+        let source_inspection_error = inspect_object_source(&mut source).unwrap_err();
+        let InspectionError::Analysis(source_error) = source_inspection_error else {
             panic!("decode failure was not preserved");
         };
         assert_eq!(source_error, error);
@@ -115,12 +115,13 @@ fn an_optional_pe_read_cannot_hide_an_acquisition_failure() {
     let symbols_offset = u64::from(file.nt_headers().file_header().pointer_to_symbol_table());
     assert_ne!(symbols_offset, 0);
 
-    // `object` tolerates unavailable COFF symbols; our source error must still reach the caller.
-    let error = inspect_object_source(&mut UnavailableSymbols {
+    let mut unavailable_symbols_source = UnavailableSymbols {
         bytes,
         symbols_offset,
-    })
-    .unwrap_err();
+    };
+    // 1. Verify that inspection preserves the acquisition error even though
+    // `object` tolerates unavailable COFF symbols.
+    let error = inspect_object_source(&mut unavailable_symbols_source).unwrap_err();
     let InspectionError::Input(InputError::Source {
         error: SourceError::Io(cause),
         ..

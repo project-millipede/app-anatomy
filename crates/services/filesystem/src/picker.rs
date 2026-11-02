@@ -114,6 +114,7 @@ mod tests {
     // TODO: Improve documentation of the dismissal-then-selection sequence and dispatcher reuse.
     #[tokio::test]
     async fn no_selection_is_neutral_and_repeated_requests_work() {
+        // 1. Run a dispatcher that dismisses the first request and selects the second.
         let (picker, dispatcher) = channel();
         let task = tokio::spawn(async move {
             let mut calls = 0;
@@ -125,13 +126,18 @@ mod tests {
                 .await;
             calls
         });
-        assert!(picker.choose(PickMode::File).await.unwrap().is_none());
-        assert_eq!(
-            picker.choose(PickMode::File).await.unwrap(),
-            Some(PathBuf::from("chosen"))
-        );
+        // 2. Dismiss the first dialog without selecting a path.
+        let path_after_dismissal = picker.choose(PickMode::File).await.unwrap();
+        assert!(path_after_dismissal.is_none());
+
+        // 3. Reuse the dispatcher to select a path in the second dialog.
+        let selected_path = picker.choose(PickMode::File).await.unwrap();
+        assert_eq!(selected_path, Some(PathBuf::from("chosen")));
+
+        // 4. Close the request channel, await the dispatcher and verify the callback count.
         drop(picker);
-        assert_eq!(task.await.unwrap(), 2);
+        let dialog_callback_count = task.await.unwrap();
+        assert_eq!(dialog_callback_count, 2);
     }
 
     // Queue a request, abandon its response, then run the real dispatcher.
@@ -151,6 +157,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn cancellation_keeps_dialog_permit_until_native_dialog_returns() {
+        // 1. Block the dialog callback until the test signals dismissal.
         let (picker, dispatcher) = channel();
         let (entered, ready) = oneshot::channel();
         let (dismiss, dismissed) = std::sync::mpsc::channel();
@@ -163,11 +170,18 @@ mod tests {
         let other = picker.clone();
         let request = tokio::spawn(async move { other.choose(PickMode::File).await });
         ready.await.unwrap();
+
+        // 2. Abort and await the caller's task while the dialog callback remains blocked.
         request.abort();
         let _ = request.await;
+
+        // 3. Verify another request is rejected while the active request retains its permit.
+        let concurrent_request_result = picker.choose(PickMode::File).await;
         assert!(
-            matches!(picker.choose(PickMode::File).await, Err(SourceError::Io(error)) if error.kind() == io::ErrorKind::WouldBlock)
+            matches!(concurrent_request_result, Err(SourceError::Io(error)) if error.kind() == io::ErrorKind::WouldBlock)
         );
+
+        // 4. Release the dialog callback and close the channel before awaiting the dispatcher.
         dismiss.send(()).unwrap();
         drop(picker);
         task.await.unwrap();
