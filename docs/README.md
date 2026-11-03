@@ -27,10 +27,25 @@ and signing studies contribute evidence for particular stages.
   Reuse the stage plans' fixture designs; do not treat an isolated success as a
   qualified complete workflow.
 
+## Development guidelines
+
+The [development guidelines](development/README.md) define permanent requirements
+for new implementations, reviews, and scoped cleanup. They cover implementation
+simplicity, API and workflow design, and the necessity and ownership of
+coordination machinery. Use them alongside the language practices below;
+error-handling, testing, and feature contracts remain with their existing owners.
+
 ## Rust implementation conventions
 
-The [Rust conventions overview](rust/README.md) indexes the language behavior,
-standard-library APIs and implementation choices explained for this repository.
+The [Rust conventions overview](rust/README.md) indexes general implementation
+practices, language behavior, standard-library APIs, and focused conventions for
+ownership, errors, resource lifetimes, operation structure, and integer types.
+
+## TypeScript implementation guidance
+
+The [TypeScript guidance](typescript/README.md) covers typing, runtime boundaries,
+mutation, asynchronous work, and React lifecycle within the permitted presentation,
+environment-binding, and build-tooling responsibilities.
 
 ## Architecture
 
