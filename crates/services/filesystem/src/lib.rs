@@ -19,6 +19,11 @@ use filesystem_native::NativeSelection;
 /// events on main while the service runs on its worker. Other platforms run
 /// the service on the calling thread. The service owns its Tokio runtime;
 /// installation and process ownership remain the caller's responsibility.
+///
+/// # Errors
+/// Returns startup, service or shutdown failures. When service execution and
+/// shutdown both fail, the returned error retains both original failures and
+/// displays them with their roles and cause chains.
 pub fn run() -> anyhow::Result<()> {
     let service = || {
         let runtime = tokio::runtime::Builder::new_multi_thread()

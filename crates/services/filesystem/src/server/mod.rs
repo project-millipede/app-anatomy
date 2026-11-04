@@ -3,6 +3,7 @@
 mod handler;
 
 use std::{
+    fmt,
     io::{self, Write},
     net::SocketAddr,
     time::Duration,
@@ -30,23 +31,70 @@ use handler::Handler;
 const TRANSPORT_TIMEOUT: Duration = Duration::from_secs(5);
 const MAX_CONNECTION_TASKS: usize = 8;
 
+/// Independent failures from service execution and its subsequent shutdown.
+///
+/// Each field retains its original cause chain. Neither failure caused the
+/// other, so this aggregate has no `std::error::Error::source()`.
+#[derive(Debug)]
+struct ServiceCompletionErrors {
+    /// The original startup or serving failure.
+    service_error: anyhow::Error,
+    /// The original shutdown failure.
+    shutdown_error: anyhow::Error,
+}
+
+impl fmt::Display for ServiceCompletionErrors {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "Service failed: {:#}\nShutdown failed: {:#}",
+            self.service_error, self.shutdown_error,
+        )
+    }
+}
+
+impl std::error::Error for ServiceCompletionErrors {}
+
+/// Serve filesystem requests until shutdown or a service-level failure.
+///
+/// # Failure policy
+///
+/// 1. Completed connection failures are reported to stderr; other connections
+///    remain available. They are not collected in the service's return value.
+/// 2. Startup and serving failures still run shutdown. If shutdown succeeds,
+///    return the original service result.
+/// 3. A shutdown failure is returned when service execution succeeded. If both
+///    fail, return both original errors in [`ServiceCompletionErrors`].
 pub async fn run(picker: Picker, native: NativeSelection) -> anyhow::Result<()> {
     serve(Handler::new(picker, native)).await
 }
 
 async fn serve(handler: Handler) -> anyhow::Result<()> {
     let mut connections = JoinSet::new();
-    let result = async {
+    let service_result = async {
         let listener = TcpListener::bind(crate::native_service::ADDRESS).await?;
         let mut interrupt = register_interrupt()?;
         publish_readiness(&mut io::stdout().lock(), listener.local_addr()?)?;
         run_connections(&listener, &handler, &mut connections, &mut interrupt).await
     }
     .await;
-    let cleanup = stop_service(&mut connections, &handler).await;
-    // Cleanup still runs on startup/publication/serving errors. Preserve the
-    // shutdown failure if cleanup itself could not complete.
-    cleanup.and(result)
+    // Complete shutdown before resolving either result.
+    let shutdown_result = stop_service(&mut connections, &handler).await;
+    match (service_result, shutdown_result) {
+        // 1. Both operations failed: preserve each original error with its role.
+        (Err(service_error), Err(shutdown_error)) => {
+            let completion_errors = ServiceCompletionErrors {
+                service_error,
+                shutdown_error,
+            };
+            let service_failure = anyhow::Error::new(completion_errors);
+            Err(service_failure)
+        }
+
+        // 2. At most one operation failed: return that error, or success if both
+        // succeeded. `and` cannot discard a second failure in this branch.
+        (service_result, shutdown_result) => service_result.and(shutdown_result),
+    }
 }
 
 // These constructors register immediately, before readiness is published.
@@ -138,6 +186,14 @@ async fn connection(stream: TcpStream, handler: Handler) -> anyhow::Result<()> {
     }
 }
 
+/// Receive a request, or finish this connection on close or failure.
+///
+/// 1. A receive failure still attempts a flush; an invalid request still attempts
+///    a protocol-close reply. Neither path resumes request processing.
+/// 2. Return the original failure. If the flush or close reply also fails, report
+///    that secondary failure to stderr rather than replacing the returned error.
+/// 3. The connection owner reports the returned error. Logging a secondary
+///    failure is its reporting destination, not recovery of the connection.
 async fn receive(socket: &mut WebSocketStream<TcpStream>) -> anyhow::Result<Option<Request>> {
     loop {
         let Some(message) = socket.next().await else {
