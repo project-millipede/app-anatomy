@@ -1,5 +1,8 @@
 //! Cached source bytes for upstream parsers, with acquisition errors kept intact.
 
+#[cfg(test)]
+mod tests;
+
 use object::read::{ReadCache, ReadCacheOps};
 
 use crate::{AnalysisError, InspectionError};
@@ -168,6 +171,3 @@ impl<'source, Source: ByteSource> SourceCache<'source, Source> {
         parser_result.map_err(InspectionError::Analysis)
     }
 }
-
-#[cfg(test)]
-mod tests;

@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use crate::{Failure, Outcome, Session, StepKind, StepOutcome};
 use binary_inspection::{
     BinaryReport, InspectionError,
@@ -102,6 +105,3 @@ impl ByteSource for RemoteSource<'_> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests;

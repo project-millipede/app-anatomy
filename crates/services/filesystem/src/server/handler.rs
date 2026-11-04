@@ -1,5 +1,8 @@
 //! Filesystem request dispatch, native acquisition and retained-owner cleanup.
 
+#[cfg(test)]
+mod tests;
+
 use std::{fs::File, path::Path, sync::Arc};
 
 use binary_inspection::input::{ByteSource, SourceError};
@@ -202,6 +205,3 @@ fn failure(error: SourceError) -> anyhow::Result<Response> {
         }
     }))
 }
-
-#[cfg(test)]
-mod tests;

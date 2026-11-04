@@ -10,6 +10,11 @@ mod inspection;
 mod outcome;
 mod session;
 
+#[cfg(test)]
+mod error_tests;
+#[cfg(test)]
+mod tests;
+
 pub use failure::{Failure, FailureKind, TransportOperation};
 pub use inspection::{InspectionFailure, InspectionOutcome, InspectionStepOutcome};
 pub use outcome::{Outcome, StepOutcome};
@@ -39,8 +44,3 @@ pub trait Transport {
     /// Resetting local transport state must not clear the native selection.
     fn reset(&mut self);
 }
-
-#[cfg(test)]
-mod error_tests;
-#[cfg(test)]
-mod tests;
