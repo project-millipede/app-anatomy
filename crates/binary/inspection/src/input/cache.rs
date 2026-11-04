@@ -2,14 +2,16 @@
 
 use object::read::{ReadCache, ReadCacheOps};
 
-use super::{ByteSource, InputError};
+use crate::{AnalysisError, InspectionError};
+
+use super::{ByteSource, InputError, InputErrors};
 
 /// Adapt offset-based source reads to the cursor interface required by `object`.
 pub(crate) struct SourceCursor<'source, Source> {
     source: &'source mut Source,
     byte_length: u64,
-    /// First acquisition failure; `ReadCacheOps` reports errors only as `()`.
-    retained_input_error: Option<InputError>,
+    /// Acquisition failures in occurrence order; `ReadCacheOps` returns only `()`.
+    retained_input_errors: Vec<InputError>,
     position: u64,
 }
 
@@ -57,8 +59,8 @@ impl<Source: ByteSource> ReadCacheOps for SourceCursor<'_, Source> {
                 }
                 Err(error) => InputError::Source { offset, error },
             };
-            // 2. Preserve the first acquisition error; fail the current read.
-            self.retained_input_error.get_or_insert(error);
+            // 2. Append this acquisition failure; fail only the current read.
+            self.retained_input_errors.push(error);
             return Err(());
         }
         // 3. Advance the cursor only after the entire buffer has been filled.
@@ -79,19 +81,19 @@ impl<Source: ByteSource> ReadCacheOps for SourceCursor<'_, Source> {
 ///    The cache stores the completed range.
 ///
 /// 3. **Acquisition failure.**
-///    The cursor retains the first source error, premature EOF or invalid read count
-///    in `retained_input_error`.
+///    The cursor retains every source error, premature EOF and invalid read count
+///    in occurrence order, including repeated failures of the same range.
 ///    Only the current read fails. Later requests can use cached bytes or acquire
 ///    missing ranges, including a range whose earlier read failed.
-///    Later results do not clear or replace the retained error.
+///    Successful reads do not clear recorded failures or add diagnostics.
 ///
 /// 4. **Completion.**
-///    After parsing returns, `into_error()` consumes the cache and returns any
-///    retained input error. It also releases cached bytes and the source borrow.
-///    The inspection entry point gives that error precedence over the parser result.
+///    After parsing returns, `finish()` consumes the cache and releases cached
+///    bytes and the source borrow. Any acquisition failures are returned together,
+///    taking precedence over the parser result. Otherwise that result is returned.
 ///
 /// 5. **Later inspection.**
-///    A later inspection creates a new cache with no retained input error.
+///    A later inspection creates a new cache with no retained input errors.
 ///    Read success and metadata freshness still depend on the source.
 ///    The cache does not establish a snapshot.
 ///
@@ -107,20 +109,22 @@ impl<Source: ByteSource> ReadCacheOps for SourceCursor<'_, Source> {
 ///   Range    Calls read_at?   Result
 ///   -----------------------------------------------------------------
 ///   0..2     Yes              Returns and caches b"AB"
-///   2..4     Yes              PermissionDenied; first error retained
+///   2..4     Yes              Supplied failure A; retain A
 ///   4..6     Yes              Returns and caches b"EF"
-///   6..8     Yes              TimedOut; first error unchanged
+///   6..8     Yes              Supplied failure B; retain B
+///   2..4     Yes              Supplied failure A again; retain another A
 ///   0..2     No               Returns cached b"AB"
 ///
-///   After parsing: consume the cache, then return the retained input error.
+///   After parsing: consume the cache, then return failures [A, B, A].
 ///
 /// Inspection B: new cache, same source
 ///
 ///   0..2     Yes              Depends on the source
 /// ```
 ///
-/// Errors originating in cache bounds checks, allocation or parsing do not set
-/// `retained_input_error`.
+/// A cache miss is normal. Cache bounds checks, allocation and parsing failures
+/// do not add acquisition diagnostics. The parser chooses which requests occur;
+/// this adapter neither retries failed reads nor requests extra ranges.
 pub(crate) struct SourceCache<'source, Source: ByteSource> {
     byte_length: u64,
     cache: ReadCache<SourceCursor<'source, Source>>,
@@ -132,7 +136,7 @@ impl<'source, Source: ByteSource> SourceCache<'source, Source> {
         let cache = ReadCache::new(SourceCursor {
             source,
             byte_length,
-            retained_input_error: None,
+            retained_input_errors: Vec::new(),
             position: 0,
         });
         Self { byte_length, cache }
@@ -146,13 +150,22 @@ impl<'source, Source: ByteSource> SourceCache<'source, Source> {
         &self.cache
     }
 
-    /// Consume the cache and return the first retained input error.
+    /// Consume the cache and give acquisition failures precedence over parsing.
     ///
-    /// Parser borrows must end before this call.
-    /// Consuming the cache releases cached bytes and the source borrow.
-    /// `None` means no acquisition error was retained; parsing may still have failed.
-    pub(crate) fn into_error(self) -> Option<InputError> {
-        self.cache.into_inner().retained_input_error
+    /// Parser borrows must end before this call. Consuming the cache releases
+    /// cached bytes and the source borrow. All observed acquisition failures are
+    /// returned together, even when parsing produced a report. With none, return
+    /// the original report or parsing error.
+    pub(crate) fn finish<Report>(
+        self,
+        parser_result: Result<Report, AnalysisError>,
+    ) -> Result<Report, InspectionError> {
+        let source_cursor = self.cache.into_inner();
+        let acquisition_errors = InputErrors::from_errors(source_cursor.retained_input_errors);
+        if let Some(errors) = acquisition_errors {
+            return Err(InspectionError::Input(errors));
+        }
+        parser_result.map_err(InspectionError::Analysis)
     }
 }
 

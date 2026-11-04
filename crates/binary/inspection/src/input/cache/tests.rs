@@ -153,10 +153,29 @@ fn short_reads_fill_the_requested_range() {
     assert_eq!(range_bytes, b"ABCDEFG");
 }
 
-/// All requested ranges are within the source's declared length.
-/// Reads starting at offsets 2 and 6 fail; other reads use the source bytes.
+/// Preserve every failed acquisition while later explicit requests remain possible.
+///
+/// 1. Controlled source
+///
+/// The source contains b"ABCDEFGH"; all requested ranges are valid.
+/// PermissionDenied and TimedOut are distinguishable supplied error values.
+/// This test performs no filesystem access, permission check or timeout.
+///
+/// ```text
+/// Request   Bytes present   Supplied result     Retained failures
+/// 2..4      CD              Failure A          [A]
+/// 4..6      EF              Success: EF        [A]
+/// 6..8      GH              Failure B          [A, B]
+/// 2..4      CD              Failure A again    [A, B, A]
+/// ```
+///
+/// 2. Completion policy
+///
+/// The test supplies a successful parser result without running a parser.
+/// Finishing the cache must return all three acquisition failures instead.
+/// The repeated request is explicit test input, not an automatic cache retry.
 #[test]
-fn reads_continue_after_failure_and_preserve_first_error() {
+fn reads_continue_after_failure_and_preserve_all_errors() {
     struct SourceWithReadErrors<'bytes> {
         contents: &'bytes [u8],
     }
@@ -175,41 +194,57 @@ fn reads_continue_after_failure_and_preserve_first_error() {
         }
     }
 
-    // 1. Create a cache over ordinary bytes with two source reads set to fail.
+    // 1. Create a cache over a source that fails reads starting at offsets 2 and 6.
     let mut source_with_read_errors = SourceWithReadErrors {
         contents: b"ABCDEFGH",
     };
     let cache = SourceCache::new(&mut source_with_read_errors);
     let view = cache.cache();
 
-    // 2. Read 0..2 successfully to populate the cache with b"AB".
-    let initial_range_bytes = view
-        .read_bytes_at(0, 2)
-        .expect("the initial range must be readable");
-    assert_eq!(initial_range_bytes, b"AB");
-
-    // 3. Request 2..4; the source returns PermissionDenied for this read.
+    // 2. Request 2..4; the controlled source supplies the first failure.
     let first_failing_read_result = view.read_bytes_at(2, 2);
     assert!(first_failing_read_result.is_err());
 
-    // 4. Read the uncached range 4..6 despite the earlier acquisition failure.
+    // 3. Read the uncached range 4..6 despite the earlier acquisition failure.
     let later_range_bytes = view
         .read_bytes_at(4, 2)
         .expect("an earlier failure must not block a later read");
     assert_eq!(later_range_bytes, b"EF");
 
-    // 5. Request 6..8; the source returns a different error, TimedOut.
+    // 4. Request 6..8; the controlled source supplies a different failure.
     let later_failing_read_result = view.read_bytes_at(6, 2);
     assert!(later_failing_read_result.is_err());
 
-    // 6. Verify that the later success and failure did not replace the first error.
-    let retained_input_error = cache.into_error();
-    let Some(InputError::Source {
-        offset: 2,
-        error: SourceError::Io(io_error),
-    }) = retained_input_error
-    else {
-        panic!("expected the original I/O failure at offset 2, got {retained_input_error:?}");
+    // 5. Explicitly request 2..4 again; this acquisition fails again.
+    let repeated_failing_read_result = view.read_bytes_at(2, 2);
+    assert!(repeated_failing_read_result.is_err());
+
+    // 6. Complete the cache with a supplied successful parser result.
+    let parser_result: Result<(), AnalysisError> = Ok(());
+    let inspection_result = cache.finish(parser_result);
+
+    // 7. Require all three failures in order, with their original offsets and causes.
+    let Err(InspectionError::Input(acquisition_errors)) = inspection_result else {
+        panic!("expected retained acquisition failures, got {inspection_result:?}");
     };
-    assert_eq!(io_error.kind(), io::ErrorKind::PermissionDenied);
+    let [
+        InputError::Source {
+            offset: 2,
+            error: SourceError::Io(first_io_error),
+        },
+        InputError::Source {
+            offset: 6,
+            error: SourceError::Io(later_io_error),
+        },
+        InputError::Source {
+            offset: 2,
+            error: SourceError::Io(repeated_io_error),
+        },
+    ] = acquisition_errors.errors()
+    else {
+        panic!("expected failures at offsets 2, 6 and 2, got {acquisition_errors:?}");
+    };
+    assert_eq!(first_io_error.kind(), io::ErrorKind::PermissionDenied);
+    assert_eq!(later_io_error.kind(), io::ErrorKind::TimedOut);
+    assert_eq!(repeated_io_error.kind(), io::ErrorKind::PermissionDenied);
 }

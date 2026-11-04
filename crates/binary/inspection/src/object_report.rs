@@ -52,23 +52,17 @@ pub fn inspect_object(bytes: &[u8]) -> Result<ObjectReport, AnalysisError> {
 ///
 /// # Errors
 ///
-/// An acquisition failure takes precedence over the parser result, even when
-/// the parser treats the failed read as optional.
-/// Otherwise, returns the upstream parsing error.
+/// All observed acquisition failures are returned in occurrence order, taking
+/// precedence over the parser result even when failed reads are optional.
+/// Otherwise, returns the report or upstream parsing error.
 pub fn inspect_object_source<Source: ByteSource>(
     source: &mut Source,
 ) -> Result<ObjectReport, InspectionError> {
     let cache = SourceCache::new(source);
     // 1. Keep the parser result without `?` until acquisition errors are checked.
-    let report = inspect_data(cache.cache());
-    // 2. Consume the cache and recover the cursor's first acquisition failure.
-    // This takes precedence even if object produced a report.
-    let retained_input_error = cache.into_error();
-    if let Some(error) = retained_input_error {
-        return Err(error.into());
-    }
-    // 3. Otherwise, return the owned report or upstream parsing error.
-    report.map_err(InspectionError::Analysis)
+    let parser_result = inspect_data(cache.cache());
+    // 2. Return all acquisition failures, or the original parser result if none occurred.
+    cache.finish(parser_result)
 }
 
 fn inspect_data<'data, Data: ReadRef<'data>>(data: Data) -> Result<ObjectReport, AnalysisError> {
