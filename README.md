@@ -178,6 +178,6 @@ component and UI expose the dedicated Mach-O report. See the
 [Rust API scope](docs/architecture/rust-analysis-core.md#object-file-identity)
 for parser coverage and read behavior.
 
-The component contract is `apple-code:analysis@0.5.0`. Mach-O CPU, file-type, platform and command values cross as a numeric value and optional canonical name; generated jco types define the browser contract. The ordinary Rust API uses the pinned `object` types directly, so dependency upgrades require API compatibility review. Structured analysis errors carry a Rust-formatted message and typed failure details. All file offsets and sizes remain `u64` in Rust and `BigInt` in JavaScript.
+The component contract is `apple-code:analysis@0.5.0`. Mach-O CPU, file-type, platform and command values cross as a numeric value and optional canonical name; generated jco types define the browser contract. The ordinary Rust API uses the pinned `object` types directly, so dependency upgrades require API compatibility review. Inspection failures carry a complete Rust-formatted message and an ordered, nonempty list of typed diagnostics, preserving every acquisition failure encountered during the inspection. All file offsets and sizes remain `u64` in Rust and `BigInt` in JavaScript.
 
 No GitHub remote, deployment, external service or signing identity is configured.

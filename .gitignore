@@ -18,3 +18,4 @@ wkg/wit/deps/
 # Local follow-up implementation notes.
 /docs/architecture/inspection-acquisition-errors-plan.md
 /docs/architecture/rust-readability-cleanup-plan.md
+/docs/architecture/call-site-simplification-plan.md

@@ -55,11 +55,16 @@ Rust computation or make arbitrary traps recoverable.
 
 The browser supplies the observed resource identifier when requesting inspection.
 The [parser contract](rust-analysis-core.md#reads-and-memory) describes traversal,
-cache retention and allocation diagnostics. Structured errors retain parser diagnostics
-and source-read operations and offsets. Native inspection returns the analysis report
-or original failure. Inspection does not change native ownership. The UI shows “Analysis in progress…” while the invocation is
-pending, then displays its success or error. It receives no preparation/parsing
-phase notifications.
+cache retention and allocation diagnostics. Inspection failures contain a complete
+Rust-formatted message and a nonempty list of structured diagnostics. Acquisition
+failures retain all observed events in order, including their available read
+information; independent failures keep separate cause chains in ordinary Rust.
+The parser may still stop after one failure. Native inspection returns the report
+or failure without changing native ownership. The UI shows “Analysis in progress…”
+while the invocation is pending, then displays its success or error. It receives no preparation/parsing
+phase notifications. Multiple acquisition errors are numbered on separate lines
+by Rust; the shared error display preserves those lines in Base, Ark and comparison
+views without reconstructing the message.
 
 ## Application ownership
 

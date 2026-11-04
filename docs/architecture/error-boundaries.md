@@ -1,9 +1,10 @@
 # Error contracts across Rust, WIT and transport boundaries
 
-Status: current source and official WIT/WASI/Wasmtime documentation reviewed on
-2026-10-16. The application currently exports structured errors with Rust-produced
-messages. This document compares valid contract designs; it does **not** select a
-message-only migration or add a Wasmtime execution mode.
+Status: acquisition-error contract updated on 2026-11-02; official
+WIT/WASI/Wasmtime references last reviewed on 2026-10-16. The application exports
+structured errors with Rust-produced messages. This document compares valid
+contract designs; it does **not** select a message-only migration or add a
+Wasmtime execution mode.
 
 ## What we want
 
@@ -31,8 +32,9 @@ support this distinction. The current contract remains in place while its
 individual fields are evaluated on their public meaning and intended use.
 
 This document owns the contract comparison and sequence diagrams. The
-[error-handling guide](error-handling.md) owns library choices and the Eros
-assessment. The [Rust reuse contract](rust-runtime-independence/README.md) owns
+[error-handling guide](error-handling.md#workflow-failure-contract) owns workflow
+failure policies, library choices and the Eros assessment. The
+[Rust reuse contract](rust-runtime-independence/README.md) owns
 execution boundaries; the [filesystem communication flow](rust-runtime-independence/filesystem-communication-flow.md)
 owns networking and selection lifecycle.
 
@@ -103,7 +105,7 @@ sequenceDiagram
     Caller->>Component: Inspect resource
     Component->>Core: Inspect resource
     Core-->>Component: Typed Rust failure
-    Note over Component: PROJECT TO WIT<br/>Declared detail and message
+    Note over Component: PROJECT TO WIT<br/>Declared diagnostics and message
     Component-->>Caller: Outcome with typed step error
     Note over Caller: Inspect declared fields<br/>without parsing message text
 ```
@@ -113,15 +115,17 @@ Our current inspection error already has this general shape:
 ```wit
 record inspection-failure {
   message: string,
-  detail: inspection-error,
+  details: list<inspection-error>,
 }
 ```
 
-The component formats the message in Rust and projects the available failure
-information into `inspection-error`. A consumer may use structured data for
-its own permitted decisions, diagnostics or presentation. Exposing that data does
-not move the service's native ownership or the Rust client's recovery semantics
-into that consumer.
+The application contract is `apple-code:analysis@0.5.0`. The component formats the
+complete message in Rust and projects each diagnostic into `inspection-error`.
+The `details` list is nonempty: selection, metadata and analysis failures contain
+one diagnostic; an acquisition aggregate contains every member in occurrence order.
+A consumer may use structured data for its own permitted decisions, diagnostics
+or presentation. Exposing that data does not move the service's native ownership
+or the Rust client's recovery semantics into that consumer.
 
 For example, the existing `unexpected-eof` detail carries `offset` and `remaining`.
 A caller can identify the incomplete read without guessing from display wording.
@@ -190,20 +194,23 @@ sequenceDiagram
     UI->>Component: Inspect resource
     Component->>Client: Inspect resource
     Client-->>Component: Typed InspectionFailure
-    Note over Component: PROJECT TO WIT<br/>message and detail
-    Component-->>UI: Outcome with message and detail
-    Note over UI: SELECT FOR DISPLAY<br/>Read message only<br/>Contract still contains detail
+    Note over Component: PROJECT TO WIT<br/>message and ordered details
+    Component-->>UI: Outcome with message and details
+    Note over UI: SELECT FOR DISPLAY<br/>Read message only<br/>Contract still contains details
 ```
 
 The [component facade](../../crates/workbench/component/src/native.rs) formats
 Rust errors before converting their details. The browser model retains the
 returned outcome. [OutcomeErrors](../../apps/web/features/workspace/OutcomeErrors.tsx)
-checks each step's result tag and presents `result.val.message`.
+checks each step's result tag and presents `result.val.message`. Rust retains the
+existing text for a singleton and numbers multiple acquisition failures on
+separate lines. The shared error display preserves whitespace; TypeScript does
+not parse the message or reconstruct its diagnostic wording.
 
-| Current record       | Exported fields     | Current UI use      | What that establishes                                                        |
-| -------------------- | ------------------- | ------------------- | ---------------------------------------------------------------------------- |
-| `failure`            | `kind`, `message`   | Displays `message`. | No current UI branch uses `kind`; it remains part of the declared API.       |
-| `inspection-failure` | `message`, `detail` | Displays `message`. | No current UI branch uses `detail`; this alone does not justify deleting it. |
+| Current record       | Exported fields      | Current UI use      | What that establishes                                                         |
+| -------------------- | -------------------- | ------------------- | ----------------------------------------------------------------------------- |
+| `failure`            | `kind`, `message`    | Displays `message`. | No current UI branch uses `kind`; it remains part of the declared API.        |
+| `inspection-failure` | `message`, `details` | Displays `message`. | No current UI branch uses `details`; this alone does not justify deleting it. |
 
 The detailed representation is already selective. Source failures carry declared
 operation/read information, but their underlying I/O or provider causes become
@@ -246,7 +253,7 @@ sequenceDiagram
     FS-->>Library: Original io::Error
     Note over Library: PRESERVE ORIGINAL CAUSE<br/>Typed acquisition failure
     Library-->>App: Typed inspection failure
-    Note over App: Inspect error and source chain
+    Note over App: Enumerate acquisition errors<br/>Inspect each original cause
 ```
 
 The native filesystem preserves available I/O error kinds and OS codes on the
@@ -255,11 +262,25 @@ original error. Upstream parser failures retain their `object::Error`.
 [analysis errors](../../crates/binary/inspection/src/error.rs) define the ordinary
 Rust API, independently of its WIT projection.
 
-The [source cache](../../crates/binary/inspection/src/input/cache.rs) retains the
-first acquisition error because `object::ReadCacheOps` can report failure only as
-`()`. Inspection captures the parser result, consumes the cache to recover that
-error, and gives it precedence. Otherwise it returns the report or upstream
-parsing error. Either WIT design can preserve this Rust behavior.
+The [source cache](../../crates/binary/inspection/src/input/cache.rs) retains every
+acquisition failure because `object::ReadCacheOps` can report failure only as `()`.
+Each failed acquisition adds one error in occurrence order and returns failure for that
+request. Later reads remain available; repeated failures are separate events.
+Cache misses and successful acquisitions add no diagnostic. The parser determines
+which reads occur; retaining errors does not force continuation or retries.
+
+Both source inspection entry points capture their parser result and pass it to
+`SourceCache::finish`. This consumes the cache and returns
+`InspectionError::Input(InputErrors)` when any acquisition failed, even if parsing
+produced a report. Otherwise it returns the report or upstream parsing error.
+Collection is local to one inspection.
+
+`InputErrors` is nonempty. Callers use `errors()` to borrow its members or
+`into_errors()` to take ownership. `InspectionError::source()` exposes the
+aggregate, but the aggregate's `source()` is `None`: independent failures are not
+one causal chain. Each member preserves its own original cause. The component
+projects every member into the declared WIT list before the owned result is
+released.
 
 ## Filesystem messages: the current remote I/O reduction
 
@@ -370,12 +391,12 @@ Wasmtime runtime errors. No trap classifier or new recovery mechanism is implied
 Several owned WIT files contribute to one application component world. A file or
 a type-only interface is not another independently running component.
 
-| Definition                                                                                         | Current responsibility                                                                        |
-| -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [`wit/native.wit`](../../crates/workbench/component/wit/native.wit)                                | Session operations, ordered step results, selection state and application failure records.    |
-| [`wit/inspection.wit`](../../crates/workbench/component/wit/inspection.wit)                        | Structured inspection/source error variants and payloads.                                     |
-| [`wit/world.wit`](../../crates/workbench/component/wit/world.wit)                                  | Reports, analysis error types and the world's imports/exports.                                |
-| [`wit/deps/filesystem/world.wit`](../../crates/workbench/component/wit/deps/filesystem/world.wit)  | Owned type-only read-error definitions used by inspection detail; not upstream Polymorph WIT. |
+| Definition                                                                                        | Current responsibility                                                                             |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [`wit/native.wit`](../../crates/workbench/component/wit/native.wit)                               | Session operations, ordered step results, selection state and application failure records.         |
+| [`wit/inspection.wit`](../../crates/workbench/component/wit/inspection.wit)                       | Structured inspection/source error variants and payloads.                                          |
+| [`wit/world.wit`](../../crates/workbench/component/wit/world.wit)                                 | Reports, analysis error types and the world's imports/exports.                                     |
+| [`wit/deps/filesystem/world.wit`](../../crates/workbench/component/wit/deps/filesystem/world.wit) | Owned type-only read-error definitions used by inspection diagnostics; not upstream Polymorph WIT. |
 
 The component owns the projection in
 [`native.rs`](../../crates/workbench/component/src/native.rs),

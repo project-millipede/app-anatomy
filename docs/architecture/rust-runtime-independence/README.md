@@ -182,13 +182,18 @@ replacing selection; the query reports the retained state or its own failure.
 A failed query cannot replace the original acquisition failure;
 unknown state is distinct from a confirmed empty selection.
 Inspection returns one `Inspect` step containing the report or the original
-`InspectionFailure`.
+`InspectionFailure`. An acquisition failure result contains every observed input
+error in occurrence order; it does not create an additional step for each read.
 
 WIT defines concrete selection and inspection records with the same `steps`,
 `kind` and `result` structure; it does not support user-defined generics. The
 component projects errors into the declared WIT representation and preserves
-their Rust-formatted messages. That projection does not retain the complete Rust
-source chain. The [error-boundary guide](../error-boundaries.md) compares reusable
+their Rust-formatted messages. `inspection-failure` contains `message` and a
+nonempty `details` list. Selection, metadata and analysis failures contribute one
+diagnostic; acquisition aggregates contribute every member in order. Multiple
+acquisition failures are numbered on separate lines in Rust, while React only
+preserves the supplied message's whitespace. That projection does not retain the
+complete Rust source chain. The [error-boundary guide](../error-boundaries.md) compares reusable
 structured WIT contracts with message-only presentation contracts; React reading
 only the message does not itself narrow the component API.
 The component's `query-selection` operation
@@ -199,11 +204,19 @@ Component adapters can move their generated WIT error into that carrier without
 introducing WIT types into the core API. Native sources retain genuine I/O errors
 in `SourceError::Io`; sources can retain genuine cancellation failures in
 `SourceError::Cancelled` independently of application analysis controls.
-An inspection failure has one diagnostic path:
+The outer acquisition-error chain ends at a nonempty aggregate:
 
 ```text
-InspectionFailure → InspectionError → InputError (read offset)
-    → SourceError::Provider → original provider error
+InspectionFailure → InspectionError → InputErrors
+```
+
+Callers borrow the members through `InputErrors::errors()` or take them through
+`into_errors()`. The aggregate's `source()` is `None`; its independent members are
+not linked as causes of one another. Each source-failure member retains its own
+chain:
+
+```text
+InputError::Source (read offset) → SourceError::Provider → original provider error
 ```
 
 For remote reads the retained provider error is the client `Failure`. Transport
@@ -212,8 +225,14 @@ supply only a message, not the service's native error object. The component
 converts the client failure to the public WIT error schema at the output boundary.
 The source integration does not construct a synthetic I/O error from a message
 or store a second provider cause.
-The analyzer's adapter to `object::ReadCacheOps` still retains its input diagnostic
-separately because that upstream interface returns only `()` on failure.
+The analyzer's adapter to `object::ReadCacheOps` retains every observed input error
+separately because that upstream interface returns only `()` on failure. Failed
+acquisitions leave later cache requests available. Repeated failures remain
+separate events; later successes do not erase earlier errors. Cache misses add no
+diagnostic, and the parser is not required to continue after a failure.
+Both inspection entry points use `SourceCache::finish` to return the aggregate
+when present, otherwise the parser result. Collection ends with that inspection;
+a new inspection starts with a fresh cache and no retained errors.
 `inspect_source(source)` borrows a `ByteSource` directly. The cache
 cursor fills requested ranges, including partial reads, while native and remote
 sources keep their own access mechanisms. The remote provider chooses each

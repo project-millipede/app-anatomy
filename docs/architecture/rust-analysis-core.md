@@ -111,7 +111,9 @@ an interchangeable decoder behind independent classification enums.
 - Reports cover headers, platform declarations and signature-command ranges.
   Reserved fields, segment contents, signature blobs, trust and application bundles
   are outside this milestone. `AnalysisScope::HeadersOnly` records that boundary.
-- Inspection returns the first error, without a partial report.
+- Mach-O traversal stops at the first structural error, without a partial report.
+  Source inspection preserves every acquisition failure actually encountered;
+  it does not force the parser to continue after a failure.
 
 ## Adapter and UI
 
@@ -131,8 +133,13 @@ The native component composes the ordinary Rust filesystem client and
 provider; reports and inspection errors use explicit WIT conversion. The core
 still supports resident bytes for native callers and fixtures. jco carries u64
 offsets as JavaScript BigInt and preserves structured diagnostics alongside
-Rust-formatted messages. Both UI variants use one presentation module and
-one image-details component to display the supplied canonical names and numeric
+Rust-formatted messages. An inspection failure contains `message` and a nonempty
+`details` list: one diagnostic for selection, metadata or analysis failure, or all
+acquisition diagnostics in occurrence order. Multiple acquisition failures use a
+numbered multiline message; a singleton keeps its existing text. The shared error
+display preserves line breaks without interpreting the diagnostics.
+Both UI variants use one presentation module and one image-details component to
+display the supplied canonical names and numeric
 fallbacks. They do not maintain Mach-O classification tables or interpret bytes.
 
 ## Parsing dependencies
@@ -194,12 +201,15 @@ The analyzer traverses the members and commands supplied by the upstream parsers
 and returns on the first error.
 For `ByteSource` input, `inspect_source(source)` borrows the source directly.
 `object::ReadCache` checks read bounds and owns the requested buffers. Its cursor
-owns the borrowed source and the first acquisition failure, completes partial
-reads, and preserves unexpected EOF, invalid read counts and original source
-errors with their offsets. After traversal, `ReadCache::into_inner()` returns the
-cursor; inspection returns its retained failure when present, otherwise the
-parser result. Remote providers can return successful short responses; the cursor
-continues at advancing offsets until the logical range is filled. Resident byte
+borrows the source, completes partial reads, and retains every unexpected EOF,
+invalid read count and original source error in occurrence order. After traversal,
+`SourceCache::finish` consumes the cache and recovers those failures through
+`ReadCache::into_inner()`. Both source inspection entry points use this shared
+completion policy: return a nonempty acquisition aggregate when present, otherwise
+return the parser result. Consuming the cache releases its buffers and source
+borrow; returned errors retain their own causes. Remote providers can return
+successful short responses; the cursor continues at advancing offsets until the
+logical range is filled. Resident byte
 slices use the same parser and report conversion without a source cache.
 
 `object::ReadCache` retains requested ranges until inspection ends. Distinct
@@ -207,7 +217,7 @@ offset-and-size pairs can retain overlapping bytes separately. A logical parser
 range can require several bounded remote responses and occupy one larger cached
 buffer. The [service's response bounds](../../crates/services/filesystem/README.md#bounds-and-lifecycle)
 do not limit the requested range or total inspection memory. Inspection memory
-includes all retained ranges and the report being constructed.
+includes all retained ranges, acquisition errors and the report being constructed.
 
 The [integer type policy](../rust/integer-types.md)
 explains why logical file coordinates use `u64`, memory operations use `usize`,
@@ -268,8 +278,21 @@ failures that abort or trap the runtime are not made recoverable by this adapter
 Input diagnostics describe the requested range, read offset or provider contract
 failure as applicable. An acquisition failure ends that read without disabling
 later cache requests. The adapter does not automatically retry failed reads.
-Inspection retains the first acquisition error and returns it instead of a report,
-even if later reads succeed.
+A normal cache miss adds no diagnostic. The parser decides which subsequent reads
+occur; no additional reads are issued to discover failures.
+
+`InspectionError::Input` contains a nonempty `InputErrors` collection. Every
+observed acquisition failure is retained, including repeated failures at the same
+offset. Later successes neither erase failures nor prevent further acquisition.
+At completion, the aggregate takes precedence over a report or parsing error.
+A later inspection starts with a fresh cache and collection.
+
+Rust callers borrow the individual errors through `InputErrors::errors()` or take
+ownership through `into_errors()`. Each `InputError` retains its own cause chain.
+`InspectionError::source()` exposes the aggregate, whose `source()` is `None`;
+independent failures are collection members, not causes of one another. Source
+and premature-EOF diagnostics retain offsets; `InvalidReadCount` retains the
+reported count and destination capacity, without an offset.
 
 Dependency upgrades must review these acceptance, read and diagnostic behaviors,
 the public `object` types and the native/component conversion together. Measure
