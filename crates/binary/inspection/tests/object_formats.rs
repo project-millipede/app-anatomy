@@ -121,13 +121,18 @@ fn an_optional_pe_read_cannot_hide_an_acquisition_failure() {
     };
     // 1. Verify that inspection preserves the acquisition error even though
     // `object` tolerates unavailable COFF symbols.
-    let error = inspect_object_source(&mut unavailable_symbols_source).unwrap_err();
-    let InspectionError::Input(InputError::Source {
-        error: SourceError::Io(cause),
-        ..
-    }) = error
+    let inspection_result = inspect_object_source(&mut unavailable_symbols_source);
+    let Err(InspectionError::Input(acquisition_errors)) = inspection_result else {
+        panic!("the acquisition failure was hidden: {inspection_result:?}");
+    };
+    let [
+        InputError::Source {
+            error: SourceError::Io(cause),
+            ..
+        },
+    ] = acquisition_errors.errors()
     else {
-        panic!("the acquisition failure was hidden: {error}");
+        panic!("expected the original I/O failure, got {acquisition_errors:?}");
     };
     assert_eq!(cause.kind(), io::ErrorKind::PermissionDenied);
 }

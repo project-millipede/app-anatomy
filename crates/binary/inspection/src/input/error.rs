@@ -89,3 +89,63 @@ impl Error for InputError {
         }
     }
 }
+
+/// Nonempty acquisition failures in the order observed during one inspection.
+///
+/// Repeated failures remain separate entries. Each [`InputError`] retains its
+/// own cause chain; independent entries are not causes of one another.
+/// This collection therefore has no [`Error::source`]. Enumerate [`Self::errors`]
+/// to inspect each failure and its original cause.
+#[derive(Debug)]
+pub struct InputErrors {
+    errors: Vec<InputError>,
+}
+
+impl InputErrors {
+    /// Own the observed failures, or return `None` when no acquisition failed.
+    pub fn from_errors(errors: Vec<InputError>) -> Option<Self> {
+        if errors.is_empty() {
+            None
+        } else {
+            Some(Self { errors })
+        }
+    }
+
+    /// Borrow every acquisition failure in occurrence order.
+    pub fn errors(&self) -> &[InputError] {
+        &self.errors
+    }
+
+    /// Transfer every acquisition failure without cloning its original cause.
+    pub fn into_errors(self) -> Vec<InputError> {
+        self.errors
+    }
+}
+
+impl From<InputError> for InputErrors {
+    fn from(error: InputError) -> Self {
+        Self {
+            errors: vec![error],
+        }
+    }
+}
+
+impl fmt::Display for InputErrors {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let [error] = self.errors.as_slice() {
+            return error.fmt(formatter);
+        }
+
+        write!(
+            formatter,
+            "Input acquisition failed with {} errors:",
+            self.errors.len(),
+        )?;
+        for (index, error) in self.errors.iter().enumerate() {
+            write!(formatter, "\n{}. {error}", index + 1)?;
+        }
+        Ok(())
+    }
+}
+
+impl Error for InputErrors {}

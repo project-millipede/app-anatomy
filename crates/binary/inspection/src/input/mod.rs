@@ -13,7 +13,7 @@ mod cache;
 mod error;
 
 pub(crate) use cache::SourceCache;
-pub use error::{InputError, SourceError};
+pub use error::{InputError, InputErrors, SourceError};
 
 /// A byte source with a declared length and offset-based reads.
 ///

@@ -89,72 +89,55 @@ fn selection_and_query_failures_preserve_causes_without_replay() {
     ));
 }
 
-// TODO: Simplify this test around the source failure, read offset and original
-// client/I/O cause. Use the typed provider payload instead of fixed-depth source
-// traversal; remove pointer, duplicate message and exact request-order assertions.
 #[test]
 fn inspection_keeps_core_read_diagnostics_and_the_detailed_client_cause() {
-    let (mut session, observed) = session([
-        reply(Response::Selection(SelectionState {
-            file: Some(SelectedResource {
-                name: "file".into(),
-                resource: resource(),
-            }),
-            ..SelectionState::default()
-        })),
-        reply(Response::ByteLength(32)),
-        Err(backend_failure()),
-    ]);
+    // 1. Supply a selected file and its length, then fail its first source read.
     let resource_id = resource();
+    let selection_response = Response::Selection(SelectionState {
+        file: Some(SelectedResource {
+            name: "file".into(),
+            resource: resource_id.clone(),
+        }),
+        ..SelectionState::default()
+    });
+    let selection_reply = reply(selection_response);
+    let byte_length_reply = reply(Response::ByteLength(32));
+    let read_failure = backend_failure();
+    let (mut session, _) = session([selection_reply, byte_length_reply, Err(read_failure)]);
+
+    // 2. Inspect the file and obtain the acquisition errors from the failed step.
     let outcome = session.inspect(&resource_id);
     let [step] = outcome.steps.as_slice() else {
         panic!("expected one inspection step");
     };
     let failure = step.result.as_ref().unwrap_err();
-    let InspectionFailure::Inspection(error) = failure else {
+    let InspectionFailure::Inspection(InspectionError::Input(input_errors)) = failure else {
         panic!("expected a detailed inspection failure: {failure:?}");
     };
-    assert!(matches!(
-        error,
-        InspectionError::Input(InputError::Source {
+
+    // 3. Require the failed read's offset and access its original client failure.
+    let [
+        InputError::Source {
             offset: 0,
-            error: SourceError::Provider(_),
-        })
-    ));
-    assert_eq!(failure.to_string(), error.to_string());
-    let core = failure
-        .source()
-        .unwrap()
-        .downcast_ref::<InspectionError>()
-        .unwrap();
-    assert!(std::ptr::eq(core, error));
-    let input = core.source().unwrap().downcast_ref::<InputError>().unwrap();
-    let provider = input
-        .source()
-        .unwrap()
-        .downcast_ref::<SourceError>()
-        .unwrap();
-    let source = provider
-        .source()
-        .unwrap()
+            error: SourceError::Provider(provider_error),
+        },
+    ] = input_errors.errors()
+    else {
+        panic!("expected one provider failure at offset 0, got {input_errors:?}");
+    };
+    let client_failure = provider_error
         .downcast_ref::<Failure>()
-        .unwrap();
-    assert_eq!(source.operation(), Some(TransportOperation::Receive));
+        .expect("the source must retain the filesystem-client failure");
+
+    // 4. Verify the receive operation and the original native I/O error code.
     assert_eq!(
-        source
-            .source()
-            .unwrap()
-            .downcast_ref::<io::Error>()
-            .unwrap()
-            .raw_os_error(),
-        Some(13)
+        client_failure.operation(),
+        Some(TransportOperation::Receive)
     );
-    assert!(matches!(
-        observed.borrow().requests.as_slice(),
-        [
-            Request::CurrentSelection,
-            Request::ByteLength { .. },
-            Request::ReadAt { .. }
-        ]
-    ));
+    let native_io_error = client_failure
+        .source()
+        .unwrap()
+        .downcast_ref::<io::Error>()
+        .expect("the client failure must retain the native I/O error");
+    assert_eq!(native_io_error.raw_os_error(), Some(13));
 }

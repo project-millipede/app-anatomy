@@ -4,10 +4,7 @@ use binary_inspection::{
     input::{ByteSource, SourceError},
 };
 
-/// Identifies the inspection stage while retaining its complete error chain.
-///
-/// Source failures travel through the core input diagnostic, preserving both
-/// the read offset and the original provider error in one owned chain.
+/// Identifies the inspection stage while retaining its original failures.
 #[derive(Debug)]
 pub enum InspectionFailure {
     Selection(Failure),
@@ -39,20 +36,13 @@ impl std::error::Error for InspectionFailure {
 pub type InspectionStepOutcome = StepOutcome<StepKind, BinaryReport, InspectionFailure>;
 
 /// One completed inspection step with its report or original failure.
-///
-/// Inspection does not release or replace the native selection.
 pub type InspectionOutcome = Outcome<InspectionStepOutcome>;
 impl Session {
-    /// Analyze the selected native file.
+    /// Analyze the selected native file as thin or universal Mach-O.
     ///
-    /// Verifies that `resource` is selected, then reads through the Rust analyzer.
-    /// The native selection remains owned by the service after success or failure.
-    /// Another client may replace selection during inspection, causing a later
-    /// resource request to fail.
-    ///
-    /// # Errors
-    /// The outcome retains selection, metadata, source or analyzer failures in
-    /// its step.
+    /// Inspection does not release or replace the native selection.
+    /// Selection validation does not reserve the resource: another client's
+    /// replacement or service shutdown may cause subsequent requests to fail.
     pub fn inspect(&mut self, resource: &str) -> InspectionOutcome {
         let analysis = self
             .ensure_file(resource)

@@ -28,12 +28,21 @@ pub(crate) fn byte_length(cause: ReadError) -> wire::InspectionError {
     })
 }
 
-pub(crate) fn inspection(error: InspectionError) -> wire::InspectionError {
+pub(crate) fn inspection(error: InspectionError) -> Vec<wire::InspectionError> {
     match error {
         InspectionError::Analysis(error) => {
-            wire::InspectionError::Analysis(conversion::analysis_error(error))
+            let analysis_error = conversion::analysis_error(error);
+            vec![wire::InspectionError::Analysis(analysis_error)]
         }
-        InspectionError::Input(error) => input(error),
+        InspectionError::Input(errors) => {
+            let input_errors = errors.into_errors();
+            let mut details = Vec::with_capacity(input_errors.len());
+            for input_error in input_errors {
+                let detail = input(input_error);
+                details.push(detail);
+            }
+            details
+        }
     }
 }
 

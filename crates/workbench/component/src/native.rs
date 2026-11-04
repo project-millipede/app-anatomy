@@ -1,6 +1,7 @@
 //! Component export facade for native filesystem sessions.
 //!
 //! Ordinary Rust APIs own operation semantics; this module converts their results.
+
 use crate::{Component, conversion, exports::native as wire, inspection_error, websocket};
 use filesystem_data::DirectoryEntryKind;
 use std::cell::RefCell;
@@ -81,18 +82,20 @@ fn selection_outcome(value: client::SelectionOutcome) -> wire::SelectionOutcome 
 fn inspection_failure(error: client::InspectionFailure) -> wire::InspectionFailure {
     // Format before conversion to retain the ordinary Rust error's full context.
     let message = error.to_string();
-    let detail = match error {
+    let details = match error {
         client::InspectionFailure::Selection(error) => {
             let failure_cause = inspection_error::client_failure(error);
-            inspection_error::selection(failure_cause)
+            let detail = inspection_error::selection(failure_cause);
+            vec![detail]
         }
         client::InspectionFailure::Metadata(error) => {
             let failure_cause = inspection_error::client_failure(error);
-            inspection_error::byte_length(failure_cause)
+            let detail = inspection_error::byte_length(failure_cause);
+            vec![detail]
         }
         client::InspectionFailure::Inspection(error) => inspection_error::inspection(error),
     };
-    wire::InspectionFailure { message, detail }
+    wire::InspectionFailure { message, details }
 }
 fn failure(error: client::Failure) -> wire::Failure {
     let message = error.to_string();

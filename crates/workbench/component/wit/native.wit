@@ -29,8 +29,8 @@ interface native {
   record inspection-failure {
     /// Complete diagnostic formatted by the ordinary Rust error's Display implementation.
     message: string,
-    /// Structured diagnostic for consumers that need more than display text.
-    detail: inspection-error,
+    /// Nonempty structured diagnostics in occurrence order.
+    details: list<inspection-error>,
   }
   record inspection-step-outcome {
     kind: step-kind,
