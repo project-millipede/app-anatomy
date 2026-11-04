@@ -18,7 +18,12 @@ export function ErrorMessage({
   'aria-label': ariaLabel,
 }: ErrorMessageProps) {
   return (
-    <div role="alert" aria-label={ariaLabel} className={className}>
+    <div
+      role="alert"
+      aria-label={ariaLabel}
+      className={className}
+      style={{ whiteSpace: 'pre-wrap' }}
+    >
       {message}
     </div>
   );
