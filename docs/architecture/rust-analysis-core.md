@@ -307,10 +307,10 @@ current dependencies.
 
 ## Validation and maintenance
 
-Synthetic test encoders are separate from parser code. Focused tests cover the
-resident/source integration, absolute report ranges, preservation of input and
-upstream errors, and report conversion. This coverage checks the
-application's integration with the upstream parser.
+Parser integration tests use pinned upstream fixtures to compare resident and
+source object-file reports and preserve upstream decode errors. A PE fixture
+checks acquisition-error precedence; cache unit tests cover short reads and
+retained input errors.
 
 Run:
 

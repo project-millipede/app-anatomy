@@ -53,7 +53,7 @@ The workbench opens individual thin and universal Mach-O files and reports CPU t
 
 Format acceptance follows the pinned upstream parsers: thin images support both byte orders; universal containers support big-endian fat32 and fat64. Project code supplies bounded reads, typed failures and owned report conversion. The [parser contract](docs/architecture/rust-analysis-core.md#parsing-dependencies) defines command validation, read granularity and diagnostics. A successful header report is not a claim of complete Mach-O validity. File and command ranges use absolute input offsets with exclusive ends, including ranges inside universal members.
 
-It does **not** verify signatures, evaluate certificate trust, traverse application bundles, resolve dependencies, modify binaries or re-sign applications. Synthetic test fixtures contain headers only; they are not runnable programs. Input is selected through the native service, which returns bounded ranges to the browser Wasm analyzer. The application has no analytics or account integration.
+It does **not** verify signatures, evaluate certificate trust, traverse application bundles, resolve dependencies, modify binaries or re-sign applications. Input is selected through the native service, which returns bounded ranges to the browser Wasm analyzer. The application has no analytics or account integration.
 
 Native callers use `inspect(bytes)` for resident input or `inspect_source(source)` for range-based access. The [parser contract](docs/architecture/rust-analysis-core.md#reads-and-memory) describes read granularity, cache retention and allocation diagnostics. The browser requests inspection by passing the observed resource identifier.
 

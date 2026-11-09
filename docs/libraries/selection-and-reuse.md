@@ -711,8 +711,8 @@ as proof that a project is abandoned.
 
 ### 1. Establish comparable inputs and requested scopes
 
-Reuse the current synthetic fixtures and contracts first. Add a read-only corpus
-covering selected real application versions, recording which artifact and
+Reuse the pinned upstream fixtures and current contracts first. Add a read-only
+corpus covering selected real application versions, recording which artifact and
 architecture each result came from. Local Chrome, Firefox and WhatsApp candidates
 should be inspected only when that evaluation is performed; their current
 installation contents have not been established by this research.

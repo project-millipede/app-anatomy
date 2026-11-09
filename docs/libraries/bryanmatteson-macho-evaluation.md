@@ -202,7 +202,7 @@ Do not substitute a server or Mac service for the required local execution.
 ## 1. Run the smallest native/browser probe
 
 Start in an isolated development harness with core-only features and a small set
-of existing thin, universal and malformed fixtures. Exercise `macho::parse` and
+of representative thin, universal and malformed fixtures. Exercise `macho::parse` and
 `macho::parse_with_options` from an ordinary Rust caller; record the selected mode
 and limits. Keep candidate-specific types inside the adapter and retain our report,
 error and range contracts. Our current core provides comparison results for these
@@ -255,7 +255,7 @@ across universal members as well as within an individual image.
 Normalize offsets to our absolute input ranges, including universal members.
 Preserve CPU subtypes, unknown values, upstream decoding errors and incomplete states.
 Record differences rather than weakening an existing contract to accommodate the
-library. Existing header-only samples cannot establish loader, writer or signing
+library. Header-only samples cannot establish loader, writer or signing
 correctness.
 
 ## 3. Evaluate selected inspection features

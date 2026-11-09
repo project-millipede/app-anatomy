@@ -48,8 +48,8 @@ build checks. It does not propose putting LIEF into the browser component.
 
 Build a small macOS executable that calls an exported function in our own dylib.
 The function should return a known value, and the fixture should report the loaded
-library's resolved path. Use an isolated temporary fixture tree. Existing
-header-only test samples cannot establish that a rewritten program will execute.
+library's resolved path. Use an isolated temporary fixture tree. Header-only
+test samples cannot establish that a rewritten program will execute.
 For this baseline, use no Hardened Runtime/library-validation signing flags and
 no entitlements. Record that policy explicitly; later policy-specific fixtures
 must be evaluated separately.
