@@ -7,6 +7,10 @@ import { BridgeGrid, BridgeViewport } from './layout/BridgeGrid';
 import { BridgeSection, type BridgePosition } from './layout/BridgeSection';
 import { CanvasPane } from './layout/CanvasPane';
 import { getCorridorPage } from './corridorLayout';
+import {
+  arrangeCorridorSlots,
+  CORRIDOR_SLOT_COUNT,
+} from './layout/corridorSlots';
 import type {
   CanvasDataset,
   CanvasEntry,
@@ -43,10 +47,10 @@ const declarationEmptyLabels = {
 } as const;
 const positions = ['north', 'west', 'east', 'south'] as const;
 const firstPages: Record<BridgePosition, number> = {
-  north: 0,
-  west: 0,
-  east: 0,
-  south: 0,
+  north: 1,
+  west: 1,
+  east: 1,
+  south: 1,
 };
 
 export type ExplorerRelationshipCanvasProps = {
@@ -111,14 +115,23 @@ export function ExplorerRelationshipCanvas({
     east: neighborhood?.east ?? [],
     south: neighborhood?.south ?? [],
   };
-  const views = positions.map((position) => ({
-    position,
-    ...getCorridorPage(
-      allLinks[position],
-      requestedPages[position],
+  const views = positions.map((position) => {
+    const connections = allLinks[position];
+    const pagination = getCorridorPage(connections, {
+      pageSize: CORRIDOR_SLOT_COUNT,
+      requestedPage: requestedPages[position],
       activeRelationshipId,
-    ),
-  }));
+    });
+    const visibleConnections = connections.slice(
+      pagination.pageRange.start,
+      pagination.pageRange.end,
+    );
+    return {
+      position,
+      ...pagination,
+      slots: arrangeCorridorSlots(visibleConnections),
+    };
+  });
   const relations = new Map(
     dataset.relationships.map((relationship) => [
       relationship.id,
@@ -197,7 +210,7 @@ export function ExplorerRelationshipCanvas({
         ? `${title} · ${position === 'east' ? 'not evaluated' : 'unknown'}`
         : declarations && !declarationsInspected
           ? `${title} · not inspected`
-          : `${title} (${view.total})`;
+          : `${title} (${view.totalItems})`;
     return (
       <BridgeSection
         position={position}
@@ -205,22 +218,23 @@ export function ExplorerRelationshipCanvas({
         description={description}
         controls={
           <div className={styles.corridorPager}>
-            {view.pageCount > 1 && (
+            {view.totalPages > 1 && (
               <>
                 <Button
                   className={styles.compactButton}
-                  disabled={view.page === 0}
+                  disabled={view.page === 1}
                   aria-label={`Previous ${title.toLowerCase()} relationships`}
                   onClick={() => changePage(position, view.page - 1)}
                 >
                   ‹
                 </Button>
                 <span aria-live="polite">
-                  {view.start}–{view.end} of {view.total}
+                  {view.pageRange.start + 1}–{view.pageRange.end} of{' '}
+                  {view.totalItems}
                 </span>
                 <Button
                   className={styles.compactButton}
-                  disabled={view.page === view.pageCount - 1}
+                  disabled={view.page === view.totalPages}
                   aria-label={`Next ${title.toLowerCase()} relationships`}
                   onClick={() => changePage(position, view.page + 1)}
                 >
@@ -302,7 +316,7 @@ export function ExplorerRelationshipCanvas({
               </div>
             );
           })}
-          {view.total === 0 && (
+          {view.totalItems === 0 && (
             <p className={styles.emptyBridge}>
               {declarations
                 ? position === 'south' && !declarationsInspected
