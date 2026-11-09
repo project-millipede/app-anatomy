@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { TabsRootProvider, useTabs } from '@ark-ui/react/tabs';
 import { Tabs } from '../workspace/ark/Tabs';
 import { useNativeSession } from '../workspace/useNativeSession';
 import { useWorkbenchModel } from '../workspace/useWorkbenchModel';
@@ -10,24 +10,48 @@ import { NativeExplorerActions } from './NativeExplorerActions';
 import { ExplorerFrame } from './layout/ExplorerFrame';
 import styles from './ExplorerLayout.module.css';
 
+enum ExplorerSource {
+  Native = 'native',
+  Synthetic = 'synthetic',
+}
+
 /** Own one native session/model independently of the selected Explorer presentation. */
 export function ApplicationExplorer() {
-  const [source, setSource] = useState<'native' | 'synthetic'>('native');
+  const tabs = useTabs({
+    defaultValue: ExplorerSource.Native,
+    /*
+     * 1. Arrow keys move focus between tab buttons without switching workspaces.
+     * 2. Enter, Space or a click activates the chosen tab.
+     */
+    activationMode: 'manual',
+  });
   const { getNativeSession } = useNativeSession();
   const model = useWorkbenchModel(getNativeSession);
-  const native = source === 'native';
+  const native = tabs.value === ExplorerSource.Native;
   const application =
     model.nativeWorkspace?.scope === 'application'
       ? model.nativeWorkspace.root
       : undefined;
   const binary = model.nativeWorkspace?.scope === 'binary';
   return (
-    <Tabs.Root
+    <TabsRootProvider
       className={styles.sourceTabs}
-      value={source}
-      onValueChange={({ value }) => setSource(value as 'native' | 'synthetic')}
-      activationMode="manual"
+      value={tabs}
+      /*
+       * 1. Defer each workspace's initial mount until its tab becomes active.
+       * 2. Native mounts initially because it is the default selection.
+       * 3. Synthetic remains unmounted until first selected.
+       */
       lazyMount
+      /*
+       * 1. Unmount the inactive workspace and discard its component-local state.
+       * 2. Returning to Native rebuilds tree expansion, reveals the retained
+       *    selected file, clears the dependency preview and resets corridor pages.
+       * 3. Returning to Synthetic restores the initial dataset, center and context,
+       *    with fresh tree and pagination state, no preview and empty Back history.
+       * 4. The parent-owned native runtime and model remain alive, retaining the
+       *    acquired selection, loaded directories, report and architecture slice.
+       */
       unmountOnExit
     >
       <ExplorerFrame
@@ -44,10 +68,10 @@ export function ApplicationExplorer() {
         controls={
           <div className={styles.toolbarActions}>
             <Tabs.List layout="workspace" aria-label="Explorer source">
-              <Tabs.Trigger layout="workspace" value="native">
+              <Tabs.Trigger layout="workspace" value={ExplorerSource.Native}>
                 Native
               </Tabs.Trigger>
-              <Tabs.Trigger layout="workspace" value="synthetic">
+              <Tabs.Trigger layout="workspace" value={ExplorerSource.Synthetic}>
                 Synthetic preview
               </Tabs.Trigger>
             </Tabs.List>
@@ -65,10 +89,10 @@ export function ApplicationExplorer() {
         }
         workspace={
           <>
-            <Tabs.Content layout="workspace" value="native">
+            <Tabs.Content layout="workspace" value={ExplorerSource.Native}>
               <NativeExplorerWorkspace model={model} />
             </Tabs.Content>
-            <Tabs.Content layout="workspace" value="synthetic">
+            <Tabs.Content layout="workspace" value={ExplorerSource.Synthetic}>
               <ExplorerWorkspace />
             </Tabs.Content>
           </>
@@ -92,6 +116,6 @@ export function ApplicationExplorer() {
           </>
         }
       />
-    </Tabs.Root>
+    </TabsRootProvider>
   );
 }
