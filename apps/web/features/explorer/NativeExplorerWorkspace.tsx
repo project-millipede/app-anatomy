@@ -11,7 +11,10 @@ import { ExplorerFileTree } from './ExplorerFileTree';
 import { ExplorerRelationshipCanvas } from './ExplorerRelationshipCanvas';
 import { NativeExplorerInspector } from './NativeExplorerInspector';
 import { ExplorerWorkspaceLayout } from './layout/ExplorerWorkspaceLayout';
-import { useVirtualizedTree } from './capabilities/tree-virtualization/useVirtualizedTree';
+import {
+  scrollVisibleTreeEntryIntoView,
+  useVirtualizedTree,
+} from './capabilities/tree-virtualization/useVirtualizedTree';
 import {
   nativeExplorerSubject,
   nativeSelectedRowId,
@@ -130,19 +133,12 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
   useLayoutEffect(() => {
     if (!selectedId) return;
     const frame = requestAnimationFrame(() => {
-      const nodes = tree.getVisibleNodes();
-      const index = nodes.findIndex(({ node }) => node.id === selectedId);
-      const row = nodes[index];
-      if (row)
-        scrollToIndexRef.current?.({
-          index,
-          node: row.node,
-          indexPath: row.indexPath,
-          getElement: () =>
-            viewportElementRef.current?.querySelector<HTMLElement>(
-              `[data-value="${CSS.escape(selectedId)}"]`,
-            ) ?? null,
-        });
+      scrollVisibleTreeEntryIntoView({
+        tree,
+        scrollToIndexRef,
+        viewportElementRef,
+        entryId: selectedId,
+      });
     });
     return () => cancelAnimationFrame(frame);
     // This owner is keyed by mount identity; only its initial selection is revealed.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, type RefObject } from 'react';
 import {
   useTreeView,
   type TreeNode,
@@ -43,3 +43,34 @@ export function useVirtualizedTree<T extends TreeNode>(
 export type VirtualizedTree<T extends TreeNode> = ReturnType<
   typeof useVirtualizedTree<T>
 >;
+
+/**
+ * Scrolls an expanded tree entry into view without changing selection or focus.
+ * Call after ancestor expansion has committed; the caller owns scheduling.
+ *
+ * @param options - Ark model, viewport refs and the entry identity to reveal.
+ * @returns Nothing; missing visible entries or scroll handlers are ignored.
+ */
+export function scrollVisibleTreeEntryIntoView<T extends TreeNode>({
+  tree,
+  scrollToIndexRef,
+  viewportElementRef,
+  entryId,
+}: VirtualizedTree<T> & {
+  viewportElementRef: RefObject<HTMLDivElement | null>;
+  entryId: string;
+}): void {
+  for (const [index, { node, indexPath }] of tree.getVisibleNodes().entries()) {
+    if (tree.collection.getNodeValue(node) !== entryId) continue;
+    scrollToIndexRef.current?.({
+      index,
+      node,
+      indexPath,
+      getElement: () =>
+        viewportElementRef.current?.querySelector<HTMLElement>(
+          `[data-value="${CSS.escape(entryId)}"]`,
+        ) ?? null,
+    });
+    return;
+  }
+}

@@ -8,7 +8,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useVirtualizedTree } from './capabilities/tree-virtualization/useVirtualizedTree';
+import {
+  scrollVisibleTreeEntryIntoView,
+  useVirtualizedTree,
+} from './capabilities/tree-virtualization/useVirtualizedTree';
 import { ExplorerConnectionInspector } from './ExplorerConnectionInspector';
 import { ExplorerFileTree } from './ExplorerFileTree';
 import { ExplorerRelationshipCanvas } from './ExplorerRelationshipCanvas';
@@ -214,21 +217,12 @@ function DatasetWorkspace({
         if (viewportElementRef.current)
           viewportElementRef.current.scrollTop = request.scrollTop;
       } else {
-        const nodes = tree.getVisibleNodes();
-        const index = nodes.findIndex(
-          ({ node }) => node.id === request.entryId,
-        );
-        const row = nodes[index];
-        if (row)
-          scrollToIndexRef.current?.({
-            index,
-            node: row.node,
-            indexPath: row.indexPath,
-            getElement: () =>
-              viewportElementRef.current?.querySelector<HTMLElement>(
-                `[data-value="${CSS.escape(request.entryId)}"]`,
-              ) ?? null,
-          });
+        scrollVisibleTreeEntryIntoView({
+          tree,
+          scrollToIndexRef,
+          viewportElementRef,
+          entryId: request.entryId,
+        });
       }
       pendingScroll.current = null;
     });
