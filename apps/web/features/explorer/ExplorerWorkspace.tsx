@@ -90,7 +90,7 @@ function DatasetWorkspace({
       .getParentNodes(dataset.initialEntryId)
       .map((node) => node.id),
   });
-  const entryId = tree.selectedValue[0];
+  const [entryId] = tree.selectedValue;
   const selectedEntry = dataset.entries.find((entry) => entry.id === entryId);
   const neighborhood = dataset.neighborhoods.find(
     (value) => value.entryId === entryId && value.contextId === contextId,
@@ -135,7 +135,8 @@ function DatasetWorkspace({
       suppressSelectionHistory.current = false;
       return;
     }
-    if (!entryId || selectedValue[0] === entryId) return;
+    const [nextEntryId] = selectedValue;
+    if (!entryId || nextEntryId === entryId) return;
     setHistory((current) => [
       ...current,
       {
