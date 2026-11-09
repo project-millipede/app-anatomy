@@ -1,49 +1,80 @@
-/** Maximum visible relationships in one compass corridor. */
-export const CORRIDOR_CAPACITY = 3;
+import type { CanvasConnection } from './canvasPresentation';
+
+type CorridorPage = {
+  /** One-based page number. */
+  page: number;
+  pageSize: number;
+  /** Connections in this corridor before pagination. */
+  totalItems: number;
+  /** Includes one empty navigation page when totalItems is zero. */
+  totalPages: number;
+  /** Zero-based array bounds: start is inclusive, end is exclusive. */
+  pageRange: {
+    start: number;
+    end: number;
+  };
+};
+
+type CorridorPageOptions = {
+  /** Maximum connections per page; a positive integer supplied by the layout. */
+  pageSize: number;
+
+  /** One-based integer page requested by the caller. */
+  requestedPage: number;
+
+  /**
+   * Select this relationship's containing page when found in the corridor.
+   * Null or an absent relationship leaves the requested page applicable.
+   */
+  activeRelationshipId: string | null;
+};
 
 /**
- * Select a bounded presentation window without changing relationship records.
- * Single cards occupy the middle slot; pairs occupy the first two slots.
- * Pages are zero-based; nonempty start/end ranges are one-based and inclusive.
- * An active relationship wins so restored previews remain visible. Explicit page
- * navigation should clear the preview before requesting another page.
+ * Calculate paging metadata without arranging visual slots.
+ * An active relationship takes priority over the requested page when found.
+ * The resulting page is bounded to the available range.
+ *
+ * @param connections Connections in their presentation order.
+ * @param options Page selection inputs.
+ * @returns Page information and array bounds for the visible connections.
  */
-export function getCorridorPage<T extends { relationshipId: string }>(
-  links: readonly T[],
-  requestedPage: number,
-  activeRelationshipId: string | null,
-): {
-  items: readonly T[];
-  slots: readonly (T | undefined)[];
-  page: number;
-  pageCount: number;
-  start: number;
-  end: number;
-  total: number;
-} {
-  const total = links.length;
-  const pageCount = Math.max(1, Math.ceil(total / CORRIDOR_CAPACITY));
-  const activeIndex =
-    activeRelationshipId === null
-      ? -1
-      : links.findIndex((link) => link.relationshipId === activeRelationshipId);
-  const page =
-    activeIndex >= 0
-      ? Math.floor(activeIndex / CORRIDOR_CAPACITY)
-      : Math.max(0, Math.min(Math.floor(requestedPage) || 0, pageCount - 1));
-  const offset = page * CORRIDOR_CAPACITY;
-  const items = links.slice(offset, offset + CORRIDOR_CAPACITY);
+export function getCorridorPage(
+  connections: readonly CanvasConnection[],
+  { pageSize, requestedPage: page, activeRelationshipId }: CorridorPageOptions,
+): CorridorPage {
+  const totalItems = connections.length;
+  if (totalItems === 0) {
+    return {
+      page: 1,
+      pageSize,
+      totalItems: 0,
+      totalPages: 1,
+      pageRange: { start: 0, end: 0 },
+    };
+  }
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  // Keep an active preview visible when it belongs to this corridor.
+  if (activeRelationshipId !== null) {
+    const activeIndex = connections.findIndex(
+      (connection) => connection.relationshipId === activeRelationshipId,
+    );
+    if (activeIndex >= 0) page = Math.floor(activeIndex / pageSize) + 1;
+  }
+
+  // Keep the requested page within the available range after connections change.
+  if (page < 1) page = 1;
+  if (page > totalPages) page = totalPages;
+
+  const start = (page - 1) * pageSize;
+  const end = Math.min(start + pageSize, totalItems);
 
   return {
-    items,
-    slots:
-      items.length === 1
-        ? [undefined, items[0], undefined]
-        : [items[0], items[1], items[2]],
     page,
-    pageCount,
-    start: total === 0 ? 0 : offset + 1,
-    end: offset + items.length,
-    total,
+    pageSize,
+    totalItems,
+    totalPages,
+    pageRange: { start, end },
   };
 }

@@ -1,92 +1,62 @@
 import { expect, test } from 'vitest';
 import { getCorridorPage } from '../apps/web/features/explorer/corridorLayout';
 
-const links = Array.from({ length: 8 }, (_, index) => ({
-  relationshipId: `relationship-${index}`,
+const corridorConnections = Array.from({ length: 8 }, (_, connectionIndex) => ({
+  relationshipId: `relationship-${connectionIndex}`,
+  endpointIds: [],
 }));
 
-test('corridors bound visible cards while retaining evidence order and truthful ranges', () => {
-  const middle = getCorridorPage(links, 1, null);
-  expect(middle.items.map((link) => link.relationshipId)).toEqual([
-    'relationship-3',
-    'relationship-4',
-    'relationship-5',
-  ]);
-  expect(middle.items[0]).toBe(links[3]);
-  expect(middle).toMatchObject({
-    page: 1,
-    pageCount: 3,
-    start: 4,
-    end: 6,
-    total: 8,
+/**
+ * The requested page is one-based; its array bounds are zero-based and
+ * end-exclusive. An absent relationship must leave that page applicable.
+ */
+test('keeps the requested page and range when the active relationship is absent', () => {
+  const pagination = getCorridorPage(corridorConnections, {
+    pageSize: 3,
+    requestedPage: 2,
+    activeRelationshipId: 'missing-relationship',
   });
 
-  const last = getCorridorPage(links, 2, null);
-  expect(last.items.map((link) => link.relationshipId)).toEqual([
-    'relationship-6',
-    'relationship-7',
-  ]);
-  expect(last).toMatchObject({ start: 7, end: 8, total: 8 });
-});
-
-test('shrinking or empty corridors clamp stale page requests without phantom cards', () => {
-  const smaller = getCorridorPage(links.slice(0, 4), 2, null);
-  expect(smaller.items.map((link) => link.relationshipId)).toEqual([
-    'relationship-3',
-  ]);
-  expect(smaller).toMatchObject({
-    page: 1,
-    pageCount: 2,
-    start: 4,
-    end: 4,
-    total: 4,
+  expect(pagination).toMatchObject({
+    page: 2,
+    totalPages: 3,
+    pageRange: { start: 3, end: 6 },
   });
-  expect(getCorridorPage([], smaller.page, null)).toEqual({
-    items: [],
-    slots: [undefined, undefined, undefined],
-    page: 0,
-    pageCount: 1,
-    start: 0,
-    end: 0,
-    total: 0,
+});
+
+/**
+ * The fourth connection belongs to page 2 with two connections per page.
+ * Using two connections per page catches a hardcoded page size of three.
+ */
+test('an active relationship overrides the requested page', () => {
+  const pagination = getCorridorPage(corridorConnections, {
+    pageSize: 2,
+    requestedPage: 1,
+    activeRelationshipId: 'relationship-3',
   });
-  expect(getCorridorPage(links, -1, null).page).toBe(0);
+
+  expect(pagination).toMatchObject({
+    page: 2,
+    totalPages: 4,
+    pageRange: { start: 2, end: 4 },
+  });
 });
 
-test('a lone fourth relationship stays centered on its page when its preview is restored', () => {
-  const fourLinks = links.slice(0, 4);
-  const secondPage = getCorridorPage(fourLinks, 1, null);
-  expect(secondPage.slots).toEqual([undefined, links[3], undefined]);
-  expect(secondPage.items).toEqual([links[3]]);
+/**
+ * At three connections per page, four connections require a partial second page.
+ * Its exclusive end must stop at the input length when page 3 is requested.
+ */
+test('returns the partial last page when the requested page is unavailable', () => {
+  const remainingConnections = corridorConnections.slice(0, 4);
+  const pagination = getCorridorPage(remainingConnections, {
+    pageSize: 3,
+    requestedPage: 3,
+    activeRelationshipId: null,
+  });
 
-  const restored = getCorridorPage(fourLinks, 0, 'relationship-3');
-  expect(restored.page).toBe(1);
-  expect(restored.slots).toEqual([undefined, links[3], undefined]);
-  expect(restored).toMatchObject({ start: 4, end: 4, total: 4 });
-
-  const changedContext = getCorridorPage(links, 1, 'previous-context-relation');
-  expect(changedContext.page).toBe(1);
-  expect(changedContext.items.map((link) => link.relationshipId)).toEqual([
-    'relationship-3',
-    'relationship-4',
-    'relationship-5',
-  ]);
-});
-
-test('visible card counts center singles and fill ordered slots for pairs and triples', () => {
-  expect(getCorridorPage(links.slice(0, 1), 0, null).slots).toEqual([
-    undefined,
-    links[0],
-    undefined,
-  ]);
-  expect(getCorridorPage(links.slice(0, 2), 0, null).slots).toEqual([
-    links[0],
-    links[1],
-    undefined,
-  ]);
-  expect(getCorridorPage(links.slice(0, 3), 0, null).slots).toEqual([
-    links[0],
-    links[1],
-    links[2],
-  ]);
+  expect(pagination).toMatchObject({
+    page: 2,
+    totalPages: 2,
+    pageRange: { start: 3, end: 4 },
+  });
 });
