@@ -82,11 +82,10 @@ test('loading an empty directory preserves sibling identities and distinguishes 
   expect(afterChildren[2]!.childrenLoaded).toBe(true);
   expect(afterChildren[2]!.children).toEqual([]);
   expect(afterChildren[2]!.childrenCount).toBe(0);
-  expect(after.mountId).toBe(before.mountId);
   expect(after.selectedId).toBe(before.selectedId);
 });
 
-test('file replacement changes the authoritative selection without changing the retained mount', () => {
+test('file replacement changes the authoritative selection without changing the retained tree', () => {
   const state = mounted();
   const before = nativeTreePresentation(state);
   const after = nativeTreePresentation({
@@ -94,7 +93,6 @@ test('file replacement changes the authoritative selection without changing the 
     file: { resource: 'opened-left-file', name: 'same' },
     fileEntry: { directory: 'left', entryId: 0 },
   });
-  expect(after.mountId).toBe(before.mountId);
   expect(after.rootNode).toEqual(before.rootNode);
   expect(after.selectedId).toBe(nativeEntryRowId('left', 0));
   expect(after.selectedId).not.toBe(before.selectedId);
@@ -110,7 +108,6 @@ test('generic directories and legacy roots never become application scope by nam
     const view = nativeTreePresentation(state);
     expect(view.rootNode.children).toEqual([]);
     expect(view.selectedId).toBeUndefined();
-    expect(view.mountId).toBe('native-empty');
   }
 });
 
@@ -131,8 +128,7 @@ test('application contents retain resource, helper, framework and unsupported en
   );
 });
 
-test('opening a standalone binary replaces application navigation with only that binary', () => {
-  const application = nativeTreePresentation(mounted());
+test('a standalone binary projects one file without application contents', () => {
   const binary = nativeTreePresentation({
     scope: 'binary',
     file: { resource: 'standalone-binary', name: 'Tool' },
@@ -142,7 +138,6 @@ test('opening a standalone binary replaces application navigation with only that
   expect(binary.rootNode.children).toHaveLength(1);
   expect(binary.rootNode.children![0]!.name).toBe('Tool');
   expect(binary.selectedId).toBe(binary.rootNode.children![0]!.id);
-  expect(binary.mountId).not.toBe(application.mountId);
   expect(binary.rootNode.children![0]!.children).toBeUndefined();
 });
 

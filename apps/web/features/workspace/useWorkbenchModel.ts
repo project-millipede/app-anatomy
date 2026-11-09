@@ -207,7 +207,11 @@ export function useWorkbenchModel(
       if (failed?.result.tag === 'err')
         throw new Error(failed.result.val.message);
       const state = selectionFromOutcome(observed);
-      const listing = state?.directories.find(
+      if (state === null)
+        throw new Error(
+          'No loaded directory snapshot was returned. Try again.',
+        );
+      const listing = state.directories.find(
         (listing) =>
           listing.parent?.directory === parentDirectory &&
           listing.parent.entryId === entryId,
@@ -216,7 +220,7 @@ export function useWorkbenchModel(
         throw new Error(
           'No loaded directory snapshot was returned. Try again.',
         );
-      return state!;
+      return state;
     },
     [runSelection],
   );

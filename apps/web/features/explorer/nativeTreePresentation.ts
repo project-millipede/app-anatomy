@@ -1,4 +1,7 @@
-import type { SelectionState } from '@apple-code/browser/native';
+import type {
+  DirectoryListing,
+  SelectionState,
+} from '@apple-code/browser/native';
 import type { PreviewNode } from './previewInventory';
 
 /** Opaque native identities plus UI-only branch state; no paths are reconstructed. */
@@ -42,24 +45,29 @@ export function nativeSelectedRowId(
 export function nativeTreePresentation(state: SelectionState | null): {
   rootNode: NativeTreeNode;
   selectedId: string | undefined;
-  mountId: string;
 } {
+  if (state === null) {
+    return {
+      rootNode: { id: 'native-tree-root', name: '', children: [] },
+      selectedId: undefined,
+    };
+  }
+
   const { application, file } = nativeExplorerSubject(state);
-  const childListings = new Map(
-    (state?.directories ?? [])
-      .filter((listing) => listing.parent !== undefined)
-      .map((listing) => [
-        nativeEntryRowId(listing.parent!.directory, listing.parent!.entryId),
-        listing,
-      ]),
-  );
-  const rootListing = state?.directories.find(
+  const childListings = new Map<string, DirectoryListing>();
+  for (const listing of state.directories) {
+    const { parent } = listing;
+    if (parent === undefined) continue;
+    childListings.set(
+      nativeEntryRowId(parent.directory, parent.entryId),
+      listing,
+    );
+  }
+  const rootListing = state.directories.find(
     (listing) => listing.directory.resource === state.root?.resource,
   );
 
-  function children(
-    listing: SelectionState['directories'][number],
-  ): NativeTreeNode[] {
+  function children(listing: DirectoryListing): NativeTreeNode[] {
     return listing.entries.map((entry) => {
       const id = nativeEntryRowId(listing.directory.resource, entry.id);
       const childListing = childListings.get(id);
@@ -103,6 +111,5 @@ export function nativeTreePresentation(state: SelectionState | null): {
   return {
     rootNode: { id: 'native-tree-root', name: '', children: nodes },
     selectedId: nativeSelectedRowId(state),
-    mountId: application?.resource ?? file?.resource ?? 'native-empty',
   };
 }
