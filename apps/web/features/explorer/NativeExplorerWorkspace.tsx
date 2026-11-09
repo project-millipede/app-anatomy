@@ -88,7 +88,7 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
       ]),
     ],
     onSelectionChange: ({ selectedNodes }) => {
-      const node = selectedNodes[0];
+      const [node] = selectedNodes;
       if (node?.kind !== 'file') return;
       setPreview(null);
       setTreeError(null);
@@ -124,7 +124,8 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
       return observed.children ?? [];
     },
     onLoadChildrenError: ({ nodes }) => {
-      const message = nodes[0]?.error.message;
+      const [loadFailure] = nodes;
+      const message = loadFailure?.error.message;
       if (message) setTreeError(message);
     },
   });
