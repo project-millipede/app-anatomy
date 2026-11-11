@@ -7,10 +7,33 @@ publish = false
 # Keep generator dependencies and resolution out of the application workspace.
 [workspace]
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[[bin]]
+name = "native"
+path = "src/bin/native.rs"
+required-features = ["host"]
+
+[features]
+host = []
+
 [dependencies]
 fidius-macro = { git = "https://github.com/colliery-io/fidius", rev = "208b6010f9466c06f54e4cc10d66fa9985f12029" }
 workbench-operations = { path = "../../../operations" }
 binary-inspection = { path = "../../../../binary/inspection" }
+filesystem-data = { path = "../../../../filesystem/data" }
 filesystem-protocol = { path = "../../../../filesystem/protocol" }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 object = { version = "=0.40.0", default-features = false }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+fidius = { git = "https://github.com/colliery-io/fidius", rev = "208b6010f9466c06f54e4cc10d66fa9985f12029", features = ["host"] }
+
+[target.'cfg(target_family = "wasm")'.dependencies]
+fidius-guest = { git = "https://github.com/colliery-io/fidius", rev = "208b6010f9466c06f54e4cc10d66fa9985f12029" }
+wit-bindgen = "=0.44.0"
+
+[build-dependencies]
+fidius-build = { git = "https://github.com/colliery-io/fidius", rev = "208b6010f9466c06f54e4cc10d66fa9985f12029" }

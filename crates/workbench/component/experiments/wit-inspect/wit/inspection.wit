@@ -1,0 +1,142 @@
+package fidius:inspection@0.1.0;
+
+interface inspection {
+    record plugin-error {
+        code: string,
+        message: string,
+        details: option<string>,
+    }
+    record inspection-outcome {
+        steps: list<inspection-step-outcome>,
+    }
+    record inspection-step-outcome {
+        kind: step-kind,
+        step-result: step-result,
+    }
+    record file-range {
+        offset: u64,
+        size: u64,
+    }
+    record macho-value {
+        value: u32,
+        name: option<string>,
+    }
+    record cpu-identity {
+        cpu-type: macho-value,
+        cpu-subtype: macho-value,
+    }
+    record command-location {
+        kind: macho-value,
+        file-range: file-range,
+    }
+    record platform-declaration {
+        platform: option<macho-value>,
+        minimum-os: string,
+        sdk: string,
+        source: command-location,
+    }
+    record signature-command {
+        command-range: file-range,
+        data-range: file-range,
+    }
+    record image {
+        cpu: cpu-identity,
+        header-format: header-format,
+        endianness: endianness,
+        file-range: file-range,
+        file-type: macho-value,
+        header-flags: u32,
+        platforms: list<platform-declaration>,
+        signature-commands: list<signature-command>,
+    }
+    record report {
+        container: container-kind,
+        container-endianness: endianness,
+        byte-length: u64,
+        images: list<image>,
+        scope: analysis-scope,
+    }
+    record inspection-failure {
+        message: string,
+        details: list<inspection-error>,
+    }
+    record analysis-error {
+        message: string,
+        kind: error-kind,
+    }
+    record truncated-range {
+        requested-size: u64,
+        available-size: u64,
+    }
+    record source-failure {
+        operation: source-operation,
+        offset: option<u64>,
+        cause: read-error,
+    }
+    record io-failure {
+        message: string,
+    }
+    record incomplete-read {
+        offset: u64,
+        remaining: u64,
+    }
+    record invalid-read-count {
+        reported: u64,
+        capacity: u64,
+    }
+    variant step-result {
+        success(report),
+        failure(inspection-failure),
+    }
+    variant step-kind {
+        select-file,
+        select-directory,
+        open-entry,
+        query-selection,
+        inspect,
+    }
+    variant container-kind {
+        thin,
+        universal32,
+        universal64,
+    }
+    variant header-format {
+        mach-o32,
+        mach-o64,
+    }
+    variant analysis-scope {
+        headers-only,
+    }
+    variant endianness {
+        little,
+        big,
+    }
+    variant inspection-error {
+        analysis(analysis-error),
+        source(source-failure),
+        unexpected-eof(incomplete-read),
+        invalid-read-count(invalid-read-count),
+    }
+    variant error-kind {
+        truncated(truncated-range),
+        range-overflow,
+        unsupported-image,
+        decode(string),
+    }
+    variant source-operation {
+        byte-length,
+        read-at,
+        selection,
+    }
+    variant read-error {
+        cancelled,
+        io-failure(io-failure),
+    }
+    inspect: func(%resource: string) -> inspection-outcome;
+    fidius-interface-hash: func() -> u64;
+    fidius-configure: func(config: list<u8>);
+}
+
+world inspection-plugin {
+    export inspection;
+}
