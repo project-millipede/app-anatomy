@@ -9,3 +9,4 @@ linera-witty = { git = "https://github.com/linera-io/linera-protocol", rev = "67
 workbench-operations = { path = "../../../../operations", features = ["wit-inspect-probe"] }
 binary-inspection = { path = "../../../../../binary/inspection", features = ["wit-inspect-probe"] }
 filesystem-protocol = { path = "../../../../../filesystem/protocol" }
+object = { version = "=0.40.0", default-features = false, features = ["read_core", "macho", "elf", "pe", "names"] }

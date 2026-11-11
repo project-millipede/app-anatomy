@@ -127,6 +127,7 @@ dependencies = [
  "binary-inspection",
  "filesystem-protocol",
  "linera-witty",
+ "object",
  "workbench-operations",
 ]
 
