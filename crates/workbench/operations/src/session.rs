@@ -4,10 +4,13 @@ use filesystem_protocol::{
     FileError, Request, Response, SelectionState, check_response_matches_request, decode_response,
     encode_request,
 };
+#[cfg(feature = "wit-inspect-probe")]
+use linera_witty::{WitLoad, WitType};
 
 /// Identifies a completed filesystem-client action.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "wit-inspect-probe", derive(WitType, WitLoad))]
 pub enum StepKind {
     /// Request native file selection.
     SelectFile,

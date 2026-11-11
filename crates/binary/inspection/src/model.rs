@@ -1,5 +1,8 @@
 //! Owned analysis facts, independent of presentation and transport.
 
+#[cfg(feature = "wit-inspect-probe")]
+use linera_witty::{WitLoad, WitType};
+
 use object::{
     Endianness,
     macho::{self, Version},
@@ -7,6 +10,7 @@ use object::{
 
 /// Outer file layout; universal entry width is independent of image header width.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wit-inspect-probe", derive(WitType, WitLoad))]
 pub enum ContainerKind {
     /// One Mach-O image at offset zero.
     Thin,
@@ -18,6 +22,8 @@ pub enum ContainerKind {
 
 /// Mach-O header layout, not CPU instruction or ABI pointer width.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wit-inspect-probe", derive(WitType, WitLoad))]
+#[cfg_attr(feature = "wit-inspect-probe", witty(name = "header-format"))]
 pub enum MachOHeaderFormat {
     /// The 28-byte mach_header layout.
     MachO32,
@@ -27,6 +33,7 @@ pub enum MachOHeaderFormat {
 
 /// Analysis performed; deeper verification is never implied by a report.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wit-inspect-probe", derive(WitType, WitLoad))]
 pub enum AnalysisScope {
     /// Headers, command envelopes, platform declarations and signature locations.
     HeadersOnly,

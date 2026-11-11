@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-workbench-operations = { path = "../../../../operations" }
-binary-inspection = { path = "../../../../../binary/inspection" }
+linera-witty = { git = "https://github.com/linera-io/linera-protocol", rev = "672d97bb2fce3127db351069df72f1d225d8f263", default-features = false, features = ["macros"] }
+workbench-operations = { path = "../../../../operations", features = ["wit-inspect-probe"] }
+binary-inspection = { path = "../../../../../binary/inspection", features = ["wit-inspect-probe"] }
 filesystem-protocol = { path = "../../../../../filesystem/protocol" }

@@ -468,6 +468,7 @@ dependencies = [
 name = "binary-inspection"
 version = "0.1.0"
 dependencies = [
+ "linera-witty",
  "object 0.40.0",
  "test-assets-ureq",
 ]
@@ -644,7 +645,7 @@ dependencies = [
  "flate2",
  "glob",
  "handlebars",
- "heck",
+ "heck 0.5.0",
  "hex",
  "image",
  "md5",
@@ -804,7 +805,7 @@ version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9c751b79415d4e559e3d1fcf128e09e720eb673a06d26cf6f392d37d75b66e0"
 dependencies = [
- "heck",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn 3.0.3",
@@ -1619,6 +1620,68 @@ dependencies = [
 ]
 
 [[package]]
+name = "frunk"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28aef0f9aa070bce60767c12ba9cb41efeaf1a2bc6427f87b7d83f11239a16d7"
+dependencies = [
+ "frunk_core 0.4.4",
+ "frunk_derives",
+ "frunk_proc_macros",
+ "serde",
+]
+
+[[package]]
+name = "frunk_core"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "476eeaa382e3462b84da5d6ba3da97b5786823c2d0d3a0d04ef088d073da225c"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "frunk_core"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bd3c9ba2e323e8b19e77f15873f60974a7d82f89b80e50c53be44b8b92927c1"
+
+[[package]]
+name = "frunk_derives"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0b4095fc99e1d858e5b8c7125d2638372ec85aa0fe6c807105cf10b0265ca6c"
+dependencies = [
+ "frunk_proc_macro_helpers",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "frunk_proc_macro_helpers"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b70229a1347a20d4af9c06116cc452acef34f798668c6b69e97dd5c8a88052bd"
+dependencies = [
+ "frunk_core 0.5.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "frunk_proc_macros"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c63fe4306e13ece9d1ac23ce02f121ffefd42ae876ad03ec2caf07232bde3023"
+dependencies = [
+ "frunk_core 0.5.0",
+ "frunk_proc_macro_helpers",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "funty"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1874,6 +1937,12 @@ checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 dependencies = [
  "foldhash 0.2.0",
 ]
+
+[[package]]
+name = "heck"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "heck"
@@ -2457,6 +2526,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61ff90caf6077a803a240f62fdbe88645a890bbca49ef8174c3cb0404362171d"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "linera-witty"
+version = "0.16.0"
+source = "git+https://github.com/linera-io/linera-protocol?rev=672d97bb2fce3127db351069df72f1d225d8f263#672d97bb2fce3127db351069df72f1d225d8f263"
+dependencies = [
+ "anyhow",
+ "cfg_aliases",
+ "either",
+ "frunk",
+ "linera-witty-macros",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "linera-witty-macros"
+version = "0.16.0"
+source = "git+https://github.com/linera-io/linera-protocol?rev=672d97bb2fce3127db351069df72f1d225d8f263#672d97bb2fce3127db351069df72f1d225d8f263"
+dependencies = [
+ "cfg_aliases",
+ "heck 0.4.1",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -3223,6 +3318,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "353e1ca18966c16d9deb1c69278edbc5f194139612772bd9537af60ac231e1e6"
 dependencies = [
  "elliptic-curve",
+]
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
 ]
 
 [[package]]
@@ -4367,7 +4486,7 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
 dependencies = [
- "heck",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -4447,6 +4566,16 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+
+[[package]]
+name = "syn"
+version = "1.0.109"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
+dependencies = [
+ "proc-macro2",
+ "unicode-ident",
+]
 
 [[package]]
 name = "syn"
@@ -5535,7 +5664,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48521bb96e56cbb9e031ad306c80dc20e89e69e49ada02781ee06f60fbcb545f"
 dependencies = [
  "anyhow",
- "heck",
+ "heck 0.5.0",
  "wit-parser",
 ]
 
@@ -5546,7 +5675,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3df3fe9b9a0066f82fd0c2f07f79d0ffc0f85c53fa5f998516d8722712479042"
 dependencies = [
  "anyhow",
- "heck",
+ "heck 0.5.0",
  "indexmap",
  "prettyplease",
  "syn 2.0.119",
@@ -5642,6 +5771,7 @@ dependencies = [
  "binary-inspection",
  "filesystem-data",
  "filesystem-protocol",
+ "linera-witty",
  "serde",
  "thiserror 2.0.21",
 ]
