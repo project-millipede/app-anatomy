@@ -11,6 +11,7 @@ default-members = ["."]
 resolver = "3"
 
 [dependencies]
+witgenstein-rs-macros = { git = "https://github.com/tschneidereit/witgenstein", rev = "f915331135cd409893890b9fea91cd8a69d2e864" }
 workbench-operations = { path = "../../../operations" }
 binary-inspection = { path = "../../../../binary/inspection" }
 filesystem-protocol = { path = "../../../../filesystem/protocol" }

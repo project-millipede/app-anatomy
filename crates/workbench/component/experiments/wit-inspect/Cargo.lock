@@ -131,7 +131,18 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 3.0.10",
+]
+
+[[package]]
+name = "syn"
+version = "2.0.119"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -162,7 +173,7 @@ checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -178,7 +189,18 @@ dependencies = [
  "binary-inspection",
  "filesystem-protocol",
  "object",
+ "witgenstein-rs-macros",
  "workbench-operations",
+]
+
+[[package]]
+name = "witgenstein-rs-macros"
+version = "0.1.0"
+source = "git+https://github.com/tschneidereit/witgenstein?rev=f915331135cd409893890b9fea91cd8a69d2e864#f915331135cd409893890b9fea91cd8a69d2e864"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
