@@ -423,6 +423,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "wit-inspect-witgenstein-native-control"
+version = "0.0.0"
+dependencies = [
+ "wit-inspect-witgenstein",
+]
+
+[[package]]
 name = "wit-parser"
 version = "0.254.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
