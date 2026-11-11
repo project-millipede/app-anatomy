@@ -1,6 +1,7 @@
-//! Mark concrete inspection records for the isolated Fidius adoption trial.
+//! Project ordinary Rust inspection data into concrete marked records.
 
 pub mod dto;
+mod project;
 
 #[cfg(test)]
 mod fixture;

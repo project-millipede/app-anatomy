@@ -925,6 +925,7 @@ dependencies = [
  "binary-inspection",
  "fidius-macro",
  "filesystem-protocol",
+ "object",
  "serde",
  "workbench-operations",
 ]
