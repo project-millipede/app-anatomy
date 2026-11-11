@@ -1,0 +1,10 @@
+[package]
+name = "linera-inspect-guest"
+version = "0.0.0"
+edition = "2024"
+publish = false
+[lib]
+crate-type = ["cdylib"]
+[dependencies]
+linera-inspect-schema = { path = "../schema" }
+wit-bindgen = "=0.60.0"

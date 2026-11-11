@@ -1,3 +1,3 @@
 [workspace]
-members = ["schema"]
+members = ["schema", "guest"]
 resolver = "3"
