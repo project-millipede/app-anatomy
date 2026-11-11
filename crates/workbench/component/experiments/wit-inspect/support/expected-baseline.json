@@ -1,0 +1,207 @@
+{
+  "success": {
+    "steps": [
+      {
+        "kind": "inspect",
+        "result": {
+          "tag": "ok",
+          "val": {
+            "container": "thin",
+            "containerEndianness": "little",
+            "byteLength": {
+              "$u64": "40192"
+            },
+            "images": [
+              {
+                "cpu": {
+                  "cpuType": {
+                    "value": 16777228,
+                    "name": "CPU_TYPE_ARM64"
+                  },
+                  "cpuSubtype": {
+                    "value": 0,
+                    "name": "CPU_SUBTYPE_ARM64_ALL"
+                  }
+                },
+                "headerFormat": "mach-o64",
+                "endianness": "little",
+                "fileRange": {
+                  "offset": {
+                    "$u64": "0"
+                  },
+                  "size": {
+                    "$u64": "40192"
+                  }
+                },
+                "fileType": {
+                  "value": 2,
+                  "name": "MH_EXECUTE"
+                },
+                "headerFlags": 2097285,
+                "platforms": [
+                  {
+                    "platform": {
+                      "value": 1,
+                      "name": "PLATFORM_MACOS"
+                    },
+                    "minimumOs": "13.0.0",
+                    "sdk": "13.3.0",
+                    "source": {
+                      "kind": {
+                        "value": 50,
+                        "name": "LC_BUILD_VERSION"
+                      },
+                      "fileRange": {
+                        "offset": {
+                          "$u64": "912"
+                        },
+                        "size": {
+                          "$u64": "32"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "signatureCommands": [
+                  {
+                    "commandRange": {
+                      "offset": {
+                        "$u64": "1072"
+                      },
+                      "size": {
+                        "$u64": "16"
+                      }
+                    },
+                    "dataRange": {
+                      "offset": {
+                        "$u64": "33024"
+                      },
+                      "size": {
+                        "$u64": "7168"
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "scope": "headers-only"
+          }
+        }
+      }
+    ]
+  },
+  "selection-failure": {
+    "steps": [
+      {
+        "kind": "inspect",
+        "result": {
+          "tag": "err",
+          "val": {
+            "message": "Cannot validate native selection: The file is no longer selected.",
+            "details": [
+              {
+                "tag": "source",
+                "val": {
+                  "operation": "selection",
+                  "offset": {
+                    "$undefined": true
+                  },
+                  "cause": {
+                    "tag": "io-failure",
+                    "val": {
+                      "message": "The file is no longer selected."
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "metadata-failure": {
+    "steps": [
+      {
+        "kind": "inspect",
+        "result": {
+          "tag": "err",
+          "val": {
+            "message": "Cannot read file metadata: probe metadata failure",
+            "details": [
+              {
+                "tag": "source",
+                "val": {
+                  "operation": "byte-length",
+                  "offset": {
+                    "$undefined": true
+                  },
+                  "cause": {
+                    "tag": "io-failure",
+                    "val": {
+                      "message": "probe metadata failure"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "unsupported-image": {
+    "steps": [
+      {
+        "kind": "inspect",
+        "result": {
+          "tag": "err",
+          "val": {
+            "message": "The input is not a supported Mach-O image",
+            "details": [
+              {
+                "tag": "analysis",
+                "val": {
+                  "message": "The input is not a supported Mach-O image",
+                  "kind": {
+                    "tag": "unsupported-image"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "read-failure": {
+    "steps": [
+      {
+        "kind": "inspect",
+        "result": {
+          "tag": "err",
+          "val": {
+            "message": "Input read at 0: Transport receive failed: probe read failure",
+            "details": [
+              {
+                "tag": "source",
+                "val": {
+                  "operation": "read-at",
+                  "offset": {
+                    "$u64": "0"
+                  },
+                  "cause": {
+                    "tag": "io-failure",
+                    "val": {
+                      "message": "Transport receive failed: probe read failure"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
