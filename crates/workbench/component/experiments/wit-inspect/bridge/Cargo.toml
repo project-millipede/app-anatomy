@@ -1,0 +1,12 @@
+[package]
+name = "wit-inspect-witgenstein-bridge"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-inspect-witgenstein = { path = ".." }
+wit-bindgen = { version = "=0.60.0", features = ["async"] }
