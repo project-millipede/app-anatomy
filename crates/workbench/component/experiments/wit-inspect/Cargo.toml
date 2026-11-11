@@ -1,0 +1,15 @@
+[package]
+name = "wit-inspect-fidius-adoption"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Keep generator dependencies and resolution out of the application workspace.
+[workspace]
+
+[dependencies]
+workbench-operations = { path = "../../../operations" }
+filesystem-protocol = { path = "../../../../filesystem/protocol" }
+
+[dev-dependencies]
+binary-inspection = { path = "../../../../binary/inspection" }

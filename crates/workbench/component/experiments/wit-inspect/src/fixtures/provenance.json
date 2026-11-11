@@ -1,0 +1,23 @@
+{
+  "repository": "https://github.com/gimli-rs/object-testfiles",
+  "revision": "fe8da208d4013ec3691311915fdc7d71436c0d1e",
+  "license_note": "No repository-wide LICENSE or COPYING file appears in the pinned tree. These upstream corpus binaries are verification inputs; do not attribute the object crate license to these files.",
+  "fixtures": [
+    {
+      "file": "macho-base-aarch64-codesign",
+      "upstream_path": "macho/base-aarch64-codesign",
+      "bytes": 40192,
+      "git_blob_sha1": "fa32563e06ee0eac4019442bd3f55e3ba683af0d",
+      "sha256": "76694c29cc25222cca56be5af14a811224f97c972e003b3745f88b944c5684c5",
+      "url": "https://raw.githubusercontent.com/gimli-rs/object-testfiles/fe8da208d4013ec3691311915fdc7d71436c0d1e/macho/base-aarch64-codesign"
+    },
+    {
+      "file": "elf-base.o",
+      "upstream_path": "elf/base.o",
+      "bytes": 1552,
+      "git_blob_sha1": "077564eeaa13a2e348374fed1ae83c24c0789aa8",
+      "sha256": "a361b3588b8b8cf1b1d9a47a48498b011ce5a72bd2a8170da417718c7d727b25",
+      "url": "https://raw.githubusercontent.com/gimli-rs/object-testfiles/fe8da208d4013ec3691311915fdc7d71436c0d1e/elf/base.o"
+    }
+  ]
+}
