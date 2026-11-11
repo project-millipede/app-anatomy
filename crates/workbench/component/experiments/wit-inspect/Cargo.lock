@@ -177,6 +177,7 @@ version = "0.0.0"
 dependencies = [
  "binary-inspection",
  "filesystem-protocol",
+ "object",
  "workbench-operations",
 ]
 

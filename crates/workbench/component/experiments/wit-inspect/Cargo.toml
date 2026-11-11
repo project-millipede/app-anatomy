@@ -12,7 +12,6 @@ resolver = "3"
 
 [dependencies]
 workbench-operations = { path = "../../../operations" }
-filesystem-protocol = { path = "../../../../filesystem/protocol" }
-
-[dev-dependencies]
 binary-inspection = { path = "../../../../binary/inspection" }
+filesystem-protocol = { path = "../../../../filesystem/protocol" }
+object = { version = "=0.40.0", default-features = false, features = ["read_core", "macho", "elf", "pe", "names"] }
