@@ -1,0 +1,18 @@
+[package]
+name = "wit-inspect-witgenstein"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Keep generator dependencies and resolution out of the application workspace.
+[workspace]
+members = ["."]
+default-members = ["."]
+resolver = "3"
+
+[dependencies]
+workbench-operations = { path = "../../../operations" }
+filesystem-protocol = { path = "../../../../filesystem/protocol" }
+
+[dev-dependencies]
+binary-inspection = { path = "../../../../binary/inspection" }
