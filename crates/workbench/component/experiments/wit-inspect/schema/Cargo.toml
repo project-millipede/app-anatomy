@@ -1,0 +1,10 @@
+[package]
+name = "linera-inspect-schema"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+workbench-operations = { path = "../../../../operations" }
+binary-inspection = { path = "../../../../../binary/inspection" }
+filesystem-protocol = { path = "../../../../../filesystem/protocol" }
