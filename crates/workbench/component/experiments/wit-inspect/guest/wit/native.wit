@@ -1,0 +1,153 @@
+package wit-inspect:linera;
+
+interface native {
+    inspect: func(resource-id: string) -> inspection-outcome;
+
+    record analysis-error {
+        message: string,
+        kind: error-kind,
+    }
+
+    enum analysis-scope {
+        headers-only,
+    }
+
+    record command-location {
+        kind: macho-value,
+        file-range: file-range,
+    }
+
+    enum container-kind {
+        thin,
+        universal32,
+        universal64,
+    }
+
+    record cpu-identity {
+        cpu-type: macho-value,
+        cpu-subtype: macho-value,
+    }
+
+    enum endianness {
+        little,
+        big,
+    }
+
+    variant error-kind {
+        truncated(truncated-range),
+        range-overflow,
+        unsupported-image,
+        decode(string),
+    }
+
+    record file-range {
+        offset: u64,
+        size: u64,
+    }
+
+    enum header-format {
+        mach-o32,
+        mach-o64,
+    }
+
+    record image {
+        cpu: cpu-identity,
+        header-format: header-format,
+        endianness: endianness,
+        file-range: file-range,
+        file-type: macho-value,
+        header-flags: u32,
+        platforms: list<platform-declaration>,
+        signature-commands: list<signature-command>,
+    }
+
+    record incomplete-read {
+        offset: u64,
+        remaining: u64,
+    }
+
+    variant inspection-error {
+        analysis(analysis-error),
+        source(source-failure),
+        unexpected-eof(incomplete-read),
+        invalid-read-count(invalid-read-count),
+    }
+
+    record inspection-failure {
+        message: string,
+        details: list<inspection-error>,
+    }
+
+    record inspection-outcome {
+        steps: list<inspection-step-outcome>,
+    }
+
+    record inspection-step-outcome {
+        kind: step-kind,
+        step-result: result<report, inspection-failure>,
+    }
+
+    record invalid-read-count {
+        reported: u64,
+        capacity: u64,
+    }
+
+    record io-failure {
+        message: string,
+    }
+
+    record macho-value {
+        value: u32,
+        name: option<string>,
+    }
+
+    record platform-declaration {
+        platform: option<macho-value>,
+        minimum-os: string,
+        sdk: string,
+        source: command-location,
+    }
+
+    variant read-error {
+        cancelled,
+        io-failure(io-failure),
+    }
+
+    record report {
+        container: container-kind,
+        container-endianness: endianness,
+        byte-length: u64,
+        images: list<image>,
+        scope: analysis-scope,
+    }
+
+    record signature-command {
+        command-range: file-range,
+        data-range: file-range,
+    }
+
+    record source-failure {
+        operation: source-operation,
+        offset: option<u64>,
+        cause: read-error,
+    }
+
+    enum source-operation {
+        byte-length,
+        read-at,
+        selection,
+    }
+
+    enum step-kind {
+        select-file,
+        select-directory,
+        open-entry,
+        query-selection,
+        inspect,
+    }
+
+    record truncated-range {
+        requested-size: u64,
+        available-size: u64,
+    }
+}
