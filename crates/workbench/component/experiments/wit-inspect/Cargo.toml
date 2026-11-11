@@ -8,8 +8,10 @@ publish = false
 [workspace]
 
 [dependencies]
+fidius-macro = { git = "https://github.com/colliery-io/fidius", rev = "208b6010f9466c06f54e4cc10d66fa9985f12029" }
 workbench-operations = { path = "../../../operations" }
 filesystem-protocol = { path = "../../../../filesystem/protocol" }
+serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
 binary-inspection = { path = "../../../../binary/inspection" }
