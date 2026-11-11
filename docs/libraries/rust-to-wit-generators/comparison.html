@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Rust-to-WIT generator comparison</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --background: light-dark(rgb(255 255 255), rgb(24 24 24));
+        --foreground: light-dark(rgb(26 28 31), rgb(255 255 255));
+        --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+        --muted-foreground: light-dark(
+          rgb(26 28 31 / 49.4%),
+          rgb(255 255 255 / 49.8%)
+        );
+        --border: light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%));
+        --input: light-dark(
+          rgb(26 28 31 / 11.8%),
+          color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+        );
+        --primary: light-dark(rgb(51 156 255), rgb(131 195 255));
+        --font-size-base: 16px;
+        --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+        --line-height-small: calc(var(--font-size-small) + 4px);
+        --font-sans:
+          -apple-system-body, ui-sans-serif, -apple-system, system-ui,
+          'Segoe UI', Helvetica, 'Apple Color Emoji', Arial, sans-serif,
+          'Segoe UI Emoji', 'Segoe UI Symbol';
+        --font-mono:
+          ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+          'Liberation Mono', monospace;
+        --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+        --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+        background: var(--background);
+        color: var(--foreground);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        max-width: 1056px;
+        margin: 0 auto;
+        padding: 16px;
+        font-family: var(--font-sans);
+        font-size: var(--font-size-base);
+        line-height: calc(var(--font-size-base) * 1.625);
+        font-weight: 400;
+        -webkit-font-smoothing: antialiased;
+      }
+      p {
+        margin-block: 0;
+      }
+      a {
+        color: color-mix(in srgb, var(--primary) 80%, var(--foreground) 20%);
+        text-decoration: none;
+        text-underline-offset: 2px;
+      }
+      a:is(:hover, :focus-visible) {
+        text-decoration-line: underline;
+        text-decoration-style: dashed;
+        text-decoration-thickness: 0.5px;
+      }
+      code {
+        display: inline;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.92em;
+        overflow-wrap: anywhere;
+        -webkit-box-decoration-break: clone;
+        box-decoration-break: clone;
+        word-break: break-word;
+      }
+      .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        scrollbar-width: thin;
+      }
+      .table {
+        width: 100%;
+        color: var(--foreground);
+        text-align: start;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: calc(var(--font-size-base) * 0.875);
+        line-height: calc(var(--font-size-base) * 1.625);
+        font-family: var(--font-sans);
+      }
+      .table :is(th, td) {
+        padding: 8px 16px 8px 0;
+        overflow-wrap: break-word;
+        border-bottom: 1px solid
+          color-mix(in srgb, var(--foreground) 5%, transparent);
+        text-align: start;
+        vertical-align: top;
+      }
+      .table :is(th, td):last-child {
+        padding-inline-end: 0;
+      }
+      .table th {
+        font-weight: 600;
+      }
+      .table thead :is(th, td) {
+        border-bottom-color: var(--input);
+        padding-block: calc(var(--font-size-base) / 2);
+        line-height: var(--font-size-base);
+      }
+      .table tbody tr:last-child :is(th, td) {
+        border-bottom: 0;
+      }
+      .text-small {
+        font-size: var(--font-size-small);
+        line-height: var(--line-height-small);
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="wit-generator-comparison">
+      <style>
+        #wit-generator-comparison {
+          color: var(--foreground);
+        }
+        #wit-generator-comparison .legend {
+          display: flex;
+          flex-wrap: wrap;
+          gap: calc(var(--font-size-base) * 0.5) calc(var(--font-size-base) * 1);
+          margin-bottom: calc(var(--font-size-base) * 0.5);
+        }
+        #wit-generator-comparison .legend-item {
+          display: inline-flex;
+          align-items: center;
+          gap: calc(var(--font-size-base) * 0.35);
+        }
+        #wit-generator-comparison .swatch {
+          width: calc(var(--font-size-base) * 1.15);
+          height: calc(var(--font-size-base) * 1.15);
+          display: inline-block;
+        }
+        #wit-generator-comparison .match {
+          background-color: color-mix(in srgb, var(--green) 15%, transparent);
+        }
+        #wit-generator-comparison .diff-l {
+          background-color: color-mix(in srgb, var(--red) 12%, transparent);
+        }
+        #wit-generator-comparison .diff-w {
+          background-color: color-mix(in srgb, var(--red) 22%, transparent);
+        }
+        #wit-generator-comparison .diff-f {
+          background-color: color-mix(in srgb, var(--red) 32%, transparent);
+        }
+        #wit-generator-comparison .matrix {
+          min-width: 800px;
+        }
+        #wit-generator-comparison .group {
+          background-color: var(--muted);
+          color: var(--muted-foreground);
+        }
+        #wit-generator-comparison .note {
+          margin-bottom: calc(var(--font-size-base) * 1);
+        }
+      </style>
+      <div class="legend" aria-label="Cell color legend">
+        <span class="legend-item"
+          ><span class="swatch match" aria-hidden="true"></span
+          ><span>= Matching entries</span></span
+        >
+        <span class="legend-item"
+          ><span class="swatch diff-l" aria-hidden="true"></span
+          ><span>≠ Linera · red α 12%</span></span
+        >
+        <span class="legend-item"
+          ><span class="swatch diff-w" aria-hidden="true"></span
+          ><span>≠ WITGenstein · red α 22%</span></span
+        >
+        <span class="legend-item"
+          ><span class="swatch diff-f" aria-hidden="true"></span
+          ><span>≠ Fidius · red α 32%</span></span
+        >
+      </div>
+      <p class="text-small note" id="wit-comparison-key">
+        Green marks entries repeated within the same row. Red marks distinct
+        entries; opacity identifies the generator. Colors compare content, not
+        pass/fail status.
+      </p>
+      <div class="table-responsive">
+        <table
+          class="table table-sm matrix"
+          aria-describedby="wit-comparison-key"
+        >
+          <caption class="sr-only">
+            Full comparison of the three pinned Session::inspect adoption trials
+            and their proposed commit histories.
+          </caption>
+          <colgroup>
+            <col style="width: 22%" />
+            <col style="width: 26%" />
+            <col style="width: 26%" />
+            <col style="width: 26%" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">Comparison</th>
+              <th scope="col">
+                <a
+                  href="https://github.com/project-millipede/app-anatomy/blob/47d483ad0a59db76cb9710a1198490fb71fec9ad/crates/workbench/component/experiments/wit-inspect/README.md"
+                  >Linera Witty</a
+                >
+              </th>
+              <th scope="col">
+                <a
+                  href="https://github.com/project-millipede/app-anatomy/blob/7f41918ec817097469f6acbb1aaf33e5e9cf5cf8/crates/workbench/component/experiments/wit-inspect/README.md"
+                  >WITGenstein</a
+                >
+              </th>
+              <th scope="col">
+                <a
+                  href="https://github.com/project-millipede/app-anatomy/blob/bb06eb07fa282c7fcc913b3ed855757e4dbe0077/crates/workbench/component/experiments/wit-inspect/README.md"
+                  >Fidius</a
+                >
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="group">
+              <th colspan="4" scope="colgroup">
+                Operation, information and shared checks
+              </th>
+            </tr>
+            <tr>
+              <th scope="row">Business operation</th>
+              <td class="match">
+                Actual Rust
+                <code>Session::inspect(&amp;mut self, &amp;str)</code>
+              </td>
+              <td class="match">
+                Actual Rust
+                <code>Session::inspect(&amp;mut self, &amp;str)</code>
+              </td>
+              <td class="match">
+                Actual Rust
+                <code>Session::inspect(&amp;mut self, &amp;str)</code>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Fixture transport</th>
+              <td class="match">
+                Deterministic Rust transport using existing filesystem requests
+                and responses
+              </td>
+              <td class="match">
+                Deterministic Rust transport using existing filesystem requests
+                and responses
+              </td>
+              <td class="match">
+                Deterministic Rust transport using existing filesystem requests
+                and responses
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Binary inputs</th>
+              <td class="match">
+                Same pinned signed Mach-O and ELF fixtures, with provenance and
+                checksums
+              </td>
+              <td class="match">
+                Same pinned signed Mach-O and ELF fixtures, with provenance and
+                checksums
+              </td>
+              <td class="match">
+                Same pinned signed Mach-O and ELF fixtures, with provenance and
+                checksums
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Five scenarios</th>
+              <td class="match">
+                Success; selection, metadata, unsupported-image and read
+                failures
+              </td>
+              <td class="match">
+                Success; selection, metadata, unsupported-image and read
+                failures
+              </td>
+              <td class="match">
+                Success; selection, metadata, unsupported-image and read
+                failures
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Independent expected output</th>
+              <td class="match">
+                Same frozen production-adapter output from <code>92ad854</code>
+              </td>
+              <td class="match">
+                Same frozen production-adapter output from <code>92ad854</code>
+              </td>
+              <td class="match">
+                Same frozen production-adapter output from <code>92ad854</code>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Complete returned information</th>
+              <td class="match">
+                Complete report and diagnostic trees match in all five observed
+                scenarios
+              </td>
+              <td class="match">
+                Complete report and diagnostic trees match in all five observed
+                scenarios
+              </td>
+              <td class="match">
+                Complete report and diagnostic trees match in all five observed
+                scenarios
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Report and error policy</th>
+              <td class="match">
+                Handwritten semantic projection, including matching-field copies
+              </td>
+              <td class="match">
+                Handwritten semantic projection, including matching-field copies
+              </td>
+              <td class="match">
+                Handwritten semantic projection, including matching-field copies
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Original Rust error causes</th>
+              <td class="match">
+                Retained before projection; original PermissionDenied cause
+                asserted natively
+              </td>
+              <td class="match">
+                Retained before projection; original PermissionDenied cause
+                asserted natively
+              </td>
+              <td class="match">
+                Retained before projection; original PermissionDenied cause
+                asserted natively
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Exported diagnostics</th>
+              <td class="match">
+                Portable records with complete messages, ordered typed details,
+                operations and offsets
+              </td>
+              <td class="match">
+                Portable records with complete messages, ordered typed details,
+                operations and offsets
+              </td>
+              <td class="match">
+                Portable records with complete messages, ordered typed details,
+                operations and offsets
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Generic outcome reuse</th>
+              <td class="match">
+                Concrete boundary outcome and step records; core generic aliases
+                are not reused
+              </td>
+              <td class="match">
+                Concrete boundary outcome and step records; core generic aliases
+                are not reused
+              </td>
+              <td class="match">
+                Concrete boundary outcome and step records; core generic aliases
+                are not reused
+              </td>
+            </tr>
+            <tr class="group">
+              <th colspan="4" scope="colgroup">
+                Generator inputs and generated binding work
+              </th>
+            </tr>
+            <tr>
+              <th scope="row">Pinned upstream revision</th>
+              <td class="diff-l">
+                <a
+                  href="https://github.com/linera-io/linera-protocol/commit/672d97bb2fce3127db351069df72f1d225d8f263"
+                  ><code>672d97bb2fce</code></a
+                ><br />Witty 0.16.0
+              </td>
+              <td class="diff-w">
+                <a
+                  href="https://github.com/tschneidereit/witgenstein/commit/f915331135cd409893890b9fea91cd8a69d2e864"
+                  ><code>f915331135cd</code></a
+                >
+              </td>
+              <td class="diff-f">
+                <a
+                  href="https://github.com/colliery-io/fidius/commit/208b6010f9466c06f54e4cc10d66fa9985f12029"
+                  ><code>208b6010f946</code></a
+                ><br />Fidius 0.5.9
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Schema-generation entry</th>
+              <td class="diff-l">
+                Derives, <code>wit_import</code>, explicit interface and world
+                writers
+              </td>
+              <td class="diff-w">
+                <code>#[export]</code> facade and rustdoc-driven CLI; JSON
+                format 57
+              </td>
+              <td class="diff-f">
+                DTO markers, plugin macros and
+                <code>fidius_build::emit_wit()</code>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">DTO metadata</th>
+              <td class="diff-l">
+                <code>WitType</code> and <code>WitLoad</code>
+              </td>
+              <td class="diff-w">
+                Rustdoc-discovered fields; ordinary <code>Debug</code>/<code
+                  >Clone</code
+                >
+                derives
+              </td>
+              <td class="diff-f"><code>WitType</code> and Serde derives</td>
+            </tr>
+            <tr>
+              <th scope="row">Guest implementation</th>
+              <td class="diff-l">Handwritten</td>
+              <td class="diff-w">Handwritten fallback</td>
+              <td class="diff-f">Generated by its plugin macros</td>
+            </tr>
+            <tr>
+              <th scope="row">Type adaptation</th>
+              <td class="match">26 handwritten <code>with</code> mappings</td>
+              <td class="match">26 handwritten <code>with</code> mappings</td>
+              <td class="diff-f">Generated bidirectional converters</td>
+            </tr>
+            <tr>
+              <th scope="row">Why that binding path is used</th>
+              <td class="diff-l">
+                Witty generates the schema through the tested workflow. We
+                supply the standard component guest.
+              </td>
+              <td class="diff-w">
+                Its generated wrapper fails with unresolved
+                <code>InspectionOutcome</code>. The working component uses our
+                separate bridge.
+              </td>
+              <td class="diff-f">
+                Its macros own the interface-to-implementation binding and
+                generate that integration together.
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Working Guest binding version</th>
+              <td class="match"><code>wit-bindgen 0.60</code></td>
+              <td class="match"><code>wit-bindgen 0.60</code></td>
+              <td class="diff-f"><code>wit-bindgen 0.44</code></td>
+            </tr>
+            <tr>
+              <th scope="row">Additional binding detail</th>
+              <td class="diff-l">
+                Inspected Witty bindings are host-oriented; this trial adds its
+                own Guest
+              </td>
+              <td class="diff-w">
+                Stock <code>wit-bindgen 0.40</code> wrapper reproduces E0425
+                before the manual fallback
+              </td>
+              <td class="diff-f">
+                Plugin workflow also generates native ABI shims and a typed
+                client
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Rust representations at lowering</th>
+              <td class="match">Mapped local DTOs lower directly</td>
+              <td class="match">Mapped local DTOs lower directly</td>
+              <td class="diff-f">
+                54 generated <code>From</code> implementations convert between
+                27 DTOs and separate WIT types
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Generated output handling</th>
+              <td class="match">
+                Generated WIT is consumed unchanged; regenerated run output
+                stays under ignored target directories
+              </td>
+              <td class="match">
+                Generated WIT is consumed unchanged; regenerated run output
+                stays under ignored target directories
+              </td>
+              <td class="match">
+                Generated WIT is consumed unchanged; regenerated run output
+                stays under ignored target directories
+              </td>
+            </tr>
+            <tr class="group">
+              <th colspan="4" scope="colgroup">
+                Wire representation, Rust type reuse and ownership
+              </th>
+            </tr>
+            <tr>
+              <th scope="row">Exported interface shape</th>
+              <td class="diff-l">Flat inspection function</td>
+              <td class="diff-w">
+                Session resource with a constructor and inspection method
+              </td>
+              <td class="diff-f">Flat unit-plugin interface</td>
+            </tr>
+            <tr>
+              <th scope="row">Ordinary Session lifetime</th>
+              <td class="match">New Session per inspection call</td>
+              <td class="diff-w">
+                Session retained by each independently owned resource
+              </td>
+              <td class="match">New Session per inspection call</td>
+            </tr>
+            <tr>
+              <th scope="row">WIT package</th>
+              <td class="diff-l"><code>wit-inspect:linera</code></td>
+              <td class="diff-w"><code>apple-code:analysis@0.5.0</code></td>
+              <td class="diff-f"><code>fidius:inspection@0.1.0</code></td>
+            </tr>
+            <tr>
+              <th scope="row">Framework exports</th>
+              <td class="diff-l">Flat <code>inspect</code> export</td>
+              <td class="diff-w">
+                Resource constructor and <code>inspect</code> method
+              </td>
+              <td class="diff-f">
+                <code>inspect</code>, interface-hash and configure functions
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Nested step result</th>
+              <td class="match">
+                Built-in <code>Result&lt;Report, InspectionFailure&gt;</code>
+              </td>
+              <td class="match">
+                Built-in <code>Result&lt;Report, InspectionFailure&gt;</code>
+              </td>
+              <td class="diff-f">
+                Handwritten <code>StepResult::Success</code>/<code
+                  >Failure</code
+                >
+                variant
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Unit-enum representation</th>
+              <td class="match">WIT enums</td>
+              <td class="match">WIT enums</td>
+              <td class="diff-f">WIT variants</td>
+            </tr>
+            <tr>
+              <th scope="row">
+                Step result field<br /><span class="text-small"
+                  >Production uses result</span
+                >
+              </th>
+              <td class="match"><code>step-result</code></td>
+              <td class="match"><code>step-result</code></td>
+              <td class="match"><code>step-result</code></td>
+            </tr>
+            <tr>
+              <th scope="row">Local records</th>
+              <td class="match">17</td>
+              <td class="match">17</td>
+              <td class="match">17</td>
+            </tr>
+            <tr>
+              <th scope="row">Named record fields</th>
+              <td class="match">44</td>
+              <td class="match">44</td>
+              <td class="match">44</td>
+            </tr>
+            <tr>
+              <th scope="row">Local enum types</th>
+              <td class="diff-l">5</td>
+              <td class="diff-w">9</td>
+              <td class="diff-f">10, including StepResult</td>
+            </tr>
+            <tr>
+              <th scope="row">Reused owner enum types</th>
+              <td class="diff-l">
+                4 through optional derives: StepKind, ContainerKind,
+                MachOHeaderFormat and AnalysisScope
+              </td>
+              <td class="match">0; local declarations</td>
+              <td class="match">0; local declarations</td>
+            </tr>
+            <tr>
+              <th scope="row">Reachable boundary types</th>
+              <td class="match">26</td>
+              <td class="match">26</td>
+              <td class="diff-f">27</td>
+            </tr>
+            <tr>
+              <th scope="row">Owner-crate dependency placement</th>
+              <td class="diff-l">
+                Default-off Witty dependencies and metadata features in two
+                owner crates
+              </td>
+              <td class="match">
+                Generator dependencies confined to the experiment
+              </td>
+              <td class="match">
+                Generator dependencies confined to the experiment
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Exact production contract</th>
+              <td class="match">
+                Partial adoption; full production factory/interface contract
+                differs
+              </td>
+              <td class="match">
+                Partial adoption; full production factory/interface contract
+                differs
+              </td>
+              <td class="match">
+                Partial adoption; full production factory/interface contract
+                differs
+              </td>
+            </tr>
+            <tr class="group">
+              <th colspan="4" scope="colgroup">Execution and verification</th>
+            </tr>
+            <tr>
+              <th scope="row">Trial Rust toolchain</th>
+              <td class="match">Rust 1.95.0</td>
+              <td class="match">Rust 1.95.0</td>
+              <td class="match">Rust 1.95.0</td>
+            </tr>
+            <tr>
+              <th scope="row">JS binding runtime</th>
+              <td class="match">Node 24, jco 1.40 and JSPI</td>
+              <td class="match">Node 24, jco 1.40 and JSPI</td>
+              <td class="match">Node 24, jco 1.40 and JSPI</td>
+            </tr>
+            <tr>
+              <th scope="row">Wasm target</th>
+              <td class="match"><code>wasm32-unknown-unknown</code></td>
+              <td class="match"><code>wasm32-unknown-unknown</code></td>
+              <td class="diff-f"><code>wasm32-wasip2</code></td>
+            </tr>
+            <tr>
+              <th scope="row">Component construction</th>
+              <td class="match">
+                Core Wasm packaged with <code>wasm-tools component new</code>
+              </td>
+              <td class="match">
+                Core Wasm packaged with <code>wasm-tools component new</code>
+              </td>
+              <td class="diff-f">
+                Component built for <code>wasm32-wasip2</code>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">WASI host bindings</th>
+              <td class="match">No WASI providers in this harness</td>
+              <td class="match">No WASI providers in this harness</td>
+              <td class="diff-f">
+                jco WASI cli, clocks, io and random providers
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">JSPI entry assertion</th>
+              <td class="match">Inspection returns a Promise</td>
+              <td class="match">Inspection returns a Promise</td>
+              <td class="match">Inspection returns a Promise</td>
+            </tr>
+            <tr>
+              <th scope="row">Native evidence</th>
+              <td class="diff-l">Five ordinary-operation tests</td>
+              <td class="diff-w">
+                Five ordinary-operation tests plus facade executions
+              </td>
+              <td class="diff-f">
+                Five ordinary-operation tests plus five complete
+                generated-native-ABI comparisons
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Native platform exercised</th>
+              <td class="match">aarch64 macOS</td>
+              <td class="match">aarch64 macOS</td>
+              <td class="match">aarch64 macOS</td>
+            </tr>
+            <tr>
+              <th scope="row">Returned-value normalization</th>
+              <td class="match">Rename stepResult to result for comparison</td>
+              <td class="match">Rename stepResult to result for comparison</td>
+              <td class="diff-f">
+                Normalize step-result envelope, unit-enum variants and native
+                Serde spelling
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Resource lifecycle evidence</th>
+              <td class="match">
+                Flat per-call API; retained resources are not exercised
+              </td>
+              <td class="diff-w">
+                Two resources; dispose one, inspect with the survivor and repeat
+                inspection
+              </td>
+              <td class="match">
+                Flat per-call API; retained resources are not exercised
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Additional execution scope</th>
+              <td class="match">
+                Browser, live Polymorph/service/dialogs and real asynchronous
+                imports remain unqualified
+              </td>
+              <td class="match">
+                Browser, live Polymorph/service/dialogs and real asynchronous
+                imports remain unqualified
+              </td>
+              <td class="match">
+                Browser, live Polymorph/service/dialogs and real asynchronous
+                imports remain unqualified
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Additional input coverage</th>
+              <td class="match">
+                Big-endian execution and multiple-error aggregation remain
+                unqualified
+              </td>
+              <td class="match">
+                Big-endian execution and multiple-error aggregation remain
+                unqualified
+              </td>
+              <td class="match">
+                Big-endian execution and multiple-error aggregation remain
+                unqualified
+              </td>
+            </tr>
+            <tr class="group">
+              <th colspan="4" scope="colgroup">
+                Maintenance evidence, authored work and proposed commit split
+              </th>
+            </tr>
+            <tr>
+              <th scope="row">DTO field-rename edits</th>
+              <td class="match">
+                Two authored Rust lines: declaration and projector initializer
+              </td>
+              <td class="match">
+                Two authored Rust lines: declaration and projector initializer
+              </td>
+              <td class="match">
+                Two authored Rust lines: declaration and projector initializer
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Rename evidence</th>
+              <td class="diff-l">Regenerated schema and compiled guest</td>
+              <td class="diff-w">
+                Compared the complete renamed success payload through jco
+              </td>
+              <td class="diff-f">
+                Regenerated both converter directions and verified renamed jco
+                field/value
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Maintenance reproduction</th>
+              <td class="match">Retained maintenance script</td>
+              <td class="match">Retained maintenance script</td>
+              <td class="diff-f">
+                Recorded manual measurement; current runner exercises the five
+                scenarios
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Rename scope and restoration</th>
+              <td class="match">
+                Component DTO change; original Rust sources and WIT restored
+                exactly
+              </td>
+              <td class="match">
+                Component DTO change; original Rust sources and WIT restored
+                exactly
+              </td>
+              <td class="match">
+                Component DTO change; original Rust sources and WIT restored
+                exactly
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">
+                Authored DTO lines<br /><span class="text-small"
+                  >Including comments and blanks</span
+                >
+              </th>
+              <td class="diff-l">130</td>
+              <td class="diff-w">150</td>
+              <td class="diff-f">155</td>
+            </tr>
+            <tr>
+              <th scope="row">
+                Authored projection lines<br /><span class="text-small"
+                  >Including comments and blanks</span
+                >
+              </th>
+              <td class="diff-l">160</td>
+              <td class="diff-w">175</td>
+              <td class="diff-f">184</td>
+            </tr>
+            <tr>
+              <th scope="row">Production binding lines removed</th>
+              <td class="match">0</td>
+              <td class="match">0</td>
+              <td class="match">0</td>
+            </tr>
+            <tr>
+              <th scope="row">Measured overall handwriting reduction</th>
+              <td class="match">Not established</td>
+              <td class="match">Not established</td>
+              <td class="match">Not established</td>
+            </tr>
+            <tr>
+              <th scope="row">Proposed commit count</th>
+              <td class="match">8</td>
+              <td class="match">8</td>
+              <td class="diff-f">7</td>
+            </tr>
+            <tr>
+              <th scope="row">Proposed binding commit</th>
+              <td class="match">6</td>
+              <td class="match">6</td>
+              <td class="diff-f">5</td>
+            </tr>
+            <tr>
+              <th scope="row">Generation/Guest commit boundary</th>
+              <td class="match">
+                Separate schema-generation and manual-Guest commits
+              </td>
+              <td class="match">
+                Separate schema-generation and manual-Guest commits
+              </td>
+              <td class="diff-f">
+                Combined commit for WIT, converters, native ABI and Guest
+                generation
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

@@ -115,6 +115,9 @@ retain versioned findings, limitations and proposed checks alongside each candid
 - [Native writer ownership and completion](libraries/native-writer-contracts/README.md):
   separate interactive proposal for Rust writer ownership, native LIEF adapters,
   output failures and the caller's staged verification and publication contract.
+- [Rust-to-WIT generator comparison](libraries/rust-to-wit-generators/README.md):
+  pinned Linera Witty, WITGenstein and Fidius inspection trials, with a colored
+  comparison of generated bindings, maintained code and contract differences.
 
 ## Filesystem
 
