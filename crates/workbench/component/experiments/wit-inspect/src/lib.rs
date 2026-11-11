@@ -1,3 +1,6 @@
-//! Fixture-backed native inspection for the generator experiment.
+//! Concrete inspection boundary values and the native scenario provider.
 
+pub mod dto;
 pub mod fixture;
+
+pub use dto::*;
