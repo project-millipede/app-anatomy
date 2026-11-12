@@ -60,7 +60,8 @@ export type ExplorerRelationshipCanvasProps = {
   contextId: string;
   activeRelationshipId: string | null;
   canGoBack: boolean;
-  onContextChange: (id: string) => void;
+  /** Omit when the context is fixed by the containing relationship session. */
+  onContextChange?: (id: string) => void;
   onPreview: (connection: CanvasConnection) => void;
   onClearPreview: () => void;
   onBack: () => void;
@@ -95,6 +96,10 @@ export function ExplorerRelationshipCanvas({
   feedback,
 }: ExplorerRelationshipCanvasProps) {
   const declarations = mode === 'declarations';
+  const emptySelection = !declarations && selectedEntry === undefined;
+  const selectedContext = dataset.contexts.find(
+    (context) => context.id === contextId,
+  );
   const applicationCenter = declarations && selectedEntry?.kind === 'directory';
   const nativePrompt = applicationCenter
     ? 'Select a file from the application to read declared references.'
@@ -334,6 +339,7 @@ export function ExplorerRelationshipCanvas({
 
   return (
     <CanvasPane
+      id={declarations ? 'workbench' : undefined}
       back={
         <Button
           disabled={!canGoBack}
@@ -367,216 +373,223 @@ export function ExplorerRelationshipCanvas({
       context={
         <div className={styles.previewControls}>
           {actions}
-          <label className={styles.selectLabel}>
-            {declarations ? 'Architecture slice' : 'Architecture context'}
-            <select
-              value={contextId}
-              onChange={(event) => onContextChange(event.target.value)}
-            >
-              {dataset.contexts.map((context) => (
-                <option key={context.id} value={context.id}>
-                  {context.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {onContextChange ? (
+            <label className={styles.selectLabel}>
+              {declarations ? 'Architecture slice' : 'Architecture context'}
+              <select
+                value={contextId}
+                onChange={(event) => onContextChange(event.target.value)}
+              >
+                {dataset.contexts.map((context) => (
+                  <option key={context.id} value={context.id}>
+                    {context.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <div className={styles.selectLabel}>
+              <span>Architecture context</span>
+              <span>{selectedContext?.label}</span>
+            </div>
+          )}
         </div>
       }
       feedback={feedback}
       canvas={
-        <BridgeViewport>
-          <ArcherSurface
-            className={styles.archerCanvas}
-            style={{ height: 'auto' }}
-            surfaceStyle={{ height: 'auto', overflow: 'visible' }}
-            defaultArrowStyle={{ arrowLength: 6, strokeWidth: 1 }}
-            svgElementProps={{ 'aria-hidden': true }}
-          >
-            <BridgeGrid
-              showBoundary={!declarations}
-              focusLabel={
-                applicationCenter ? 'Selected application' : 'Selected file'
-              }
-              north={bridge('north')}
-              west={bridge('west')}
-              east={bridge('east')}
-              south={bridge('south')}
-              focus={
-                <div className={styles.focusNode}>
-                  <div className={styles.focusPlaceholder}>
-                    <span className={styles.placeholderEyebrow}>
-                      {declarations
-                        ? applicationCenter
-                          ? 'Selected application'
-                          : 'Selected source file'
-                        : 'Selected entry'}
-                    </span>
-                    <div className={styles.focusTitle}>
-                      <span className={styles.fileGlyph} aria-hidden="true">
-                        ▧
+        emptySelection ? (
+          <p className={styles.muted}>
+            Select a file in Files to explore its relationships.
+          </p>
+        ) : (
+          <BridgeViewport>
+            <ArcherSurface
+              className={styles.archerCanvas}
+              style={{ height: 'auto' }}
+              surfaceStyle={{ height: 'auto', overflow: 'visible' }}
+              defaultArrowStyle={{ arrowLength: 6, strokeWidth: 1 }}
+              svgElementProps={{ 'aria-hidden': true }}
+            >
+              <BridgeGrid
+                showBoundary={!declarations}
+                focusLabel={
+                  applicationCenter ? 'Selected application' : 'Selected file'
+                }
+                north={bridge('north')}
+                west={bridge('west')}
+                east={bridge('east')}
+                south={bridge('south')}
+                focus={
+                  <div className={styles.focusNode}>
+                    <div className={styles.focusPlaceholder}>
+                      <span className={styles.placeholderEyebrow}>
+                        {declarations
+                          ? applicationCenter
+                            ? 'Selected application'
+                            : 'Selected source file'
+                          : 'Selected entry'}
                       </span>
-                      <div>
-                        <strong title={selectedEntry?.name}>
-                          {selectedEntry?.name ??
-                            (declarations
-                              ? 'Open an application or binary'
-                              : 'Choose an entry')}
-                        </strong>
-                        <p>
-                          {declarations
-                            ? applicationCenter
-                              ? 'Select an internal file to inspect'
-                              : selectedEntry
-                                ? 'Source file only'
-                                : 'No Explorer scope selected'
-                            : selectedEntry?.kind?.replaceAll('-', ' ')}
-                        </p>
+                      <div className={styles.focusTitle}>
+                        <span className={styles.fileGlyph} aria-hidden="true">
+                          ▧
+                        </span>
+                        <div>
+                          <strong title={selectedEntry?.name}>
+                            {selectedEntry?.name ??
+                              (declarations
+                                ? 'Open an application or binary'
+                                : 'Choose an entry')}
+                          </strong>
+                          <p>
+                            {declarations
+                              ? applicationCenter
+                                ? 'Select an internal file to inspect'
+                                : selectedEntry
+                                  ? 'Source file only'
+                                  : 'No Explorer scope selected'
+                              : selectedEntry?.kind?.replaceAll('-', ' ')}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    {!declarations && (
-                      <code title={selectedEntry?.path}>
-                        {selectedEntry?.path
-                          ? displayPath(selectedEntry.path)
-                          : undefined}
-                      </code>
-                    )}
-                    <div className={styles.focusMeta}>
-                      <span
-                        title={
-                          dataset.contexts.find(
-                            (context) => context.id === contextId,
-                          )?.label
-                        }
-                      >
-                        {
-                          dataset.contexts.find(
-                            (context) => context.id === contextId,
-                          )?.label
-                        }
-                      </span>
-                      {declarations ? (
-                        <span
-                          title={
-                            applicationName
-                              ? 'Confirmed application navigation scope; dependency targets are not evaluated.'
-                              : 'Standalone source; dependency targets are not evaluated.'
-                          }
-                        >
-                          {applicationName
-                            ? `Application: ${applicationName}`
-                            : selectedEntry
-                              ? 'Standalone binary'
-                              : 'No scope selected'}
-                        </span>
-                      ) : (
-                        <span title={rootEntry?.name}>
-                          Scope: {rootEntry?.name}
-                        </span>
+                      {!declarations && (
+                        <code title={selectedEntry?.path}>
+                          {selectedEntry?.path
+                            ? displayPath(selectedEntry.path)
+                            : undefined}
+                        </code>
                       )}
-                    </div>
-                  </div>
-                  {views.flatMap((view) =>
-                    view.slots.map((link, index) => {
-                      if (!link) return null;
-                      const incoming =
-                        view.position === 'north' || view.position === 'west';
-                      return (
-                        <div
-                          className={styles.portSlot}
-                          data-side={view.position}
-                          data-slot={index}
-                          style={{ '--port-index': index } as CSSProperties}
-                          aria-hidden="true"
-                          key={endpointId(view.position, link, 'port')}
-                        >
-                          <ArcherElement
-                            id={endpointId(view.position, link, 'port')}
-                            relations={
-                              incoming
-                                ? []
-                                : [
-                                    connection(
-                                      view.position,
-                                      endpointId(view.position, link, 'card'),
-                                      link,
-                                    ),
-                                  ]
+                      <div className={styles.focusMeta}>
+                        <span title={selectedContext?.label}>
+                          {selectedContext?.label}
+                        </span>
+                        {declarations ? (
+                          <span
+                            title={
+                              applicationName
+                                ? 'Confirmed application navigation scope; dependency targets are not evaluated.'
+                                : 'Standalone source; dependency targets are not evaluated.'
                             }
                           >
-                            <span
-                              className={styles.routingPort}
-                              data-side={view.position}
-                              data-active={
-                                link.relationshipId === activeRelationshipId ||
-                                undefined
+                            {applicationName
+                              ? `Application: ${applicationName}`
+                              : selectedEntry
+                                ? 'Standalone binary'
+                                : 'No scope selected'}
+                          </span>
+                        ) : (
+                          <span title={rootEntry?.name}>
+                            Scope: {rootEntry?.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {views.flatMap((view) =>
+                      view.slots.map((link, index) => {
+                        if (!link) return null;
+                        const incoming =
+                          view.position === 'north' || view.position === 'west';
+                        return (
+                          <div
+                            className={styles.portSlot}
+                            data-side={view.position}
+                            data-slot={index}
+                            style={{ '--port-index': index } as CSSProperties}
+                            aria-hidden="true"
+                            key={endpointId(view.position, link, 'port')}
+                          >
+                            <ArcherElement
+                              id={endpointId(view.position, link, 'port')}
+                              relations={
+                                incoming
+                                  ? []
+                                  : [
+                                      connection(
+                                        view.position,
+                                        endpointId(view.position, link, 'card'),
+                                        link,
+                                      ),
+                                    ]
                               }
-                            />
-                          </ArcherElement>
-                        </div>
-                      );
-                    }),
-                  )}
-                </div>
-              }
-            />
-          </ArcherSurface>
-        </BridgeViewport>
+                            >
+                              <span
+                                className={styles.routingPort}
+                                data-side={view.position}
+                                data-active={
+                                  link.relationshipId ===
+                                    activeRelationshipId || undefined
+                                }
+                              />
+                            </ArcherElement>
+                          </div>
+                        );
+                      }),
+                    )}
+                  </div>
+                }
+              />
+            </ArcherSurface>
+          </BridgeViewport>
+        )
       }
       legend={
-        <div className={styles.legend} aria-label="Connection legend">
-          {declarations ? (
-            <span>
-              <i
-                className={`${styles.legendSwatch} ${styles.externalSwatch}`}
-              />
-              Declared reference · file target not evaluated
-            </span>
-          ) : (
-            <>
-              <span>
-                <i
-                  className={`${styles.legendSwatch} ${styles.incomingSwatch}`}
-                />
-                Bundle ingress
-              </span>
-              <span>
-                <i className={styles.legendSwatch} />
-                Bundle egress
-              </span>
+        emptySelection ? null : (
+          <div className={styles.legend} aria-label="Connection legend">
+            {declarations ? (
               <span>
                 <i
                   className={`${styles.legendSwatch} ${styles.externalSwatch}`}
                 />
-                External / unresolved
+                Declared reference · file target not evaluated
               </span>
-              <span>
-                <i
-                  className={`${styles.legendSwatch} ${styles.candidateSwatch}`}
-                />
-                Candidate / inferred
-              </span>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <span>
+                  <i
+                    className={`${styles.legendSwatch} ${styles.incomingSwatch}`}
+                  />
+                  Bundle ingress
+                </span>
+                <span>
+                  <i className={styles.legendSwatch} />
+                  Bundle egress
+                </span>
+                <span>
+                  <i
+                    className={`${styles.legendSwatch} ${styles.externalSwatch}`}
+                  />
+                  External / unresolved
+                </span>
+                <span>
+                  <i
+                    className={`${styles.legendSwatch} ${styles.candidateSwatch}`}
+                  />
+                  Candidate / inferred
+                </span>
+              </>
+            )}
+          </div>
+        )
       }
       status={
-        declarations
-          ? !declarationsInspected
-            ? nativePrompt
+        emptySelection
+          ? 'No file selected.'
+          : declarations
+            ? !declarationsInspected
+              ? nativePrompt
+              : activeRelationshipId
+                ? 'Previewing a declared reference. Its file target has not been evaluated.'
+                : 'Select a declared reference to inspect its evidence. Target files and incoming references have not been evaluated.'
             : activeRelationshipId
-              ? 'Previewing a declared reference. Its file target has not been evaluated.'
-              : 'Select a declared reference to inspect its evidence. Target files and incoming references have not been evaluated.'
-          : activeRelationshipId
-            ? positions.some((position) =>
-                allLinks[position].some(
-                  (link) =>
-                    link.relationshipId === activeRelationshipId &&
-                    link.endpointIds.length > 0,
-                ),
-              )
-              ? 'Previewing a relationship. Its direct endpoints are outlined in the tree; the center selection is unchanged.'
-              : 'Previewing recorded evidence. This reference has no internal tree endpoint.'
-            : 'Select a relationship to inspect its recorded evidence. Corridors show up to three relationships at a time.'
+              ? positions.some((position) =>
+                  allLinks[position].some(
+                    (link) =>
+                      link.relationshipId === activeRelationshipId &&
+                      link.endpointIds.length > 0,
+                  ),
+                )
+                ? 'Previewing a relationship. Its direct endpoints are outlined in the tree; the center selection is unchanged.'
+                : 'Previewing recorded evidence. This reference has no internal tree endpoint.'
+              : 'Select a relationship to inspect its recorded evidence. Corridors show up to three relationships at a time.'
       }
     />
   );

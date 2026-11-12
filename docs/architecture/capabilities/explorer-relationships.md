@@ -296,10 +296,43 @@ execution qualification.
 
 ## Synthetic presentation ownership
 
-`ExplorerWorkspace` owns one Ark tree. Its selected value remains the sole center
-selection, and Ark owns expansion and keyboard focus. React owns the selected
-fixture/context, previewed relationship, explicit candidate choice and navigation
-history. No application Context or global runtime store is introduced.
+Synthetic Explorer opens on **Overview**, which contains the dataset chooser and
+architecture/context selector. It starts with the dataset's `initialContextId`
+and presents the supplied scope, CPU identity, executable and ordered runpaths,
+including their declaring images. These are authored context facts, not a native
+binary-layout report. **Relationships** displays the selected context as read-only;
+the Overview tab is the place to change it.
+
+`ExplorerWorkspace` owns the dataset. `DatasetWorkspace` owns the context and
+Overview/Relationships navigation. A `RelationshipSession`, keyed by context ID,
+owns its tree collection, Ark tree, preview, candidate choice, navigation history,
+pending reveal/scroll work and canvas pagination. Ark's selected value remains
+the sole center selection; Ark also owns expansion and keyboard focus. No
+application React Context or global runtime store is introduced.
+
+A fresh relationship session rebuilds the physical tree with the application root
+expanded and scroll at the top. It has no selected entry, center, preview, candidate
+choice or history. Before a file is selected, the canvas prompts for a selection;
+it mounts no relationship cards, ports or connectors, and the inspector shows no
+relationship evidence or endpoint actions. Selecting an entry looks up its
+Rust-generated neighborhood in the session's fixed context. An absent selection
+is intentional; a missing generated projection for a selected entry is a data
+error, not a successful empty neighborhood.
+
+Selecting a different context disposes the relationship session and creates a
+fresh one, resetting selection, expansion, scroll, preview, history and pagination.
+Disposal cancels pending animation-frame work so the preceding session cannot
+scroll the new tree. Returning to a previously used context also starts fresh;
+there is no per-context history. Selecting the current context is a no-op. Visiting
+Overview and returning without changing context retains the mounted relationship
+session and its state.
+
+Rebuilding uses the existing physical inventory shared by the contexts, so the
+same file paths can appear after a context change. It does not filter tree entries
+by architecture, compare the preceding center with another image, add frontend
+availability classifications, or export additional matching records. The existing
+Rust matching query remains part of candidate evaluation. This workspace reload
+does not refresh the browser, rescan native files or execute a live Wasm evaluator.
 
 All directly related internal entries receive IN, OUT or IN/OUT roles. SEL marks
 the center; a stronger outline marks endpoints of the previewed relationship.
@@ -313,10 +346,14 @@ ancestors opened, but an explicit candidate choice is required for reveal/focus.
 Alias chains remain evidence in the inspector, not transitive tree activation.
 
 Reveal retains selection; Focus selects the endpoint. Back restores center,
-context, relationship, candidate choice, expansion and tree scroll. Context
-changes retain only an applicable relationship preview. Manual collapse persists
-until a later selection, context change or reveal requires expansion. External or
-unresolved references do not fabricate tree entries or focus actions.
+relationship, candidate choice, expansion and tree scroll within the current
+session. Context is not stored in Back history and cannot change during traversal.
+Manual collapse persists until a later selection or reveal requires expansion.
+External or unresolved references do not fabricate tree entries or focus actions.
+
+The Overview/Relationships boundary changes only the synthetic presentation.
+Native Explorer retains its architecture selector, declaration behavior and
+page-owned runtime/model. Native overview integration is a separate milestone.
 
 The [tree virtualization contract](explorer-tree-virtualization.md) continues to
 own row geometry, nested mounting, Ark keyboard behavior and viewport scrolling.
@@ -422,8 +459,9 @@ and vertical clearance keeps midpoint elbows outside west/east cards and
 headings. The SVG shares the surface's stacking context below presentation
 content. The outer application boundary stays fixed.
 
-The dataset chooser remains in the tree pane and architecture context above the
-canvas. Ark remains the sole tree selection, expansion and keyboard owner.
+At this historical milestone, the dataset chooser was in the tree pane and
+architecture context above the canvas. Ark remained the sole tree selection,
+expansion and keyboard owner.
 Relationship preview, explicit candidate choice, Reveal, Focus and Back retain
 their existing semantics. No Rust facts, generated candidate data, component
 runtime or native adapter changed for this layout.
