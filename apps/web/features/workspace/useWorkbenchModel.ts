@@ -7,7 +7,38 @@ import type {
   SelectionOutcome,
   SelectionState,
 } from '@apple-code/browser/native';
-import type { Outcome, Report, WorkbenchModel } from './types';
+import { DirectoryExpansionError } from './DirectoryExpansionError';
+import type {
+  DirectoryExpansion,
+  OperationFeedback,
+  Report,
+  WorkbenchModel,
+} from './types';
+
+/** UI completion data; incomplete invocations have no published failure to reuse. */
+type SelectionCompletion =
+  | {
+      /** A complete outcome was published for this invocation. */
+      readonly status: 'outcome';
+      /** Identity retained when the invocation was admitted. */
+      readonly operation: object;
+      /** Original generated selection outcome, including every failed step. */
+      readonly outcome: SelectionOutcome;
+    }
+  | {
+      /** A host rejection was published separately from Rust outcomes. */
+      readonly status: 'host-error';
+      /** Identity retained when the invocation was admitted. */
+      readonly operation: object;
+      /** Same host diagnostic supplied to the presentation. */
+      readonly message: string;
+    }
+  | {
+      /** The request was busy, unavailable or no longer current. */
+      readonly status: 'incomplete';
+      /** Original invocation identity, when a request was admitted. */
+      readonly operation: object | null;
+    };
 
 /**
  * Read selection data from a successful step without inventing an empty selection.
@@ -38,9 +69,12 @@ export function useWorkbenchModel(
   const [selectionState, setSelectionState] = useState<SelectionState | null>(
     null,
   );
-  const [operationPending, setOperationPending] = useState(false);
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
-  const [hostError, setHostError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<OperationFeedback>({
+    operation: null,
+    pending: false,
+    outcome: null,
+    hostError: null,
+  });
   const [report, setReport] = useState<Report | null>(null);
   const [selectedSliceIndex, setSelectedSliceIndex] = useState(0);
   const selectedFile = selectionState?.file;
@@ -56,19 +90,16 @@ export function useWorkbenchModel(
     if (activeOperation.current) return null;
     const operation = {};
     activeOperation.current = operation;
-    setOperationPending(true);
-    setOutcome(null);
-    setHostError(null);
+    setFeedback({ operation, pending: true, outcome: null, hostError: null });
     return operation;
   }, []);
 
   /**
-   * Retain Rust's full outcome and update selection-dependent presentation.
+   * Update selection-dependent presentation from Rust's full outcome.
    * @param outcome Ordered step results from a selection request or query.
    * @returns Nothing; clears reports for a different or unavailable selection.
    */
   const applySelectionOutcome = useCallback((outcome: SelectionOutcome) => {
-    setOutcome(outcome);
     const state = selectionFromOutcome(outcome);
     setSelectionState(state);
     if (state === null) {
@@ -89,34 +120,50 @@ export function useWorkbenchModel(
   const finishOperation = useCallback((operation: object) => {
     if (activeOperation.current !== operation) return;
     activeOperation.current = null;
-    setOperationPending(false);
+    setFeedback((current) => {
+      if (current.operation !== operation) return current;
+      return { ...current, pending: false };
+    });
   }, []);
 
   /**
    * Present the completed steps of a selection operation from Rust.
    * @param request The selection operation exposed by the component binding.
-   * @returns Completion of UI handling, or immediately when the workbench is busy.
+   * @returns Published completion data, or the identity of an incomplete invocation.
    */
   const runSelection = useCallback(
-    async (request: (session: AsyncSession) => Promise<SelectionOutcome>) => {
+    async (
+      request: (session: AsyncSession) => Promise<SelectionOutcome>,
+    ): Promise<SelectionCompletion> => {
       const operation = beginOperation();
-      if (!operation) return;
+      if (!operation)
+        return { status: 'incomplete', operation: activeOperation.current };
       try {
         const session = await getNativeSession();
-        if (!session || activeOperation.current !== operation) return;
+        if (!session || activeOperation.current !== operation)
+          return { status: 'incomplete', operation };
         const outcome = await request(session);
-        if (activeOperation.current !== operation) return;
+        if (activeOperation.current !== operation)
+          return { status: 'incomplete', operation };
+        setFeedback({ operation, pending: true, outcome, hostError: null });
         applySelectionOutcome(outcome);
-        return outcome;
+        return { status: 'outcome', operation, outcome };
       } catch (caught) {
-        if (activeOperation.current !== operation) return;
+        if (activeOperation.current !== operation)
+          return { status: 'incomplete', operation };
         setSelectionState(null);
         setReport(null);
-        setHostError(
+        const message =
           caught instanceof Error
             ? caught.message
-            : 'Host execution failed without an error message.',
-        );
+            : 'Host execution failed without an error message.';
+        setFeedback({
+          operation,
+          pending: true,
+          outcome: null,
+          hostError: message,
+        });
+        return { status: 'host-error', operation, message };
       } finally {
         finishOperation(operation);
       }
@@ -166,6 +213,7 @@ export function useWorkbenchModel(
   /**
    * Forward an observed entry choice; Rust validates its directory and resource.
    * @param entryId Identifier from the last observed directory listing.
+   * @param parentDirectory Explicit loaded parent; omit to use the current directory.
    * @returns Completion, or immediately for a missing/unsupported entry or busy view.
    */
   const openNativeEntry = useCallback(
@@ -191,36 +239,66 @@ export function useWorkbenchModel(
     [runSelection, selectionState],
   );
 
+  /**
+   * Load a directory and identify which UI boundary owns any rejection.
+   * @param parentDirectory Observed parent directory resource.
+   * @param entryId Entry identifier scoped to that parent listing.
+   * @returns The loaded selection and its invocation identity.
+   */
   const expandNativeDirectory = useCallback(
     async (
       parentDirectory: string,
       entryId: number,
-    ): Promise<SelectionState> => {
+    ): Promise<DirectoryExpansion> => {
       if (activeOperation.current)
-        throw new Error('Another operation is in progress. Try again.');
-      const observed = await runSelection((session) =>
+        throw new DirectoryExpansionError(
+          'Another operation is in progress. Try again.',
+          activeOperation.current,
+          'tree',
+        );
+      const completion = await runSelection((session) =>
         session.expandDirectory(parentDirectory, entryId),
       );
-      if (!observed)
-        throw new Error('Directory expansion was not completed. Try again.');
-      const failed = observed.steps.find((step) => step.result.tag === 'err');
-      if (failed?.result.tag === 'err')
-        throw new Error(failed.result.val.message);
-      const state = selectionFromOutcome(observed);
-      if (state === null)
-        throw new Error(
-          'No loaded directory snapshot was returned. Try again.',
+      if (completion.status === 'incomplete')
+        throw new DirectoryExpansionError(
+          'Directory expansion was not completed. Try again.',
+          completion.operation,
+          'tree',
         );
-      const listing = state.directories.find(
+      if (completion.status === 'host-error')
+        throw new DirectoryExpansionError(
+          completion.message,
+          completion.operation,
+          'operation',
+        );
+      const { operation, outcome } = completion;
+      for (const step of outcome.steps) {
+        if (step.result.tag !== 'err') continue;
+        throw new DirectoryExpansionError(
+          step.result.val.message,
+          operation,
+          'operation',
+        );
+      }
+      const state = selectionFromOutcome(outcome);
+      if (state === null)
+        throw new DirectoryExpansionError(
+          'No loaded directory snapshot was returned. Try again.',
+          operation,
+          'tree',
+        );
+      const hasDirectoryListing = state.directories.some(
         (listing) =>
           listing.parent?.directory === parentDirectory &&
           listing.parent.entryId === entryId,
       );
-      if (!listing)
-        throw new Error(
+      if (!hasDirectoryListing)
+        throw new DirectoryExpansionError(
           'No loaded directory snapshot was returned. Try again.',
+          operation,
+          'tree',
         );
-      return state;
+      return { selection: state, operation };
     },
     [runSelection],
   );
@@ -249,7 +327,7 @@ export function useWorkbenchModel(
         // Rust validates the resource; presentation never substitutes another file.
         const outcome = await request(session, resource);
         if (activeOperation.current !== operation) return;
-        setOutcome(outcome);
+        setFeedback({ operation, pending: true, outcome, hostError: null });
         for (const step of outcome.steps) {
           if (step.result.tag !== 'ok') continue;
           setReport({ resource, name, analysis: step.result.val });
@@ -257,11 +335,16 @@ export function useWorkbenchModel(
         }
       } catch (caught) {
         if (activeOperation.current !== operation) return;
-        setHostError(
+        const message =
           caught instanceof Error
             ? caught.message
-            : 'Host execution failed without an error message.',
-        );
+            : 'Host execution failed without an error message.';
+        setFeedback({
+          operation,
+          pending: true,
+          outcome: null,
+          hostError: message,
+        });
       } finally {
         finishOperation(operation);
       }
@@ -283,9 +366,10 @@ export function useWorkbenchModel(
   );
 
   return {
-    operationPending,
-    outcome,
-    hostError,
+    feedback,
+    operationPending: feedback.pending,
+    outcome: feedback.outcome,
+    hostError: feedback.hostError,
     selectedFile,
     nativeDirectory,
     nativeWorkspace: selectionState,

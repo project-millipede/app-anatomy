@@ -1,12 +1,11 @@
 'use client';
 
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createTreeCollection } from '@ark-ui/react/tree-view';
 import type { Image } from '@apple-code/browser';
 import type { WorkbenchModel } from '../workspace/types';
 import { Button } from '../workspace/ark/Button';
-import { ErrorMessage } from '../workspace/ErrorMessage';
-import { OutcomeErrors } from '../workspace/OutcomeErrors';
+import { DirectoryExpansionError } from '../workspace/DirectoryExpansionError';
 import { ExplorerFileTree } from './ExplorerFileTree';
 import { ExplorerRelationshipCanvas } from './ExplorerRelationshipCanvas';
 import { NativeExplorerInspector } from './NativeExplorerInspector';
@@ -22,21 +21,39 @@ import {
   type NativeTreeNode,
 } from './nativeTreePresentation';
 import { nativeCanvasPresentation } from './nativeCanvasPresentation';
+import {
+  NativeTreeLoadError,
+  type NativeTreeFailure,
+} from './nativeTreeFailures';
 import styles from './NativeExplorerWorkspace.module.css';
 
+type NativeExplorerWorkspaceProps = {
+  /** Native observations and presentation actions owned above the source tabs. */
+  model: WorkbenchModel;
+  /** Report independent failures without copying Rust or host diagnostics. */
+  onTreeFailures: (failures: readonly NativeTreeFailure[]) => void;
+};
+
 /** Mount replacement resets navigation; file changes and inspection retain its tree. */
-export function NativeExplorerWorkspace({ model }: { model: WorkbenchModel }) {
+export function NativeExplorerWorkspace({
+  model,
+  onTreeFailures,
+}: NativeExplorerWorkspaceProps) {
   const { application, file } = nativeExplorerSubject(model.nativeWorkspace);
   return (
     <SelectedFileWorkspace
       key={application?.resource ?? file?.resource ?? 'native-empty'}
       model={model}
+      onTreeFailures={onTreeFailures}
     />
   );
 }
 
 /** Ark owns navigation; Rust's selected file alone determines the center and SEL row. */
-function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
+function SelectedFileWorkspace({
+  model,
+  onTreeFailures,
+}: NativeExplorerWorkspaceProps) {
   const { report, selectedSliceIndex, selectSlice } = model;
   const { application, file: selectedFile } = nativeExplorerSubject(
     model.nativeWorkspace,
@@ -52,7 +69,14 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
   const activeIndex =
     preview?.image === image ? (preview?.index ?? null) : null;
   const viewportElementRef = useRef<HTMLDivElement>(null);
-  const [treeError, setTreeError] = useState<string | null>(null);
+  const isMountedRef = useRef(false);
+  const scopeResource = application?.resource ?? selectedFile?.resource ?? null;
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   // Inspection and file selection do not change the retained physical topology.
   const topology = JSON.stringify([
     application,
@@ -91,42 +115,76 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
       const [node] = selectedNodes;
       if (node?.kind !== 'file') return;
       setPreview(null);
-      setTreeError(null);
       if (node.id === selectedId) return;
       if (node.parentDirectory !== undefined && node.entryId !== undefined)
         void model.openNativeEntry(node.entryId, node.parentDirectory);
     },
     loadChildren: async ({ node, signal }) => {
-      setTreeError(null);
-      if (node.childrenLoaded) return node.children ?? [];
-      if (node.parentDirectory === undefined || node.entryId === undefined)
-        throw new Error(
-          'No loaded directory snapshot is available. Choose the folder again.',
+      // Completion supplies the admitted identity even if this callback's model is older.
+      let operation = model.feedback.operation;
+      try {
+        if (node.childrenLoaded) return node.children ?? [];
+        if (node.parentDirectory === undefined || node.entryId === undefined)
+          throw new Error(
+            'No loaded directory snapshot is available. Choose the folder again.',
+          );
+        const expansion = await model.expandNativeDirectory(
+          node.parentDirectory,
+          node.entryId,
         );
-      const state = await model.expandNativeDirectory(
-        node.parentDirectory,
-        node.entryId,
-      );
-      if (
-        signal.aborted ||
-        state.root?.resource !== model.nativeWorkspace?.root?.resource
-      )
-        throw new Error('This folder is no longer being displayed.');
-      const observed = createTreeCollection<NativeTreeNode>({
-        nodeToValue: (node) => node.id,
-        nodeToString: (node) => node.name,
-        rootNode: nativeTreePresentation(state).rootNode,
-      }).findNode(node.id);
-      if (!observed?.childrenLoaded)
-        throw new Error(
-          'No loaded directory snapshot was returned. Try again.',
-        );
-      return observed.children ?? [];
+        operation = expansion.operation;
+        if (
+          signal.aborted ||
+          expansion.selection.root?.resource !==
+            model.nativeWorkspace?.root?.resource
+        )
+          throw new Error('This folder is no longer being displayed.');
+        const loadedNode = createTreeCollection<NativeTreeNode>({
+          nodeToValue: (node) => node.id,
+          nodeToString: (node) => node.name,
+          rootNode: nativeTreePresentation(expansion.selection).rootNode,
+        }).findNode(node.id);
+        if (!loadedNode?.childrenLoaded)
+          throw new Error(
+            'No loaded directory snapshot was returned. Try again.',
+          );
+        return loadedNode.children ?? [];
+      } catch (caught) {
+        const failure =
+          caught instanceof DirectoryExpansionError
+            ? caught
+            : new DirectoryExpansionError(
+                caught instanceof Error
+                  ? caught.message
+                  : 'Folder loading failed without an error message.',
+                operation,
+                'tree',
+              );
+        throw new NativeTreeLoadError(failure, signal);
+      }
     },
     onLoadChildrenError: ({ nodes }) => {
-      const [loadFailure] = nodes;
-      const message = loadFailure?.error.message;
-      if (message) setTreeError(message);
+      if (!isMountedRef.current) return;
+      const failures: NativeTreeFailure[] = [];
+      for (const { node, error } of nodes) {
+        const loadError = error instanceof NativeTreeLoadError ? error : null;
+        if (
+          loadError &&
+          (loadError.signal.aborted ||
+            loadError.failure.reportingOwner === 'operation')
+        )
+          continue;
+        failures.push({
+          operation: loadError
+            ? loadError.failure.operation
+            : model.feedback.operation,
+          scopeResource,
+          nodeId: node.id,
+          nodeName: node.name,
+          error: loadError?.failure ?? error,
+        });
+      }
+      if (failures.length > 0) onTreeFailures(failures);
     },
   });
   // Reveal the retained selection once, after initial ancestor expansion commits.
@@ -150,39 +208,6 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
     selectedSliceIndex,
     application,
   );
-  const displayedTreeError =
-    treeError !== null &&
-    treeError !== model.hostError &&
-    !model.outcome?.steps.some(
-      ({ result }) => result.tag === 'err' && result.val.message === treeError,
-    )
-      ? treeError
-      : null;
-  const hasFeedback =
-    displayedTreeError !== null ||
-    model.operationPending ||
-    model.hostError !== null ||
-    model.outcome?.steps.some(({ result }) => result.tag === 'err');
-  const feedback = hasFeedback ? (
-    <div className={styles.feedback}>
-      {model.operationPending && <p role="status">Waiting for response…</p>}
-      <OutcomeErrors outcome={model.outcome} className={styles.error} />
-      {displayedTreeError !== null && (
-        <ErrorMessage
-          message={displayedTreeError}
-          className={styles.error}
-          aria-label="Folder expansion error"
-        />
-      )}
-      {model.hostError !== null && (
-        <ErrorMessage
-          message={model.hostError}
-          className={styles.error}
-          aria-label="Host execution error"
-        />
-      )}
-    </div>
-  ) : null;
   return (
     <ExplorerWorkspaceLayout
       navigation={
@@ -220,7 +245,6 @@ function SelectedFileWorkspace({ model }: { model: WorkbenchModel }) {
               Inspect dependencies
             </Button>
           }
-          feedback={feedback}
           declarationsInspected={Boolean(image?.dependencies)}
           dataset={dataset}
           selectedEntry={entry}
