@@ -47,8 +47,8 @@ export function ApplicationExplorer() {
        * 1. Unmount the inactive workspace and discard its component-local state.
        * 2. Returning to Native rebuilds tree expansion, reveals the retained
        *    selected file, clears the dependency preview and resets corridor pages.
-       * 3. Returning to Synthetic restores the initial dataset, center and context,
-       *    with fresh tree and pagination state, no preview and empty Back history.
+       * 3. Returning to Synthetic opens Overview for the initial dataset/context,
+       *    with a fresh relationship session, no selected file and empty history.
        * 4. The parent-owned native runtime and model remain alive, retaining the
        *    acquired selection, loaded directories, report and architecture slice.
        */
@@ -61,7 +61,7 @@ export function ApplicationExplorer() {
             <p>
               {native
                 ? 'Open one application or standalone binary. Select a file to inspect its declared references.'
-                : 'Related resources follow in the tree. One selected file stays at the center.'}
+                : 'Choose an architecture context, then explore relationships from one selected file.'}
             </p>
           </>
         }

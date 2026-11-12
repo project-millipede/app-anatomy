@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import styles from './CanvasPane.module.css';
 
 type CanvasPaneProps = {
+  /** Skip-link target when the containing workspace does not provide one. */
+  id?: string;
   /** Action that restores the previous exploration. */
   back: ReactNode;
   /** Exact location of the selected file. */
@@ -20,11 +22,12 @@ type CanvasPaneProps = {
 
 /**
  * Arrange the relationship canvas column and its context bar.
- * The root layout's skip link targets this main landmark.
+ * The containing workspace may own the skip target independently of this pane.
  * @param props Content for each canvas region.
  * @returns The main landmark with a persistent status region.
  */
 export function CanvasPane({
+  id,
   back,
   location,
   context,
@@ -34,7 +37,7 @@ export function CanvasPane({
   status,
 }: CanvasPaneProps) {
   return (
-    <main id="workbench" className={styles.pane}>
+    <main id={id} className={styles.pane}>
       <div className={styles.contextBar}>
         {back}
         <div className={styles.location}>{location}</div>
