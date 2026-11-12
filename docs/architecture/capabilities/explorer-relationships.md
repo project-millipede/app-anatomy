@@ -272,11 +272,27 @@ roles count each represented resource once.
 
 ## Build-time preview adapter
 
-The Rust xtask calls the same public candidate and neighborhood APIs and converts
-their results into the tracked `previewData.generated.json` asset. Serialization
-and conversion of upstream wrappers belong to this adapter, outside the core.
-The artifact contains inventories, contexts, evidence, candidates, attempts and
-per-selection neighborhood projections.
+The Rust xtask calls the same public candidate, neighborhood and exact image
+matching APIs and converts their results into the tracked
+`previewData.generated.json` asset. Serialization and conversion of upstream
+wrappers belong to this adapter, outside the core. The artifact contains
+inventories, contexts, evidence, candidates, attempts, per-selection neighborhood
+projections and application-level architecture coverage.
+
+The private coverage projection composes `Inventory::matching_images` without
+adding a public Rust API or availability classification. Columns retain distinct
+recorded CPU identities in first-seen image order; rows retain inventory entry
+order and include only entries with recorded images. Each cell preserves all
+exactly matching image IDs, including an empty list when no image matches.
+Matching includes the complete CPU subtype bits and does not follow aliases.
+Generation failures propagate rather than becoming empty successful coverage.
+
+`architectureCoverage` supplies architecture descriptors and binary rows with
+per-architecture matches. Each context's `architectureId` uses the same stable
+key derived from the complete raw CPU type and subtype. React compares these
+supplied keys to highlight a column; it does not reproduce CPU matching. Names
+and paths remain in the existing entry records, and displayed totals are derived
+from the supplied data.
 
 ```sh
 pnpm explorer:generate
@@ -302,6 +318,29 @@ and presents the supplied scope, CPU identity, executable and ordered runpaths,
 including their declaring images. These are authored context facts, not a native
 binary-layout report. **Relationships** displays the selected context as read-only;
 the Overview tab is the place to change it.
+
+Overview's main visualization is a read-only architecture matrix across the
+application inventory. Each row identifies a file and its path; each column
+identifies a recorded CPU identity. A present cell means **Recorded image** and
+shows a count when several images match. An absent cell means **No image recorded
+for this CPU identity**. Neither cell claims runtime compatibility or launch
+eligibility. Entries without recorded images are omitted without classifying
+them as nonbinary or architecture-independent. Aliases are not followed to create
+additional binary rows.
+
+Matrix columns come from recorded images, not from the context menu. For example,
+the Ambiguity dataset records an `arm64e` image without an authored `arm64e`
+exploration context. That image contributes a column but does not create a new
+context. The selected context highlights its matching column; a context without
+a recorded column highlights none. The matrix supplies no file selection or cell
+navigation. File selection and relationship traversal remain in Relationships.
+
+One full context selector retains architecture, executable and ordered runpaths
+as a single choice. Its details appear beside the matrix on wide screens and
+above it on narrow screens. Normal Overview scrolling accommodates dense
+inventories; the table can scroll horizontally when space is limited. This view
+does not infer thin or universal container format from image counts, display
+invented byte sizes or replace an individual binary's anatomy view.
 
 `ExplorerWorkspace` owns the dataset. `DatasetWorkspace` owns the context and
 Overview/Relationships navigation. A `RelationshipSession`, keyed by context ID,
@@ -330,9 +369,10 @@ session and its state.
 Rebuilding uses the existing physical inventory shared by the contexts, so the
 same file paths can appear after a context change. It does not filter tree entries
 by architecture, compare the preceding center with another image, add frontend
-availability classifications, or export additional matching records. The existing
-Rust matching query remains part of candidate evaluation. This workspace reload
-does not refresh the browser, rescan native files or execute a live Wasm evaluator.
+availability classifications, or recompute architecture coverage. The existing
+Rust matching query serves candidate evaluation and the separate build-time
+Overview projection. This workspace reload does not refresh the browser, rescan
+native files or execute a live Wasm evaluator.
 
 All directly related internal entries receive IN, OUT or IN/OUT roles. SEL marks
 the center; a stronger outline marks endpoints of the previewed relationship.

@@ -1,9 +1,104 @@
 {
   "datasets": [
     {
+      "architectureCoverage": {
+        "architectures": [
+          {
+            "cpu": {
+              "subtypeName": "CPU_SUBTYPE_ARM64_ALL",
+              "subtypeRaw": 0,
+              "typeName": "CPU_TYPE_ARM64",
+              "typeRaw": 16777228
+            },
+            "id": "0100000c:00000000",
+            "label": "arm64"
+          },
+          {
+            "cpu": {
+              "subtypeName": "CPU_SUBTYPE_X86_64_ALL",
+              "subtypeRaw": 3,
+              "typeName": "CPU_TYPE_X86_64",
+              "typeRaw": 16777223
+            },
+            "id": "01000007:00000003",
+            "label": "x86_64"
+          }
+        ],
+        "binaries": [
+          {
+            "entryId": "1:4",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "1:0"
+                ]
+              },
+              {
+                "architectureId": "01000007:00000003",
+                "imageIds": [
+                  "1:4"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "1:9",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "1:1"
+                ]
+              },
+              {
+                "architectureId": "01000007:00000003",
+                "imageIds": [
+                  "1:5"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "1:16",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "1:2"
+                ]
+              },
+              {
+                "architectureId": "01000007:00000003",
+                "imageIds": [
+                  "1:6"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "1:17",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "1:3"
+                ]
+              },
+              {
+                "architectureId": "01000007:00000003",
+                "imageIds": [
+                  "1:7"
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contexts": [
         {
           "architecture": "CPU_SUBTYPE_ARM64_ALL",
+          "architectureId": "0100000c:00000000",
           "cpu": {
             "subtypeName": "CPU_SUBTYPE_ARM64_ALL",
             "subtypeRaw": 0,
@@ -22,6 +117,7 @@
         },
         {
           "architecture": "CPU_SUBTYPE_X86_64_ALL",
+          "architectureId": "01000007:00000003",
           "cpu": {
             "subtypeName": "CPU_SUBTYPE_X86_64_ALL",
             "subtypeRaw": 3,
@@ -4416,9 +4512,147 @@
       "rootPath": "/Atlas.app"
     },
     {
+      "architectureCoverage": {
+        "architectures": [
+          {
+            "cpu": {
+              "subtypeName": "CPU_SUBTYPE_ARM64E",
+              "subtypeRaw": 2,
+              "typeName": "CPU_TYPE_ARM64",
+              "typeRaw": 16777228
+            },
+            "id": "0100000c:00000002",
+            "label": "arm64e"
+          },
+          {
+            "cpu": {
+              "subtypeName": "CPU_SUBTYPE_ARM64_ALL",
+              "subtypeRaw": 0,
+              "typeName": "CPU_TYPE_ARM64",
+              "typeRaw": 16777228
+            },
+            "id": "0100000c:00000000",
+            "label": "arm64"
+          },
+          {
+            "cpu": {
+              "subtypeName": "CPU_SUBTYPE_X86_64_ALL",
+              "subtypeRaw": 3,
+              "typeName": "CPU_TYPE_X86_64",
+              "typeRaw": 16777223
+            },
+            "id": "01000007:00000003",
+            "label": "x86_64"
+          }
+        ],
+        "binaries": [
+          {
+            "entryId": "2:3",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000002",
+                "imageIds": []
+              },
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "2:1"
+                ]
+              },
+              {
+                "architectureId": "01000007:00000003",
+                "imageIds": [
+                  "2:5"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "2:6",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000002",
+                "imageIds": []
+              },
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "2:2"
+                ]
+              },
+              {
+                "architectureId": "01000007:00000003",
+                "imageIds": [
+                  "2:6"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "2:9",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000002",
+                "imageIds": []
+              },
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "2:3"
+                ]
+              },
+              {
+                "architectureId": "01000007:00000003",
+                "imageIds": [
+                  "2:7"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "2:11",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000002",
+                "imageIds": []
+              },
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "2:4"
+                ]
+              },
+              {
+                "architectureId": "01000007:00000003",
+                "imageIds": []
+              }
+            ]
+          },
+          {
+            "entryId": "2:13",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000002",
+                "imageIds": [
+                  "2:0"
+                ]
+              },
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": []
+              },
+              {
+                "architectureId": "01000007:00000003",
+                "imageIds": []
+              }
+            ]
+          }
+        ]
+      },
       "contexts": [
         {
           "architecture": "CPU_SUBTYPE_ARM64_ALL",
+          "architectureId": "0100000c:00000000",
           "cpu": {
             "subtypeName": "CPU_SUBTYPE_ARM64_ALL",
             "subtypeRaw": 0,
@@ -4449,6 +4683,7 @@
         },
         {
           "architecture": "CPU_SUBTYPE_X86_64_ALL",
+          "architectureId": "01000007:00000003",
           "cpu": {
             "subtypeName": "CPU_SUBTYPE_X86_64_ALL",
             "subtypeRaw": 3,
@@ -6249,9 +6484,48 @@
       "rootPath": "/Ambiguity.app"
     },
     {
+      "architectureCoverage": {
+        "architectures": [
+          {
+            "cpu": {
+              "subtypeName": "CPU_SUBTYPE_ARM64_ALL",
+              "subtypeRaw": 0,
+              "typeName": "CPU_TYPE_ARM64",
+              "typeRaw": 16777228
+            },
+            "id": "0100000c:00000000",
+            "label": "arm64"
+          }
+        ],
+        "binaries": [
+          {
+            "entryId": "3:3",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "3:0"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "3:5",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "3:1"
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contexts": [
         {
           "architecture": "CPU_SUBTYPE_ARM64_ALL",
+          "architectureId": "0100000c:00000000",
           "cpu": {
             "subtypeName": "CPU_SUBTYPE_ARM64_ALL",
             "subtypeRaw": 0,
@@ -7534,9 +7808,235 @@
       "rootPath": "/Incomplete.app"
     },
     {
+      "architectureCoverage": {
+        "architectures": [
+          {
+            "cpu": {
+              "subtypeName": "CPU_SUBTYPE_ARM64_ALL",
+              "subtypeRaw": 0,
+              "typeName": "CPU_TYPE_ARM64",
+              "typeRaw": 16777228
+            },
+            "id": "0100000c:00000000",
+            "label": "arm64"
+          }
+        ],
+        "binaries": [
+          {
+            "entryId": "4:3",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:0"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:248",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:1"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:249",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:2"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:250",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:3"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:251",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:4"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:252",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:5"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:253",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:6"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:254",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:7"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:255",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:8"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:256",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:9"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:257",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:10"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:258",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:11"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:259",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:12"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:260",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:13"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:261",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:14"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:262",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:15"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:263",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:16"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:264",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:17"
+                ]
+              }
+            ]
+          },
+          {
+            "entryId": "4:265",
+            "matches": [
+              {
+                "architectureId": "0100000c:00000000",
+                "imageIds": [
+                  "4:18"
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "contexts": [
         {
           "architecture": "CPU_SUBTYPE_ARM64_ALL",
+          "architectureId": "0100000c:00000000",
           "cpu": {
             "subtypeName": "CPU_SUBTYPE_ARM64_ALL",
             "subtypeRaw": 0,
