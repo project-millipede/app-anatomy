@@ -112,52 +112,47 @@ impl Inventory {
                 continue;
             }
             let (final_path, aliases, error) = self.follow_aliases(&path);
-            let outcome = if let Some(error) = error {
-                error
-            } else if let Some(entry) = self.paths.get(&final_path).copied() {
-                if dependency {
-                    let matches: Vec<_> = self
-                        .images
-                        .iter()
-                        .filter(|image| image.entry == entry && image.cpu == context.architecture)
-                        .collect();
-                    if matches.is_empty() {
-                        AttemptOutcome::ArchitectureMismatch
-                    } else {
-                        for image in matches {
-                            if !result.candidates.iter().any(|candidate| {
-                                candidate.entry == entry && candidate.image == Some(image.id)
-                            }) {
-                                result.candidates.push(Candidate {
-                                    entry,
-                                    image: Some(image.id),
-                                    path: final_path.clone(),
-                                    aliases: aliases.clone(),
-                                });
+            let outcome =
+                if let Some(error) = error {
+                    error
+                } else if let Some(entry) = self.paths.get(&final_path).copied() {
+                    if dependency {
+                        let matching_images = self.matching_images(entry, context.architecture)?;
+                        if matching_images.is_empty() {
+                            AttemptOutcome::ArchitectureMismatch
+                        } else {
+                            for image_id in matching_images {
+                                if !result.candidates.iter().any(|candidate| {
+                                    candidate.entry == entry && candidate.image == Some(image_id)
+                                }) {
+                                    result.candidates.push(Candidate {
+                                        entry,
+                                        image: Some(image_id),
+                                        path: final_path.clone(),
+                                        aliases: aliases.clone(),
+                                    });
+                                }
                             }
+                            AttemptOutcome::Matched
+                        }
+                    } else {
+                        if !result.candidates.iter().any(|candidate| {
+                            candidate.entry == entry && candidate.aliases == aliases
+                        }) {
+                            result.candidates.push(Candidate {
+                                entry,
+                                image: None,
+                                path: final_path.clone(),
+                                aliases: aliases.clone(),
+                            });
                         }
                         AttemptOutcome::Matched
                     }
+                } else if aliases.is_empty() {
+                    AttemptOutcome::Missing
                 } else {
-                    if !result
-                        .candidates
-                        .iter()
-                        .any(|candidate| candidate.entry == entry && candidate.aliases == aliases)
-                    {
-                        result.candidates.push(Candidate {
-                            entry,
-                            image: None,
-                            path: final_path.clone(),
-                            aliases: aliases.clone(),
-                        });
-                    }
-                    AttemptOutcome::Matched
-                }
-            } else if aliases.is_empty() {
-                AttemptOutcome::Missing
-            } else {
-                AttemptOutcome::BrokenAlias
-            };
+                    AttemptOutcome::BrokenAlias
+                };
             result.attempts.push(Attempt {
                 path,
                 final_path,
