@@ -103,6 +103,7 @@ fn dataset(dataset: &fixtures::Dataset) -> Result<Value> {
                 "id": context.id,
                 "label": context.label,
                 "architecture": architecture(context.context.architecture),
+                "architectureId": architecture_id(context.context.architecture),
                 "cpu": cpu(context.context.architecture),
                 "executableImageId": context.context.executable.map(image_id),
                 "runpaths": context.context.runpaths.iter().map(|runpath| json!({
@@ -124,6 +125,7 @@ fn dataset(dataset: &fixtures::Dataset) -> Result<Value> {
             neighborhoods.push(neighborhood_value(&neighborhood, context.id));
         }
     }
+    let architecture_coverage = architecture_coverage(inventory)?;
     Ok(json!({
         "id": dataset.id,
         "label": dataset.label,
@@ -135,9 +137,79 @@ fn dataset(dataset: &fixtures::Dataset) -> Result<Value> {
         "contexts": contexts,
         "entries": entries,
         "images": images,
+        "architectureCoverage": architecture_coverage,
         "relationships": relationships,
         "neighborhoods": neighborhoods,
     }))
+}
+
+/// Project recorded image coverage in inventory order using the shared exact-CPU query.
+fn architecture_coverage(inventory: &Inventory) -> Result<Value> {
+    let mut recorded_cpus = Vec::new();
+    for image in inventory.images() {
+        if !recorded_cpus.contains(&image.cpu) {
+            recorded_cpus.push(image.cpu);
+        }
+    }
+    let architectures: Vec<_> = recorded_cpus
+        .iter()
+        .map(|&recorded_cpu| {
+            json!({
+                "id": architecture_id(recorded_cpu),
+                "label": architecture_label(recorded_cpu),
+                "cpu": cpu(recorded_cpu),
+            })
+        })
+        .collect();
+
+    let mut binaries = Vec::new();
+    for entry in inventory.entries() {
+        if !inventory
+            .images()
+            .iter()
+            .any(|image| image.entry == entry.id)
+        {
+            continue;
+        }
+        let mut matches = Vec::new();
+        for &recorded_cpu in &recorded_cpus {
+            let matching_images = inventory.matching_images(entry.id, recorded_cpu)?;
+            let image_ids: Vec<_> = matching_images.into_iter().map(image_id).collect();
+            matches.push(json!({
+                "architectureId": architecture_id(recorded_cpu),
+                "imageIds": image_ids,
+            }));
+        }
+        binaries.push(json!({
+            "entryId": entry_id(entry.id),
+            "matches": matches,
+        }));
+    }
+    Ok(json!({ "architectures": architectures, "binaries": binaries }))
+}
+
+/// Keep the complete recorded type and subtype bits in presentation join keys.
+fn architecture_id(cpu: CpuIdentity) -> String {
+    format!(
+        "{:08x}:{:08x}",
+        cpu.cpu_type.into_inner(),
+        cpu.cpu_subtype.into_inner()
+    )
+}
+
+/// Shorten upstream symbolic names for display without changing their identity.
+fn architecture_label(cpu: CpuIdentity) -> String {
+    let name = architecture(cpu);
+    let Some(short_name) = name
+        .strip_prefix("CPU_SUBTYPE_")
+        .or_else(|| name.strip_prefix("CPU_TYPE_"))
+    else {
+        return name;
+    };
+    short_name
+        .strip_suffix("_ALL")
+        .unwrap_or(short_name)
+        .to_ascii_lowercase()
 }
 
 fn neighborhood_value(neighborhood: &Neighborhood, context: &str) -> Value {

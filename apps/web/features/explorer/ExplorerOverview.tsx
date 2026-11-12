@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
-import type { PreviewDataset } from './previewInventory';
+import { ExplorerArchitectureCoverage } from './ExplorerArchitectureCoverage';
+import { ExplorerContextPanel } from './ExplorerContextPanel';
+import { ExplorerOverviewLayout } from './layout/ExplorerOverviewLayout';
+import { getPreviewContext, type PreviewDataset } from './previewInventory';
 import styles from './ExplorerLayout.module.css';
-import workspaceStyles from './ExplorerWorkspace.module.css';
+import overviewStyles from './layout/ExplorerOverviewLayout.module.css';
 
 type ExplorerOverviewProps = {
   /** Authored inventory and the contexts supplied by Rust. */
@@ -15,9 +18,9 @@ type ExplorerOverviewProps = {
 };
 
 /**
- * Present recorded scope and context facts before relationship exploration.
+ * Compose application facts and the selected exploration context.
  * @param props Generated dataset, selected context and selection controls.
- * @returns An overview without native inspection or binary interpretation.
+ * @returns The Overview's named layout regions without owning navigation state.
  */
 export function ExplorerOverview({
   dataset,
@@ -25,110 +28,59 @@ export function ExplorerOverview({
   contextId,
   onContextChange,
 }: ExplorerOverviewProps) {
-  const context = dataset.contexts.find((value) => value.id === contextId);
-  if (!context) throw new Error(`Explorer context is missing: ${contextId}`);
-
-  /**
-   * Look up the physical path recorded for an image identifier.
-   * @param imageId Image named by the generated context.
-   * @returns The recorded entry path, without following aliases or references.
-   */
-  function imagePath(imageId: string): string {
-    const image = dataset.images.find((value) => value.id === imageId);
-    const entry = image
-      ? dataset.entries.find((value) => value.id === image.entryId)
-      : undefined;
-    if (!entry) {
-      throw new Error(
-        `Explorer context image has no recorded entry: ${imageId}`,
-      );
-    }
-    return entry.path;
-  }
+  const context = getPreviewContext(dataset, contextId);
+  const { architectures, binaries } = dataset.architectureCoverage;
+  const selectedArchitecture = architectures.find(
+    (architecture) => architecture.id === context.architectureId,
+  );
 
   return (
-    <main className={workspaceStyles.overview}>
-      <header>
-        <span className={styles.placeholderEyebrow}>Synthetic application</span>
-        <h2>{dataset.label}</h2>
-        <p>{dataset.description}</p>
-      </header>
-      <div className={workspaceStyles.controls}>
-        {datasetSelector}
-        <label className={styles.selectLabel}>
-          Architecture context
-          <select
-            value={contextId}
-            onChange={(event) => onContextChange(event.target.value)}
-          >
-            {dataset.contexts.map((value) => (
-              <option key={value.id} value={value.id}>
-                {value.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <p className={workspaceStyles.guidance}>
-        Open Relationships to select a file and explore this context. Choosing a
-        different context starts with a fresh tree and no selected file.
-      </p>
-      <section aria-labelledby="explorer-context-facts">
-        <h3 id="explorer-context-facts">Selected context</h3>
-        <dl className={workspaceStyles.facts}>
+    <ExplorerOverviewLayout
+      header={
+        <>
           <div>
-            <dt>Application scope</dt>
-            <dd>
-              <code>{dataset.rootPath}</code>
-            </dd>
+            <span className={styles.placeholderEyebrow}>
+              Synthetic application
+            </span>
+            <h2>{dataset.label}</h2>
+            <p>{dataset.description}</p>
+            <code className={overviewStyles.scopePath}>{dataset.rootPath}</code>
+          </div>
+          {datasetSelector}
+        </>
+      }
+      summary={
+        <>
+          <div>
+            <dt>Files with recorded images</dt>
+            <dd>{binaries.length}</dd>
           </div>
           <div>
-            <dt>CPU type</dt>
-            <dd>
-              {context.cpu.typeName ?? 'Unnamed CPU type'}
-              <small>
-                Recorded value: 0x{context.cpu.typeRaw.toString(16)}
-              </small>
-            </dd>
+            <dt>Recorded images</dt>
+            <dd>{dataset.images.length}</dd>
           </div>
           <div>
-            <dt>CPU subtype</dt>
-            <dd>
-              {context.cpu.subtypeName ?? 'Unnamed CPU subtype'}
-              <small>
-                Recorded value: 0x{context.cpu.subtypeRaw.toString(16)}
-              </small>
-            </dd>
+            <dt>Recorded CPU identities</dt>
+            <dd>{architectures.length}</dd>
           </div>
-          <div>
-            <dt>Executable</dt>
-            <dd>
-              {context.executableImageId ? (
-                <code>{imagePath(context.executableImageId)}</code>
-              ) : (
-                'Not specified'
-              )}
-            </dd>
-          </div>
-        </dl>
-      </section>
-      <section aria-labelledby="explorer-context-runpaths">
-        <h3 id="explorer-context-runpaths">Ordered runpaths</h3>
-        {context.runpaths.length === 0 ? (
-          <p>No runpaths supplied in this context.</p>
-        ) : (
-          <ol className={workspaceStyles.runpaths}>
-            {context.runpaths.map((runpath, index) => (
-              <li key={`${index}:${runpath.ownerImageId}:${runpath.path}`}>
-                <code>{runpath.path}</code>
-                <span>
-                  Declared by <code>{imagePath(runpath.ownerImageId)}</code>
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
-    </main>
+        </>
+      }
+      context={
+        <ExplorerContextPanel
+          dataset={dataset}
+          context={context}
+          architectureLabel={
+            selectedArchitecture?.label ?? context.architecture
+          }
+          onContextChange={onContextChange}
+        />
+      }
+      coverage={
+        <ExplorerArchitectureCoverage
+          dataset={dataset}
+          selectedArchitectureId={selectedArchitecture?.id}
+        />
+      }
+    />
   );
 }

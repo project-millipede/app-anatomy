@@ -9,6 +9,39 @@ export type PreviewRelationship = PreviewDataset['relationships'][number];
 export type PreviewNeighborhood = PreviewDataset['neighborhoods'][number];
 export type PreviewConnection = PreviewNeighborhood['west'][number];
 
+/** Selected context type inferred from the generated records returned by the lookup. */
+export type PreviewContext = ReturnType<typeof getPreviewContext>;
+
+/**
+ * Find an authored exploration context without substituting a default.
+ * @param dataset Generated records containing the selectable contexts.
+ * @param contextId Identifier selected by the workspace owner.
+ * @returns The recorded context; throws when the required record is missing.
+ */
+export function getPreviewContext(
+  dataset: Pick<PreviewDataset, 'contexts'>,
+  contextId: string,
+) {
+  const context = dataset.contexts.find((value) => value.id === contextId);
+  if (!context) throw new Error(`Explorer context is missing: ${contextId}`);
+  return context;
+}
+
+/**
+ * Find a physical entry without following aliases or references.
+ * @param entries Generated inventory entries to search.
+ * @param entryId Inventory-scoped entry identifier.
+ * @returns The recorded entry; throws when the required record is missing.
+ */
+export function getPreviewEntry(
+  entries: readonly PreviewEntry[],
+  entryId: string,
+): PreviewEntry {
+  const entry = entries.find((value) => value.id === entryId);
+  if (!entry) throw new Error(`Explorer entry is missing: ${entryId}`);
+  return entry;
+}
+
 /** Ark's presentation tree, built from the generated physical inventory. */
 export interface PreviewNode {
   id: string;
