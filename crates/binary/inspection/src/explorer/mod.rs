@@ -358,6 +358,34 @@ impl Inventory {
     pub fn images(&self) -> &[Image] {
         &self.images
     }
+
+    /// Return recorded image IDs for `entry` that exactly match `requested_cpu`.
+    ///
+    /// Matching includes the complete CPU subtype bits and preserves inventory
+    /// order. The result is empty when no image matches, including when the entry
+    /// has no recorded images. This query does not follow aliases or evaluate
+    /// relationships.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InventoryError`] if `entry` is missing or belongs to another
+    /// inventory.
+    pub fn matching_images(
+        &self,
+        entry: EntryId,
+        requested_cpu: CpuIdentity,
+    ) -> Result<Vec<ImageId>, InventoryError> {
+        if self.entry(entry).is_none() {
+            return Err(InventoryError("entry is missing or foreign".into()));
+        }
+        Ok(self
+            .images
+            .iter()
+            .filter(|image| image.entry == entry && image.cpu == requested_cpu)
+            .map(|image| image.id)
+            .collect())
+    }
+
     /// Relationships in recorded order.
     pub fn relationships(&self) -> &[Relationship] {
         &self.relationships

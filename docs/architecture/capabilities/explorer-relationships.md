@@ -250,6 +250,15 @@ initially require exact CPU identity. Broader CPU
 subtype compatibility, shared caches, environment overrides and symbol binding
 are unsupported.
 
+`Inventory::matching_images(entry, requested_cpu)` exposes exact image matching
+independently of resolution contexts and neighborhoods. It returns all matching
+image IDs for that entry in recorded inventory order, comparing the complete
+existing `CpuIdentity`, including subtype bits. An empty result means no recorded
+image matches; missing or foreign entry IDs return `InventoryError`. The query
+does not follow aliases or evaluate relationships. Dependency candidate evaluation
+reuses it after path and alias evaluation identifies the target entry. This is an
+ordinary Rust API with no filesystem or component-runtime dependency.
+
 Every attempted path and rejection remains evidence. All plausible matches are
 preserved in search order; a candidate set is not a claim about dyld's selected
 library. External unacquired references, unresolved references, unsupported
