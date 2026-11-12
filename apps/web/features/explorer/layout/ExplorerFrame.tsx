@@ -10,6 +10,8 @@ type ExplorerFrameProps = {
   notice: ReactNode;
   /** Interactive workspace, which owns its named pane layout. */
   workspace: ReactNode;
+  /** Stable operation feedback, outside the workspace's canvas geometry. */
+  diagnostics: ReactNode;
   /** Scope notes at the end of the page. */
   footer: ReactNode;
 };
@@ -24,6 +26,7 @@ export function ExplorerFrame({
   controls,
   notice,
   workspace,
+  diagnostics,
   footer,
 }: ExplorerFrameProps) {
   return (
@@ -34,6 +37,7 @@ export function ExplorerFrame({
       </div>
       <div className={styles.notice}>{notice}</div>
       {workspace}
+      <div className={styles.diagnostics}>{diagnostics}</div>
       <footer className={styles.footer}>{footer}</footer>
     </div>
   );

@@ -3,16 +3,3 @@
   padding: 0.4375rem 0.625rem;
   font-size: 0.75rem;
 }
-.feedback {
-  display: grid;
-  gap: 0.375rem;
-  font-size: 0.75rem;
-  color: var(--acw-colors-muted);
-}
-.feedback p {
-  margin: 0;
-}
-.error {
-  color: var(--acw-colors-error);
-  overflow-wrap: anywhere;
-}

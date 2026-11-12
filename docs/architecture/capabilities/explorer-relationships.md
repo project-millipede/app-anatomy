@@ -171,6 +171,44 @@ bundle inventory, resolve runpaths against disk or perform runtime symbol bindin
 records retained-file runs through the native remote and live browser adapters;
 live picker acquisition remains unverified.
 
+## Explorer diagnostics
+
+Explorer reserves a status strip below the workspace and above the scope footer.
+Pending state, failure counts and **Details** occupy the same height. Details opens
+a nonmodal panel over the workspace; neither the strip's content nor the panel
+changes the relationship canvas dimensions. Failures do not open it or move focus.
+Close and Escape hide the panel without clearing diagnostics or changing native
+selection. A panel already open updates to the next operation's pending state and
+result.
+
+`ApplicationExplorer` retains the existing model owner. The model holds one
+current-feedback record with the invocation identity, pending state, original Rust
+outcome and separate host failure. Existing workbench presentation properties are
+derived from that record; this diagnostics UI is available only in Explorer.
+Switching to Synthetic hides native feedback and closes the panel. Returning to
+Native shows the retained current native feedback with details closed.
+
+Every failed Rust step is labeled from its generated step kind and displayed in
+returned order. Equal messages in different steps remain separate. Host/component
+rejections and independent folder-loading failures have their own sections; they
+are not invented Rust steps. Technical details preserve the supplied message and
+whitespace without parsing transport strings or inferring a recovery action.
+
+Directory expansion carries its invocation identity through the model-to-tree
+boundary. A typed rejection distinguishes failures already reported by the model
+from independent tree-loading failures. Ark still receives a rejection for failed
+loads, so it cannot install an empty successful listing. Explorer processes all
+reported nodes, suppresses only explicitly delegated duplicates, and excludes
+obsolete invocation or tree-scope notifications. Starting another admitted
+invocation replaces the displayed failure group; there is no operation history,
+automatic retry or diagnostic persistence.
+
+The [report lifecycle](../system-overview.md#application-ownership) is unchanged:
+a new inspection, or a different, empty or unavailable selection, may still clear
+the displayed report. This placement removes feedback-driven canvas resizing; it
+does not retain stale graphs or alter Rust selection, transport or inspection
+semantics.
+
 ## Application subject qualification
 
 On 2026-10-29, workspace and component Rust tests passed (67 tests), along with

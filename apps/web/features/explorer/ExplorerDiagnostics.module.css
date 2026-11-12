@@ -1,0 +1,62 @@
+.sectionTitle {
+  margin: 1rem 0 0.375rem;
+  color: var(--acw-colors-muted);
+  font-size: var(--acw-font-sizes-xs);
+  font-weight: 600;
+}
+
+.failures {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.failure {
+  padding-block: 0.75rem;
+}
+
+.failure + .failure {
+  border-block-start: var(--acw-borders-divider);
+}
+
+.failureLabel {
+  margin: 0;
+  color: var(--acw-colors-text);
+  font-size: var(--acw-font-sizes-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.technicalDetails {
+  margin-block-start: 0.375rem;
+}
+
+.technicalDetails summary {
+  inline-size: fit-content;
+  color: var(--acw-colors-muted);
+  font-size: var(--acw-font-sizes-xs);
+  cursor: pointer;
+}
+
+.technicalDetails summary:focus-visible {
+  outline: 2px solid var(--acw-colors-accent);
+  outline-offset: 3px;
+}
+
+.message {
+  margin: 0.625rem 0 0;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  background: var(--acw-colors-subtle);
+  color: var(--acw-colors-text);
+  font-size: var(--acw-font-sizes-sm);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  margin: 1rem 0 0;
+  color: var(--acw-colors-muted);
+  font-size: var(--acw-font-sizes-sm);
+}

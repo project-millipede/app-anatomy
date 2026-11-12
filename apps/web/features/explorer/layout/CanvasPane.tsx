@@ -10,8 +10,6 @@ type CanvasPaneProps = {
   location: ReactNode;
   /** Context that changes the displayed relationships, such as architecture. */
   context: ReactNode;
-  /** Optional operation feedback below the context controls. */
-  feedback?: ReactNode;
   /** Relationship canvas, normally a BridgeGrid. */
   canvas: ReactNode;
   /** Key explaining connection line styles. */
@@ -31,7 +29,6 @@ export function CanvasPane({
   back,
   location,
   context,
-  feedback,
   canvas,
   legend,
   status,
@@ -42,7 +39,6 @@ export function CanvasPane({
         {back}
         <div className={styles.location}>{location}</div>
         <div className={styles.context}>{context}</div>
-        {feedback && <div className={styles.feedback}>{feedback}</div>}
       </div>
       {canvas}
       <div className={styles.legend}>{legend}</div>

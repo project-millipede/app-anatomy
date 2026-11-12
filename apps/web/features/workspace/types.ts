@@ -10,6 +10,35 @@ import type {
 /** Complete generated result of a native invocation. */
 export type Outcome = SelectionOutcome | InspectionOutcome;
 
+/** Current invocation feedback; native outcomes and host failures stay distinct. */
+export type OperationFeedback = {
+  /** Identity of the latest admitted invocation, or null before one starts. */
+  readonly operation: object | null;
+  /** Whether that invocation is still awaiting completion. */
+  readonly pending: boolean;
+} & (
+  | {
+      /** Complete ordered outcome returned by Rust, or null before a result. */
+      readonly outcome: Outcome | null;
+      /** No host rejection accompanies a native outcome. */
+      readonly hostError: null;
+    }
+  | {
+      /** A host rejection does not supply a native outcome. */
+      readonly outcome: null;
+      /** Original host rejection message, separate from native outcomes. */
+      readonly hostError: string;
+    }
+);
+
+/** A successful directory observation associated with its UI invocation. */
+export type DirectoryExpansion = {
+  /** Full generated selection observation returned by Rust. */
+  readonly selection: SelectionState;
+  /** Invocation identity used to discard obsolete tree notifications. */
+  readonly operation: object;
+};
+
 /** Presentation selected by the workbench page's view query parameter. */
 export type WorkbenchView = 'base' | 'ark' | 'compare';
 
@@ -30,6 +59,8 @@ export type NativeDirectoryListing = {
  * a lazy tree does not treat failed requests as loaded empty directories.
  */
 export type NativeInteraction = {
+  /** Latest invocation identity and feedback, replaced on the next admitted call. */
+  feedback: OperationFeedback;
   /**
    * Whether the workbench is awaiting an operation, including loading and state queries.
    * Disables operation controls in every presentation.
@@ -84,12 +115,15 @@ export type NativeInteraction = {
   openNativeEntry(entryId: number, parentDirectory?: string): Promise<void>;
   /**
    * Load one observed directory without changing the selected file or mount.
-   * Rejects busy, failed or incomplete requests; success returns Rust's full observation.
+   * Rejects busy, failed or incomplete requests with explicit reporting ownership.
+   * @param parentDirectory Observed parent directory resource.
+   * @param entryId Entry identifier scoped to that parent listing.
+   * @returns Rust's full observation and the invocation that produced it.
    */
   expandNativeDirectory(
     parentDirectory: string,
     entryId: number,
-  ): Promise<SelectionState>;
+  ): Promise<DirectoryExpansion>;
   /**
    * Analyze the observed native file through Rust, replacing the displayed result.
    *

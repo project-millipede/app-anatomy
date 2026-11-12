@@ -73,8 +73,6 @@ export type ExplorerRelationshipCanvasProps = {
   applicationName?: string;
   /** Selected-file actions, supplied by the presentation owner. */
   actions?: ReactNode;
-  /** Operation feedback kept beside the actions rather than in navigation. */
-  feedback?: ReactNode;
 };
 
 /** Fixed presentation slots pair each visible card with its own center-edge port. */
@@ -93,7 +91,6 @@ export function ExplorerRelationshipCanvas({
   declarationsInspected = true,
   applicationName,
   actions,
-  feedback,
 }: ExplorerRelationshipCanvasProps) {
   const declarations = mode === 'declarations';
   const emptySelection = !declarations && selectedEntry === undefined;
@@ -395,7 +392,6 @@ export function ExplorerRelationshipCanvas({
           )}
         </div>
       }
-      feedback={feedback}
       canvas={
         emptySelection ? (
           <p className={styles.muted}>
