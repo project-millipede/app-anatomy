@@ -1,11 +1,15 @@
 import { getPreviewEntry, type PreviewDataset } from './previewInventory';
+import { ExplorerFileByteBar } from './ExplorerFileByteBar';
+import byteStyles from './ExplorerArchitectureCoverage.module.css';
 import styles from './layout/ExplorerOverviewLayout.module.css';
 
 type ExplorerArchitectureCoverageProps = {
   /** Rust-generated coverage and the physical entries named by its rows. */
-  dataset: Pick<PreviewDataset, 'entries' | 'architectureCoverage'>;
+  readonly dataset: Pick<PreviewDataset, 'entries' | 'architectureCoverage'>;
   /** Recorded column to highlight; undefined when the context has no column. */
-  selectedArchitectureId: string | undefined;
+  readonly selectedArchitectureId: string | undefined;
+  /** Stable colors shared by architecture columns and file byte regions. */
+  readonly architectureColors: ReadonlyMap<string, string>;
 };
 
 type CoverageCellProps = {
@@ -23,6 +27,7 @@ type CoverageCellProps = {
 export function ExplorerArchitectureCoverage({
   dataset,
   selectedArchitectureId,
+  architectureColors,
 }: ExplorerArchitectureCoverageProps) {
   const { architectures, binaries } = dataset.architectureCoverage;
 
@@ -60,6 +65,15 @@ export function ExplorerArchitectureCoverage({
                     scope="col"
                     data-selected={architecture.id === selectedArchitectureId}
                   >
+                    <span
+                      className={byteStyles.swatch}
+                      aria-hidden="true"
+                      style={{
+                        backgroundColor: architectureColors.get(
+                          architecture.id,
+                        ),
+                      }}
+                    />{' '}
                     {architecture.label}
                     <small>
                       {architecture.id === selectedArchitectureId
@@ -78,6 +92,19 @@ export function ExplorerArchitectureCoverage({
                     <th scope="row">
                       <strong>{entry.name}</strong>
                       <code>{entry.path}</code>
+                      {binary.byteLayout === null ? (
+                        <small>File size and byte ranges not recorded</small>
+                      ) : (
+                        <div className={byteStyles.fileBytes}>
+                          <ExplorerFileByteBar
+                            byteLayout={binary.byteLayout}
+                            fileName={entry.name}
+                            dataset={dataset}
+                            architectureColors={architectureColors}
+                            selectedArchitectureId={selectedArchitectureId}
+                          />
+                        </div>
+                      )}
                     </th>
                     {binary.matches.map((match) => (
                       <CoverageCell
@@ -109,7 +136,11 @@ export function ExplorerArchitectureCoverage({
       </div>
       <p className={styles.coverageNote}>
         Only files with recorded images are shown. This describes recorded
-        coverage, not thin/universal format or runtime compatibility.
+        coverage, not thin/universal format or runtime compatibility. Bars show
+        authored synthetic byte facts. Each full bar represents one whole file,
+        independently of other file sizes. Full-color image regions match the
+        selected CPU identity; striped regions are Other / unmapped bytes. Hover
+        or keyboard-focus a region to inspect its exact byte range.
       </p>
       <details className={styles.cpuDetails}>
         <summary>All recorded CPU identities</summary>

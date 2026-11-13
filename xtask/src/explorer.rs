@@ -7,7 +7,7 @@ use anyhow::{Context, Result, ensure};
 use binary_inspection::{CpuIdentity, explorer::*};
 use object::{Wrap, read::ImportLibraryFlags};
 use serde_json::{Value, json};
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 #[path = "../../crates/binary/inspection/fixtures/explorer.rs"]
 mod fixtures;
@@ -125,7 +125,7 @@ fn dataset(dataset: &fixtures::Dataset) -> Result<Value> {
             neighborhoods.push(neighborhood_value(&neighborhood, context.id));
         }
     }
-    let architecture_coverage = architecture_coverage(inventory)?;
+    let architecture_coverage = architecture_coverage(inventory, &dataset.file_byte_facts)?;
     Ok(json!({
         "id": dataset.id,
         "label": dataset.label,
@@ -144,7 +144,10 @@ fn dataset(dataset: &fixtures::Dataset) -> Result<Value> {
 }
 
 /// Project recorded image coverage in inventory order using the shared exact-CPU query.
-fn architecture_coverage(inventory: &Inventory) -> Result<Value> {
+fn architecture_coverage(
+    inventory: &Inventory,
+    file_byte_facts: &[fixtures::FileByteFacts],
+) -> Result<Value> {
     let mut recorded_cpus = Vec::new();
     for image in inventory.images() {
         if !recorded_cpus.contains(&image.cpu) {
@@ -161,6 +164,16 @@ fn architecture_coverage(inventory: &Inventory) -> Result<Value> {
             })
         })
         .collect();
+
+    let mut byte_layouts = HashMap::new();
+    for facts in file_byte_facts {
+        let byte_layout = file_byte_layout_value(inventory, facts)?;
+        ensure!(
+            byte_layouts.insert(facts.entry, byte_layout).is_none(),
+            "file byte observations repeat entry {:?}",
+            facts.entry,
+        );
+    }
 
     let mut binaries = Vec::new();
     for entry in inventory.entries() {
@@ -183,9 +196,45 @@ fn architecture_coverage(inventory: &Inventory) -> Result<Value> {
         binaries.push(json!({
             "entryId": entry_id(entry.id),
             "matches": matches,
+            "byteLayout": byte_layouts.remove(&entry.id),
         }));
     }
     Ok(json!({ "architectures": architectures, "binaries": binaries }))
+}
+
+/// Serialize Rust's file partition without rounding byte coordinates for JavaScript.
+fn file_byte_layout_value(inventory: &Inventory, facts: &fixtures::FileByteFacts) -> Result<Value> {
+    let layout = inventory
+        .file_byte_layout(facts.entry, facts.byte_length, &facts.image_ranges)
+        .with_context(|| format!("invalid file byte observations for {:?}", facts.entry))?;
+    // Rust retains u64 coordinates. This numeric JSON adapter supports exact JS
+    // integers only; all validated region coordinates are bounded by this length.
+    ensure!(
+        layout.byte_length <= 9_007_199_254_740_991,
+        "file byte length for {:?} exceeds the exact JavaScript integer range",
+        facts.entry,
+    );
+    let mut regions = Vec::new();
+    for region in layout.regions {
+        let recorded_architecture_id = match region.image {
+            Some(image) => {
+                let recorded_image = inventory
+                    .image(image)
+                    .context("validated file byte region has no inventory image")?;
+                Some(architecture_id(recorded_image.cpu))
+            }
+            None => None,
+        };
+        let recorded_image_id = region.image.map(image_id);
+        regions.push(json!({
+            "imageId": recorded_image_id,
+            "architectureId": recorded_architecture_id,
+            "offset": region.file_range.offset(),
+            "size": region.file_range.size(),
+            "end": region.file_range.end(),
+        }));
+    }
+    Ok(json!({ "byteLength": layout.byte_length, "regions": regions }))
 }
 
 /// Keep the complete recorded type and subtype bits in presentation join keys.

@@ -26,6 +26,32 @@
         ],
         "binaries": [
           {
+            "byteLayout": {
+              "byteLength": 409600,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 16384,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 16384
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 212992,
+                  "imageId": "1:0",
+                  "offset": 16384,
+                  "size": 196608
+                },
+                {
+                  "architectureId": "01000007:00000003",
+                  "end": 409600,
+                  "imageId": "1:4",
+                  "offset": 212992,
+                  "size": 196608
+                }
+              ]
+            },
             "entryId": "1:4",
             "matches": [
               {
@@ -43,6 +69,39 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 655360,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 16384,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 16384
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 393216,
+                  "imageId": "1:1",
+                  "offset": 16384,
+                  "size": 376832
+                },
+                {
+                  "architectureId": null,
+                  "end": 409600,
+                  "imageId": null,
+                  "offset": 393216,
+                  "size": 16384
+                },
+                {
+                  "architectureId": "01000007:00000003",
+                  "end": 655360,
+                  "imageId": "1:5",
+                  "offset": 409600,
+                  "size": 245760
+                }
+              ]
+            },
             "entryId": "1:9",
             "matches": [
               {
@@ -60,6 +119,32 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 196608,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 16384,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 16384
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 98304,
+                  "imageId": "1:2",
+                  "offset": 16384,
+                  "size": 81920
+                },
+                {
+                  "architectureId": "01000007:00000003",
+                  "end": 196608,
+                  "imageId": "1:6",
+                  "offset": 98304,
+                  "size": 98304
+                }
+              ]
+            },
             "entryId": "1:16",
             "matches": [
               {
@@ -77,6 +162,7 @@
             ]
           },
           {
+            "byteLayout": null,
             "entryId": "1:17",
             "matches": [
               {
@@ -4547,6 +4633,7 @@
         ],
         "binaries": [
           {
+            "byteLayout": null,
             "entryId": "2:3",
             "matches": [
               {
@@ -4568,6 +4655,7 @@
             ]
           },
           {
+            "byteLayout": null,
             "entryId": "2:6",
             "matches": [
               {
@@ -4589,6 +4677,32 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 245760,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 8192,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 8192
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 90112,
+                  "imageId": "2:3",
+                  "offset": 8192,
+                  "size": 81920
+                },
+                {
+                  "architectureId": null,
+                  "end": 245760,
+                  "imageId": null,
+                  "offset": 90112,
+                  "size": 155648
+                }
+              ]
+            },
             "entryId": "2:9",
             "matches": [
               {
@@ -4610,6 +4724,7 @@
             ]
           },
           {
+            "byteLayout": null,
             "entryId": "2:11",
             "matches": [
               {
@@ -4629,6 +4744,18 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 131072,
+              "regions": [
+                {
+                  "architectureId": "0100000c:00000002",
+                  "end": 131072,
+                  "imageId": "2:0",
+                  "offset": 0,
+                  "size": 131072
+                }
+              ]
+            },
             "entryId": "2:13",
             "matches": [
               {
@@ -6499,6 +6626,18 @@
         ],
         "binaries": [
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 65536,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 65536
+                }
+              ]
+            },
             "entryId": "3:3",
             "matches": [
               {
@@ -6510,6 +6649,7 @@
             ]
           },
           {
+            "byteLayout": null,
             "entryId": "3:5",
             "matches": [
               {
@@ -7823,6 +7963,18 @@
         ],
         "binaries": [
           {
+            "byteLayout": {
+              "byteLength": 196608,
+              "regions": [
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 196608,
+                  "imageId": "4:0",
+                  "offset": 0,
+                  "size": 196608
+                }
+              ]
+            },
             "entryId": "4:3",
             "matches": [
               {
@@ -7834,6 +7986,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:1",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:248",
             "matches": [
               {
@@ -7845,6 +8016,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:2",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:249",
             "matches": [
               {
@@ -7856,6 +8046,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:3",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:250",
             "matches": [
               {
@@ -7867,6 +8076,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:4",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:251",
             "matches": [
               {
@@ -7878,6 +8106,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:5",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:252",
             "matches": [
               {
@@ -7889,6 +8136,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:6",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:253",
             "matches": [
               {
@@ -7900,6 +8166,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:7",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:254",
             "matches": [
               {
@@ -7911,6 +8196,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:8",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:255",
             "matches": [
               {
@@ -7922,6 +8226,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:9",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:256",
             "matches": [
               {
@@ -7933,6 +8256,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:10",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:257",
             "matches": [
               {
@@ -7944,6 +8286,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:11",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:258",
             "matches": [
               {
@@ -7955,6 +8316,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:12",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:259",
             "matches": [
               {
@@ -7966,6 +8346,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:13",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:260",
             "matches": [
               {
@@ -7977,6 +8376,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:14",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:261",
             "matches": [
               {
@@ -7988,6 +8406,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:15",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:262",
             "matches": [
               {
@@ -7999,6 +8436,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:16",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:263",
             "matches": [
               {
@@ -8010,6 +8466,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:17",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:264",
             "matches": [
               {
@@ -8021,6 +8496,25 @@
             ]
           },
           {
+            "byteLayout": {
+              "byteLength": 65536,
+              "regions": [
+                {
+                  "architectureId": null,
+                  "end": 4096,
+                  "imageId": null,
+                  "offset": 0,
+                  "size": 4096
+                },
+                {
+                  "architectureId": "0100000c:00000000",
+                  "end": 65536,
+                  "imageId": "4:18",
+                  "offset": 4096,
+                  "size": 61440
+                }
+              ]
+            },
             "entryId": "4:265",
             "matches": [
               {

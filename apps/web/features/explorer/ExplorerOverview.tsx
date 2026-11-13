@@ -8,19 +8,19 @@ import overviewStyles from './layout/ExplorerOverviewLayout.module.css';
 
 type ExplorerOverviewProps = {
   /** Authored inventory and the contexts supplied by Rust. */
-  dataset: PreviewDataset;
+  readonly dataset: PreviewDataset;
   /** Dataset selection stays outside the relationship session. */
-  datasetSelector: ReactNode;
+  readonly datasetSelector: ReactNode;
   /** Context used when entering the relationship workspace. */
-  contextId: string;
+  readonly contextId: string;
   /** Replacing the context starts a fresh exploration session. */
-  onContextChange: (contextId: string) => void;
+  readonly onContextChange: (contextId: string) => void;
 };
 
 /**
  * Compose application facts and the selected exploration context.
  * @param props Generated dataset, selected context and selection controls.
- * @returns The Overview's named layout regions without owning navigation state.
+ * @returns Named layout regions with file-byte inspection owned by each bar.
  */
 export function ExplorerOverview({
   dataset,
@@ -32,6 +32,12 @@ export function ExplorerOverview({
   const { architectures, binaries } = dataset.architectureCoverage;
   const selectedArchitecture = architectures.find(
     (architecture) => architecture.id === context.architectureId,
+  );
+  const architectureColors = new Map(
+    architectures.map((architecture, index) => [
+      architecture.id,
+      `hsl(${220 + index * 75} 60% 56%)`,
+    ]),
   );
 
   return (
@@ -79,6 +85,7 @@ export function ExplorerOverview({
         <ExplorerArchitectureCoverage
           dataset={dataset}
           selectedArchitectureId={selectedArchitecture?.id}
+          architectureColors={architectureColors}
         />
       }
     />
