@@ -1,7 +1,7 @@
 //! Authored explorer examples shared by native tests and the preview exporter.
 //! No binary parser or native inventory acquisition is claimed by these fixtures.
 
-use binary_inspection::{CpuIdentity, explorer::*};
+use binary_inspection::{CpuIdentity, FileRange, explorer::*};
 use object::{macho, read::ImportLibraryFlags};
 
 /// One reproducible, explicitly synthetic demonstration inventory.
@@ -10,8 +10,27 @@ pub struct Dataset {
     pub label: &'static str,
     pub description: &'static str,
     pub inventory: Inventory,
+    /// Authored byte observations; omitted files have no recorded size or ranges.
+    pub file_byte_facts: Vec<FileByteFacts>,
     pub contexts: Vec<FixtureContext>,
     pub initial_entry: EntryId,
+}
+
+/// Explicit synthetic file length and the image ranges recorded within it.
+pub struct FileByteFacts {
+    /// Exact file entry whose length was authored.
+    pub entry: EntryId,
+    /// Whole-file length, not an image count or memory measurement.
+    pub byte_length: u64,
+    /// Known image spans; absent spans remain unassigned.
+    pub image_ranges: Vec<ImageByteRange>,
+}
+
+/// Construct an image span from the fixture's bounded numeric literals.
+fn image_byte_range(image: ImageId, offset: u64, size: u64) -> ImageByteRange {
+    let file_range = FileRange::new(offset, size)
+        .expect("authored fixture byte-range literals must not overflow");
+    ImageByteRange { image, file_range }
 }
 
 /// Named, fully supplied interpretation context.
@@ -224,6 +243,21 @@ fn atlas() -> Dataset {
     b.file("/Contents/Resources/Settings.plist");
     let framework_base = b.directory("/Contents/Frameworks/Example.framework/Versions/A");
     let contents_base = b.directory("/Contents");
+    let mut main_byte_facts = FileByteFacts {
+        entry: main,
+        byte_length: 409_600,
+        image_ranges: Vec::new(),
+    };
+    let mut example_byte_facts = FileByteFacts {
+        entry: example,
+        byte_length: 655_360,
+        image_ranges: Vec::new(),
+    };
+    let mut helper_byte_facts = FileByteFacts {
+        entry: helper,
+        byte_length: 196_608,
+        image_ranges: Vec::new(),
+    };
     let mut contexts = Vec::new();
     for (id, label, cpu) in [
         ("arm64", "arm64 · Atlas executable", arm64()),
@@ -233,6 +267,18 @@ fn atlas() -> Dataset {
         let example_image = b.image(example, cpu);
         let helper_image = b.image(helper, cpu);
         b.image(telemetry, cpu);
+        let (main_offset, example_offset, example_size, helper_offset, helper_size) =
+            if cpu == arm64() {
+                (16_384, 16_384, 376_832, 16_384, 81_920)
+            } else {
+                (212_992, 409_600, 245_760, 98_304, 98_304)
+            };
+        let main_range = image_byte_range(main_image, main_offset, 196_608);
+        let example_range = image_byte_range(example_image, example_offset, example_size);
+        let helper_range = image_byte_range(helper_image, helper_offset, helper_size);
+        main_byte_facts.image_ranges.push(main_range);
+        example_byte_facts.image_ranges.push(example_range);
+        helper_byte_facts.image_ranges.push(helper_range);
         b.dependency(
             main_image,
             "@rpath/Example.framework/Example",
@@ -290,6 +336,7 @@ fn atlas() -> Dataset {
         label: "Atlas framework",
         description: "Versioned framework aliases, nested helper, resources and external/weak references. All facts are synthetic.",
         inventory: b.finish(),
+        file_byte_facts: vec![main_byte_facts, example_byte_facts, helper_byte_facts],
         contexts,
         initial_entry: example,
     }
@@ -302,13 +349,19 @@ fn ambiguity() -> Dataset {
     let one = b.file("/Contents/Frameworks/One/libShared.dylib");
     let two = b.file("/Contents/Frameworks/Two/libShared.dylib");
     let special = b.file("/Contents/Frameworks/Special/libShared.dylib");
-    b.image(
+    let special_image = b.image(
         special,
         CpuIdentity {
             cpu_type: macho::CPU_TYPE_ARM64,
             cpu_subtype: macho::CPU_SUBTYPE_ARM64E.into(),
         },
     );
+    let special_range = image_byte_range(special_image, 0, 131_072);
+    let mut partial_byte_facts = FileByteFacts {
+        entry: one,
+        byte_length: 245_760,
+        image_ranges: Vec::new(),
+    };
     let mut contexts = Vec::new();
     for (id, label, cpu) in [
         ("arm64", "arm64 · multiple candidates", arm64()),
@@ -319,6 +372,8 @@ fn ambiguity() -> Dataset {
         let one_image = b.image(one, cpu);
         if cpu == arm64() {
             b.image(two, cpu);
+            let recorded_range = image_byte_range(one_image, 8_192, 81_920);
+            partial_byte_facts.image_ranges.push(recorded_range);
         }
         let reexport = b.dependency(main_image, "@rpath/libShared.dylib", macho::LC_LOAD_DYLIB);
         if let Evidence::Dependency {
@@ -371,6 +426,14 @@ fn ambiguity() -> Dataset {
         label: "Ambiguity & architectures",
         description: "Ordered runpaths keep declaring-image context, duplicate names and exact CPU mismatches explicit. No loader choice is claimed.",
         inventory: b.finish(),
+        file_byte_facts: vec![
+            FileByteFacts {
+                entry: special,
+                byte_length: 131_072,
+                image_ranges: vec![special_range],
+            },
+            partial_byte_facts,
+        ],
         contexts,
         initial_entry: main,
     }
@@ -415,6 +478,11 @@ fn incomplete() -> Dataset {
         label: "Incomplete evidence",
         description: "Broken/cyclic aliases, an external alias, missing weak library and a suggestion that never becomes a target.",
         inventory: b.finish(),
+        file_byte_facts: vec![FileByteFacts {
+            entry: main,
+            byte_length: 65_536,
+            image_ranges: Vec::new(),
+        }],
         contexts,
         initial_entry: main,
     }
@@ -424,6 +492,12 @@ fn dense() -> Dataset {
     let mut b = Builder::new(4, "/Dense.app");
     let main = b.file("/Contents/MacOS/Atlas");
     let image = b.image(main, arm64());
+    let main_range = image_byte_range(image, 0, 196_608);
+    let mut file_byte_facts = vec![FileByteFacts {
+        entry: main,
+        byte_length: 196_608,
+        image_ranges: vec![main_range],
+    }];
     for group in 0..3 {
         for index in 0..80 {
             b.file(&format!(
@@ -437,6 +511,12 @@ fn dense() -> Dataset {
             index % 3
         ));
         let library = b.image(file, arm64());
+        let library_range = image_byte_range(library, 4_096, 61_440);
+        file_byte_facts.push(FileByteFacts {
+            entry: file,
+            byte_length: 65_536,
+            image_ranges: vec![library_range],
+        });
         b.dependency(
             image,
             &format!(
@@ -481,6 +561,7 @@ fn dense() -> Dataset {
         label: "Dense neighborhood",
         description: "Eighteen libraries after 240 unrelated rows and one long resource path exercise virtualized scrolling and direct endpoint activation.",
         inventory: b.finish(),
+        file_byte_facts,
         contexts,
         initial_entry: main,
     }

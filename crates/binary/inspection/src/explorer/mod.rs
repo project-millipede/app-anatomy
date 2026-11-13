@@ -4,7 +4,10 @@
 //! Candidate matches use exact CPU identities and lexical paths. They do not prove
 //! loading, access, signature validity or execution eligibility.
 
+mod file_byte_layout;
 mod resolve;
+
+pub use file_byte_layout::{FileByteLayout, FileByteRegion, ImageByteRange};
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;

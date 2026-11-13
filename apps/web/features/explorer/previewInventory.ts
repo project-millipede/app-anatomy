@@ -12,6 +12,32 @@ export type PreviewConnection = PreviewNeighborhood['west'][number];
 /** Selected context type inferred from the generated records returned by the lookup. */
 export type PreviewContext = ReturnType<typeof getPreviewContext>;
 
+/** Non-null byte composition inferred from generated rows without copying their fields. */
+export type PreviewFileByteLayout = PreviewDataset extends {
+  architectureCoverage: { binaries: readonly { byteLayout: infer Layout }[] };
+}
+  ? NonNullable<Layout>
+  : never;
+
+/**
+ * Find a recorded CPU identity without deriving its label from a numeric key.
+ * @param dataset Generated architecture coverage containing the recorded identity.
+ * @param architectureId Exact CPU identity supplied with an image region.
+ * @returns The recorded architecture; throws when its required record is missing.
+ */
+export function getPreviewArchitecture(
+  dataset: Pick<PreviewDataset, 'architectureCoverage'>,
+  architectureId: string,
+) {
+  const architecture = dataset.architectureCoverage.architectures.find(
+    (recorded) => recorded.id === architectureId,
+  );
+  if (!architecture) {
+    throw new Error(`Explorer architecture is missing: ${architectureId}`);
+  }
+  return architecture;
+}
+
 /**
  * Find an authored exploration context without substituting a default.
  * @param dataset Generated records containing the selectable contexts.

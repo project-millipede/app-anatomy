@@ -19,7 +19,8 @@ The synthetic preview borrows pinned `object` types for Mach-O dependency flags,
 identifiers, versions and CPU identity. Owned application records retain original reference
 bytes, provenance and separate entry/image/relationship identities. A filesystem
 alias and its target remain separate entries even when their basenames match.
-Fixture provenance is explicit; synthetic evidence does not claim parsed offsets.
+Fixture provenance is explicit; authored byte lengths and image ranges do not
+claim parsed offsets or acquired files.
 
 Fixture builders live outside the production library's `src/` and are shared by
 native integration tests and the preview exporter. The datasets cover the Atlas
@@ -308,14 +309,38 @@ inventory, including nested bundles. Folder selection does not aggregate child
 references. Separate evidence records remain separate relationships while tree
 roles count each represented resource once.
 
+## Synthetic file-byte composition
+
+`Inventory::file_byte_layout` is an ordinary Rust query over a regular file entry,
+its supplied byte length and borrowed `ImageByteRange` records. Each record pairs
+an exact inventory image identity with the existing checked `FileRange` type.
+The query validates entry/image ownership, repeated image identities, nonempty
+image ranges, overlap and file bounds. It orders ranges by offset and returns
+image regions plus the complementary **Other / unmapped bytes** regions spanning
+the supplied file length. Coordinates and lengths remain `u64`, and range ends
+are exclusive.
+
+Ranges may omit recorded images whose byte coordinates are unknown. An omitted
+range does not remove that image from architecture coverage. Complementary bytes
+are not classified as padding, headers, resources or signature data. The query
+does not detect thin/universal format, parse binary bytes or determine memory use.
+Several images with the same CPU identity remain separate image regions.
+
+Synthetic file lengths and image ranges are explicitly authored sidecar fixtures
+outside production `src/`. They are independent of CPU coverage: coverage states
+which recorded images belong to each file, while byte composition states where
+supplied image ranges lie inside that particular file. A missing byte layout is
+unknown, not a zero-byte file or an equal division among architectures.
+
 ## Build-time preview adapter
 
-The Rust xtask calls the same public candidate, neighborhood and exact image
-matching APIs and converts their results into the tracked
+The Rust xtask calls the public candidate, neighborhood, exact image matching and
+file-byte layout APIs and converts their results into the tracked
 `previewData.generated.json` asset. Serialization and conversion of upstream
 wrappers belong to this adapter, outside the core. The artifact contains
 inventories, contexts, evidence, candidates, attempts, per-selection neighborhood
-projections and application-level architecture coverage.
+projections, application-level architecture coverage and authored per-file byte
+composition.
 
 The private coverage projection composes `Inventory::matching_images` without
 adding a public Rust API or availability classification. Columns retain distinct
@@ -331,6 +356,15 @@ key derived from the complete raw CPU type and subtype. React compares these
 supplied keys to highlight a column; it does not reproduce CPU matching. Names
 and paths remain in the existing entry records, and displayed totals are derived
 from the supplied data.
+
+Each binary row also carries `byteLayout`: either `null` when no file-byte facts
+were supplied, or a file `byteLength` with ordered `regions`. Every region retains
+`offset`, `size` and exclusive `end`; image regions identify their exact `imageId`
+and `architectureId`, while complementary regions set both identities to `null`.
+The exporter rejects byte values outside JavaScript's safe-integer range before
+writing JSON. It does not round, clamp or silently omit unrepresentable ranges.
+React uses these supplied regions for proportional display and exact-range
+details; it does not validate or reconstruct the file partition.
 
 ```sh
 pnpm explorer:generate
@@ -370,15 +404,42 @@ Matrix columns come from recorded images, not from the context menu. For example
 the Ambiguity dataset records an `arm64e` image without an authored `arm64e`
 exploration context. That image contributes a column but does not create a new
 context. The selected context highlights its matching column; a context without
-a recorded column highlights none. The matrix supplies no file selection or cell
-navigation. File selection and relationship traversal remain in Relationships.
+a recorded column highlights none. Rows with supplied byte facts show their full
+size display beneath the file path: a readable and exact byte total, a 2rem-high
+bar with square corners, and an axis from `0x0` to the exclusive file end. Each
+image or unmapped region is a named, keyboard-focusable Ark Tooltip trigger.
+Hovering or keyboard-focusing a region reveals its exact byte facts without
+selecting a relationship center or changing tree selection. File selection for
+relationship traversal remains in Relationships.
 
 One full context selector retains architecture, executable and ordered runpaths
 as a single choice. Its details appear beside the matrix on wide screens and
 above it on narrow screens. Normal Overview scrolling accommodates dense
 inventories; the table can scroll horizontally when space is limited. This view
-does not infer thin or universal container format from image counts, display
-invented byte sizes or replace an individual binary's anatomy view.
+does not infer thin or universal container format from image counts or replace an
+individual binary's anatomy view.
+
+Each bar represents that file's supplied byte length; it is not a comparison of
+application-wide file sizes. Regions retain their recorded byte order and exact
+proportions, including tiny spans. One Ark `Tooltip.Root` per file shares content
+across region triggers, keyed by each region's unique offset. Ark owns opening,
+active-trigger identity, dismissal and positioning. The tooltip looks up the
+original Rust-projected region and shows its architecture or unmapped label,
+offset, exclusive end and exact/readable length. Raw image IDs remain in the
+payload; offsets distinguish displayed regions sharing a CPU identity.
+
+`ExplorerOverview` has no expanded-file state or focus-return handlers. There is
+no expanded row or detached detail panel. Tooltip positioners remain beside their
+bars under the existing theme, using fixed positioning to avoid the current
+scroll containers' clipping. Labels identify the values as authored synthetic
+data. Missing byte facts remain unavailable rather than producing estimated
+widths or sizes; zero-byte files show their total without region triggers.
+
+This interaction supports pointer hover and keyboard focus. It does not add tap
+activation or click-to-pin behavior; touch-specific inspection remains a separate
+interaction decision. Architecture changes update highlights without selecting a
+file, and dataset replacement remounts the tooltip owners. These transient
+previews do not change relationship-tree selection, candidates or history.
 
 `ExplorerWorkspace` owns the dataset. `DatasetWorkspace` owns the context and
 Overview/Relationships navigation. A `RelationshipSession`, keyed by context ID,
@@ -462,6 +523,14 @@ and a complete inspected bundle inventory remain unavailable. Future native
 inventory and read-link capabilities must preserve selection/resource ownership
 and bounded reads. Optional candidate queries can consume the acquired facts and explicit
 context separately.
+
+Native file-byte display is a separate integration. A native adapter must supply
+observed file lengths and exact image ranges from the existing Rust inspection
+path, associate them with acquired inventory entries/images, and call the same
+ordinary `file_byte_layout` query. Authored preview ranges do not qualify this
+acquisition path. This increment adds no native scan, read-link capability, WIT
+operation or live Wasm byte-layout execution, and does not change native Explorer
+or an individual binary's anatomy report.
 
 ### Synthetic preview validation recorded on 2026-10-29
 

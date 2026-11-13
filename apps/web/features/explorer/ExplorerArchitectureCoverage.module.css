@@ -1,0 +1,11 @@
+.fileBytes {
+  margin-block-start: 0.75rem;
+}
+
+.swatch {
+  display: inline-block;
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  margin-inline-end: 0.25rem;
+  border-radius: 0.125rem;
+}
