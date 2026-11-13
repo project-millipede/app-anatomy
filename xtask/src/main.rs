@@ -27,9 +27,8 @@ fn main() -> Result<()> {
         [group, action] if group == "wit" && action == "fetch" => fetch(root),
         [group, action] if group == "wit" && action == "check" => check(root),
         [group, action] if group == "explorer" && action == "generate" => explorer::generate(root),
-        [group, action] if group == "explorer" && action == "check" => explorer::check(root),
         _ => bail!(
-            "usage: cargo run -p app-anatomy-xtask -- <wit <fetch|check> | explorer <generate|check>>"
+            "usage: cargo run -p app-anatomy-xtask -- <wit <fetch|check> | explorer generate>"
         ),
     }
 }

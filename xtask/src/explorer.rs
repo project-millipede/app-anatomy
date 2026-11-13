@@ -23,23 +23,6 @@ pub fn generate(root: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn check(root: &Path) -> Result<()> {
-    let expected = snapshot()?;
-    let path = root.join(OUTPUT);
-    let actual = fs::read(&path).with_context(|| {
-        format!(
-            "failed to read {}; run pnpm explorer:generate",
-            path.display()
-        )
-    })?;
-    ensure!(
-        actual == expected,
-        "{OUTPUT} is stale; run pnpm explorer:generate and review the result"
-    );
-    println!("Explorer preview data is current.");
-    Ok(())
-}
-
 fn snapshot() -> Result<Vec<u8>> {
     let datasets: Vec<Value> = fixtures::datasets()
         .iter()

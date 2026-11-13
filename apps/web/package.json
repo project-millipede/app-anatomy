@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "pnpm styles:codegen && next dev --hostname 127.0.0.1 --port 3210",
-    "build": "pnpm styles:codegen && next build",
+    "dev": "pnpm --workspace-root explorer:generate && pnpm styles:codegen && next dev --hostname 127.0.0.1 --port 3210",
+    "build": "pnpm --workspace-root explorer:generate && pnpm styles:codegen && next build",
     "start": "next start --hostname 127.0.0.1 --port 3210",
-    "typecheck": "pnpm styles:codegen && next typegen && tsc --noEmit",
+    "typecheck": "pnpm --workspace-root explorer:generate && pnpm styles:codegen && next typegen && tsc --noEmit",
     "styles:codegen": "panda codegen",
     "prepare": "pnpm styles:codegen"
   },
