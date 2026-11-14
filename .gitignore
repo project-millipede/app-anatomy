@@ -12,5 +12,6 @@ apps/web/public/installers/*.pkg
 !.env.example
 .vercel/
 apps/web/styled-system/
+apps/web/features/explorer/previewData.generated.json
 wkg/vendor/
 wkg/wit/deps/

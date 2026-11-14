@@ -335,8 +335,8 @@ unknown, not a zero-byte file or an equal division among architectures.
 ## Build-time preview adapter
 
 The Rust xtask calls the public candidate, neighborhood, exact image matching and
-file-byte layout APIs and converts their results into the tracked
-`previewData.generated.json` asset. Serialization and conversion of upstream
+file-byte layout APIs and converts their results into the ignored
+`previewData.generated.json` build artifact. Serialization and conversion of upstream
 wrappers belong to this adapter, outside the core. The artifact contains
 inventories, contexts, evidence, candidates, attempts, per-selection neighborhood
 projections, application-level architecture coverage and authored per-file byte
@@ -373,8 +373,8 @@ pnpm explorer:generate
 The web package generates this artifact before development startup, production
 builds and typechecking, including when those commands are run directly through
 the package filter. The root `test:web` command also generates it before tests
-import the preview. Generation failures stop the consuming command. The Rust
-fixtures and exporter are the source of the tracked JSON. Run the command
+import the preview. Generation failures stop the consuming command. The JSON is
+not checked in; the Rust fixtures and exporter are its source. Run the command
 above to regenerate it manually after changing those sources during a running
 development session. TypeScript infers payload types from the JSON import and
 looks up Rust-computed projections; it does not expand references or compute

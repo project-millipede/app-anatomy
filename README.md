@@ -166,7 +166,7 @@ After `pnpm build`, `pnpm --filter @apple-code/web start` serves production. A c
 See [service qualification](crates/services/filesystem/README.md#scope-of-the-evidence)
 for the scope of Rust and JavaScript checks and the remaining full-workflow qualification.
 
-The web package runs the existing Rust Explorer preview generator before dev, build and typecheck, including direct package commands. `pnpm test:web` also generates the preview before running tests. Use `pnpm explorer:generate` to refresh it manually after changing the Rust fixtures or exporter during development.
+The web package runs the existing Rust Explorer preview generator before dev, build and typecheck, including direct package commands. `pnpm test:web` also generates the preview before running tests. The generated `apps/web/features/explorer/previewData.generated.json` is ignored by Git; use `pnpm explorer:generate` to refresh it manually after changing the Rust fixtures or exporter during development.
 
 The web package generates Panda's styling API during installation and before dev, build and typecheck. Generated `apps/web/styled-system` files are ignored. The PostCSS plugin produces recipe CSS during Next.js builds. After editing Panda configuration or recipes, run `pnpm --filter @apple-code/web styles:codegen` and restart the development server if styles remain cached.
 
