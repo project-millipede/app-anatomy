@@ -368,14 +368,17 @@ details; it does not validate or reconstruct the file partition.
 
 ```sh
 pnpm explorer:generate
-pnpm explorer:check
 ```
 
-Generation is explicit. The check recomputes expected output without writing and
-fails for a stale or missing asset. Typecheck and the production build require a
-fresh artifact. TypeScript infers payload types from the JSON import and looks up
-Rust-computed projections; it does not expand references or compute compatibility
-or candidates.
+The web package generates this artifact before development startup, production
+builds and typechecking, including when those commands are run directly through
+the package filter. The root `test:web` command also generates it before tests
+import the preview. Generation failures stop the consuming command. The Rust
+fixtures and exporter are the source of the tracked JSON. Run the command
+above to regenerate it manually after changing those sources during a running
+development session. TypeScript infers payload types from the JSON import and
+looks up Rust-computed projections; it does not expand references or compute
+compatibility or candidates.
 
 The synthetic presentation does not invoke native inspection or a live Wasm
 resolver. The page-owned native runtime/model remains mounted across source
@@ -535,7 +538,9 @@ or an individual binary's anatomy report.
 ### Synthetic preview validation recorded on 2026-10-29
 
 This is the historical synthetic milestone before native-source integration;
-its checks do not qualify the subsequent native Explorer workflow.
+its checks do not qualify the subsequent native Explorer workflow. The
+`explorer:check` command recorded below was later replaced by automatic generation
+before consuming commands.
 
 - Native workspace tests passed, including 11 Explorer rule tests. The
   `binary-inspection` suite also passed its two doctests and Clippy with warnings
