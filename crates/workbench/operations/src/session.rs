@@ -1,5 +1,5 @@
 use crate::{Failure, Outcome, StepOutcome, Transport};
-use filesystem_data::{DirectoryEntry, DirectoryEntryKind, SelectionScope};
+use filesystem_data::{DirectoryEntry, DirectoryEntryKind};
 use filesystem_protocol::{
     DirectoryEntryRef, DirectoryListing, FileError, Request, Response, SelectedResource,
     SelectionState as NativeSelectionState, decode_response, encode_request, validate_response,
@@ -12,7 +12,6 @@ use std::collections::HashSet;
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
 pub struct SelectionState {
     pub file: Option<SelectedResource>,
-    pub scope: Option<SelectionScope>,
     pub directory: Option<SelectedResource>,
     pub entries: Vec<DirectoryEntry>,
     pub root: Option<SelectedResource>,
@@ -38,9 +37,9 @@ pub enum StepKind {
     Inspect,
     /// Load a child listing without changing the native file or directory cursor.
     ExpandDirectory,
-    /// Select and validate an application bundle as the inspection subject.
+    /// Select an application subject through the native application picker.
     SelectApplication,
-    /// Select and validate a Mach-O file as the inspection subject.
+    /// Select a standalone file through the native binary picker.
     SelectBinary,
 }
 
@@ -115,7 +114,6 @@ impl Session {
         let Response::Selection(state) = self.request(Request::CurrentSelection)? else {
             unreachable!("response was validated against its request");
         };
-        validate_scope(&state)?;
         let root = state.root.as_ref().map(|root| root.resource.clone());
         if self.root != root {
             self.directories.clear();
@@ -233,7 +231,6 @@ impl Session {
         }
         self.directories = directories;
         Ok(SelectionState {
-            scope: state.scope,
             file: state.file,
             directory: state.directory,
             entries: state.entries,
@@ -272,28 +269,14 @@ impl Session {
         self.select(Request::ChooseFolder, StepKind::SelectDirectory)
     }
 
-    /// Ask the native owner to select and validate an application bundle.
-    /// Older owners are rejected before receiving an unsupported picker request.
+    /// Ask the native owner to select a directory through its application picker.
     pub fn select_application(&mut self) -> SelectionOutcome {
-        self.select_subject(Request::ChooseApplication, StepKind::SelectApplication)
+        self.select(Request::ChooseApplication, StepKind::SelectApplication)
     }
 
-    /// Ask the native owner to select and validate a standalone Mach-O binary.
-    /// Older owners are rejected before receiving an unsupported picker request.
+    /// Ask the native owner to select a standalone file through its binary picker.
     pub fn select_binary(&mut self) -> SelectionOutcome {
-        self.select_subject(Request::ChooseBinary, StepKind::SelectBinary)
-    }
-
-    fn select_subject(&mut self, request: Request, kind: StepKind) -> SelectionOutcome {
-        let result = self.observe_selection().and_then(|state| {
-            if state.scope.is_none() {
-                return Err(Failure::precondition(
-                    "Update Native Workbench to open an application or binary as the inspection subject.",
-                ));
-            }
-            self.request(request).map(|_| ())
-        });
-        self.finish_selection(kind, result)
+        self.select(Request::ChooseBinary, StepKind::SelectBinary)
     }
 
     fn select(&mut self, request: Request, kind: StepKind) -> SelectionOutcome {
@@ -561,37 +544,4 @@ fn validate_directories(
         }
     }
     Ok(())
-}
-
-/// Check scope independently of the provider and of legacy optional fields.
-fn validate_scope(state: &NativeSelectionState) -> Result<(), Failure> {
-    let valid = match state.scope {
-        None => true,
-        Some(SelectionScope::Empty) => {
-            state.file.is_none()
-                && state.directory.is_none()
-                && state.root.is_none()
-                && state.file_entry.is_none()
-                && state.entries.is_empty()
-        }
-        Some(SelectionScope::File | SelectionScope::Binary) => {
-            state.file.is_some()
-                && state.directory.is_none()
-                && state.root.is_none()
-                && state.file_entry.is_none()
-                && state.entries.is_empty()
-        }
-        Some(SelectionScope::Directory | SelectionScope::Application) => {
-            state.root.is_some()
-                && state.directory.is_some()
-                && (state.file.is_some() == state.file_entry.is_some())
-        }
-    };
-    if valid {
-        Ok(())
-    } else {
-        Err(Failure::precondition(
-            "The native selection scope does not match its retained resources.",
-        ))
-    }
 }

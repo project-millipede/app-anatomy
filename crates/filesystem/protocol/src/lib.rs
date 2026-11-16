@@ -8,7 +8,6 @@ mod error;
 
 pub use error::{ProtocolError, ProtocolErrorKind, ProtocolLimit};
 use filesystem_data::DirectoryEntry;
-pub use filesystem_data::SelectionScope;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 pub const MAX_REQUEST_BYTES: u32 = 64 * 1024;
@@ -103,9 +102,6 @@ pub struct SelectionState {
     pub root: Option<SelectedResource>,
     #[serde(default)]
     pub file_entry: Option<DirectoryEntryRef>,
-    /// Missing on older providers; new owners report even the empty scope.
-    #[serde(default)]
-    pub scope: Option<SelectionScope>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -790,7 +786,6 @@ mod tests {
                 entries: entries.clone(),
                 root: Some(directory.clone()),
                 file_entry: Some(origin.clone()),
-                scope: Some(SelectionScope::Application),
             }),
             Response::Directory(DirectoryListing {
                 directory,
@@ -834,6 +829,5 @@ mod tests {
         assert_eq!(state.directory, Some(selected));
         assert_eq!(state.root, None);
         assert_eq!(state.file_entry, None);
-        assert_eq!(state.scope, None);
     }
 }

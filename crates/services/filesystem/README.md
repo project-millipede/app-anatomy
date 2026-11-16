@@ -42,11 +42,11 @@ The socket can remain open between operations and between user interactions.
 - **Directories:** open a listed file or navigate to a child directory by entry
   ID. `ListDirectory` reads a retained listing; `ExpandDirectory` lazily captures
   one immediate child without changing the file or listing cursor.
-- **Selection:** generic file/folder controls remain available for Base/Ark.
-  Separate `ChooseApplication` and `ChooseBinary` operations establish the Explorer's
-  application or standalone-binary scope. Queries include that scope, current
+- **Selection:** file/folder controls and the application/binary picker conveniences
+  acquire the same retained file or directory resources. Queries include current
   file/cursor metadata, root identity and optional listed-file origin; only the
-  cursor's listing is included.
+  cursor's listing is included. Explorer can use retained inputs acquired through
+  any of these controls.
 
 The protocol never accepts a native pathname. The native picker supplies the path.
 Resource identifiers are random 256-bit values encoded as
@@ -90,30 +90,38 @@ Tokio runtime.
 
 ## Application and binary acquisition
 
-`SelectionScope` distinguishes `Empty`, generic `File`/`Directory`, `Application`
-and `Binary`. New owners always report a scope; older responses omit it and decode
-as `None`. A generic folder, including `/Applications`, is not an Explorer application
-input. Generic acquisition never gains application scope merely from its name.
+Selection responses identify any retained root, selected file and current directory
+cursor. A root remains retained when an internal file is selected or the cursor
+moves. Explorer presents that root and its selected file, or a standalone file when
+no root is retained, independently of the picker used. An available owner with no
+retained resources is empty; a failed query remains an operation failure.
 
 On macOS, the application picker starts at `/Applications` and uses the pinned
-rfd file picker with an `.app` filter, so the user selects one package. The native
-adapter independently enforces the result through
-[`NativeApplication`](../../filesystem/native/src/application.rs). The ordinary
-[core policy](../../binary/inspection/src/application.rs) requires the raw name's
-`.app` suffix, a directory root, a `Contents` directory and a regular
-`Contents/Info.plist`. This supports the modern layout only; it does not parse the
-plist, validate signatures or establish execution eligibility. Application scope
-includes resource and other entries, not just binaries; listing and cursor changes
-preserve it. Existing directory bounds and live-path limitations still apply.
+rfd file picker with an `.app` filter, so the user selects one package. Other
+native hosts use a folder picker. Application and generic folder acquisition use
+[`NativeDirectory::open`](../../filesystem/native/src/directory.rs) to capture a
+bounded immediate listing before installation. Application acquisition does not
+check the directory name, `Contents` or `Info.plist`; direct Rust callers can
+select any directory as the retained root. Root paths use ordinary filesystem
+resolution, including symlinks to directories, and native I/O errors propagate
+(for example, `NotFound` for a missing root). The tree includes resource and other
+entries, not just binaries; listing and file selection preserve its root.
+Existing directory bounds and live-path limitations still apply. Selection does
+not establish bundle validity, signature validity or execution eligibility.
 
-The binary picker has no extension filter. `NativeBinary` opens a regular file and
-runs the existing thin/universal Mach-O header inspector before installation.
-Dependency inspection remains an explicit later operation. Private acquisition
-wrapper fields prevent installing either validated scope around generic resources.
-Cancel or validation failure preserves the previous input; successful replacement
+The binary picker has no extension filter. Binary and generic file acquisition
+open a file and construct a
+[`NativeFileSource`](../../filesystem/native/src/file.rs), which checks that the
+opened handle is a regular file and captures its length. Selection does not parse
+binary headers. Explicit header or dependency inspection invokes the existing
+ordinary Rust analyzer. An unsupported or malformed regular file can replace the
+previous selection; an inspection failure leaves that new file retained.
+
+Cancel or acquisition failure preserves the previous input; successful replacement
 invalidates its resources. Direct native callers use
-`NativeSelection::select_application` or `select_binary` without a service or host
-runtime.
+`NativeSelection::select_directory` or `select_file` without a service or host
+runtime. `ChooseApplication` and `ChooseBinary` remain service-owned picker
+conveniences and return ordinary directory or file selections.
 
 ## Launch
 

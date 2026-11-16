@@ -10,7 +10,6 @@ import { NativeExplorerWorkspace } from './NativeExplorerWorkspace';
 import { NativeExplorerActions } from './NativeExplorerActions';
 import { ExplorerFrame } from './layout/ExplorerFrame';
 import { ExplorerDiagnostics } from './ExplorerDiagnostics';
-import { nativeExplorerSubject } from './nativeTreePresentation';
 import type { NativeTreeFailure } from './nativeTreeFailures';
 import styles from './ExplorerLayout.module.css';
 
@@ -36,9 +35,9 @@ export function ApplicationExplorer() {
   const { getNativeSession } = useNativeSession();
   const model = useWorkbenchModel(getNativeSession);
   const native = tabs.value === ExplorerSource.Native;
-  const { application, file } = nativeExplorerSubject(model.nativeWorkspace);
-  const binary = model.nativeWorkspace?.scope === 'binary';
-  const scopeResource = application?.resource ?? file?.resource ?? null;
+  const root = model.nativeWorkspace?.root;
+  const file = model.nativeWorkspace?.file;
+  const scopeResource = root?.resource ?? file?.resource ?? null;
   const currentTreeFailures = treeFailures.filter(
     (failure) =>
       native &&
@@ -99,7 +98,7 @@ export function ApplicationExplorer() {
             <h1>Application Explorer</h1>
             <p>
               {native
-                ? 'Open one application or standalone binary. Select a file to inspect its declared references.'
+                ? 'Select a file to inspect its declared references.'
                 : 'Choose an architecture context, then explore relationships from one selected file.'}
             </p>
           </>
@@ -119,11 +118,11 @@ export function ApplicationExplorer() {
         }
         notice={
           native
-            ? application
-              ? `Application navigation scope: ${application.name}. Declared references have no evaluated file targets; incoming consumers are unknown.`
-              : binary
-                ? 'Standalone binary scope · Declared references have no evaluated file targets; incoming consumers are unknown.'
-                : 'Open an application or binary for Explorer. Generic file and folder selections remain available in the workbench.'
+            ? root
+              ? `Folder: ${root.name}. Declared references have no evaluated file targets; incoming consumers are unknown.`
+              : file
+                ? 'Standalone file · Declared references have no evaluated file targets; incoming consumers are unknown.'
+                : 'Open an application or binary to begin.'
             : 'Synthetic preview · Rust-computed candidates from authored inventory facts. No files acquired or runtime loading observed.'
         }
         workspace={
@@ -151,10 +150,10 @@ export function ApplicationExplorer() {
           <>
             <span>
               {native
-                ? application
-                  ? `Application scope · ${application.name}`
-                  : binary
-                    ? 'Application Explorer · Standalone binary'
+                ? root
+                  ? `Folder · ${root.name}`
+                  : file
+                    ? 'Application Explorer · Standalone file'
                     : 'Application Explorer · Choose an application or binary'
                 : 'Application Explorer · Authored synthetic data'}
             </span>

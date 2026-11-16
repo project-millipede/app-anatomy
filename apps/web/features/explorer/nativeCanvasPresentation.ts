@@ -12,7 +12,7 @@ export function nativeCanvasPresentation(
   file: SelectedResource | undefined,
   report: Report | null,
   sliceIndex: number,
-  application?: SelectedResource,
+  root?: SelectedResource,
 ): {
   dataset: CanvasDataset;
   entry: CanvasEntry | undefined;
@@ -20,10 +20,10 @@ export function nativeCanvasPresentation(
 } {
   const entry: CanvasEntry | undefined = file
     ? { id: file.resource, name: file.name, kind: 'file', parentId: null }
-    : application
+    : root
       ? {
-          id: application.resource,
-          name: application.name,
+          id: root.resource,
+          name: root.name,
           kind: 'directory',
           parentId: null,
         }
@@ -44,7 +44,7 @@ export function nativeCanvasPresentation(
   return {
     entry,
     dataset: {
-      id: application?.resource ?? file?.resource ?? 'native-empty',
+      id: root?.resource ?? file?.resource ?? 'native-empty',
       entries: entry ? [entry] : [],
       contexts: images.length
         ? images.map((slice, index) => ({
@@ -56,8 +56,8 @@ export function nativeCanvasPresentation(
               id: '0',
               label: file
                 ? 'Awaiting dependency inspection'
-                : application
-                  ? 'Select an application file'
+                : root
+                  ? 'Select a file from the folder'
                   : 'Open an application or binary',
             },
           ],

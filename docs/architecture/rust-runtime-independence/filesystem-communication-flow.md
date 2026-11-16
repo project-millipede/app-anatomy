@@ -198,15 +198,29 @@ stale request cannot target the replacement; an admitted read completes against
 its original handle. No remote
 cleanup or frontend deselection operation exists.
 
-Explorer acquisition uses `ChooseApplication` or `ChooseBinary`. Native Rust
-acquires and validates the replacement before installation; application-layout
-policy and binary-header interpretation belong to `binary-inspection`. The service
-publishes an explicit subject scope, retained across internal file navigation.
-`ChooseFile` and `ChooseFolder` retain their generic Base/Ark behavior. A new empty
-owner reports `Some(Empty)`; missing scope remains a legacy-provider observation,
-and the client rejects new acquisition operations with an update instruction.
-The component's WIT 0.9 methods adapt ordinary operations APIs without repeating
+`ChooseApplication` and `ChooseBinary` are picker conveniences alongside
+`ChooseFolder` and `ChooseFile`. Native Rust acquires the replacement before
+installation, using the same `NativeDirectory` or `NativeFileSource` in either
+path. The macOS application picker filters for `.app` packages; directory
+acquisition does not check bundle layout. File acquisition does not parse binary
+headers. Explicit header or dependency inspection runs `binary-inspection`; an
+inspection failure leaves the newly selected file retained.
+
+Selection responses carry the retained root, selected file, current directory
+cursor and listed-file origin. Explorer presents those resources directly,
+independently of the picker. The root remains retained while internal file
+selection or the listing cursor changes.
+
+Application and binary picker requests use the ordinary selection request and
+follow-up query path without a capability preflight. Unsupported requests and
+decoding failures use the existing protocol/transport failure handling. The
+component's WIT 0.9 methods adapt ordinary operations APIs without repeating
 validation in TypeScript.
+
+Removing selection-scope metadata changes the component record and shared
+filesystem schema. Matching client/service schemas remain required; not every
+schema mismatch is detectable. Regenerate component bindings and rebuild the
+native service and component together when applying this change.
 
 A selected application or generic folder establishes a stable root. Rust native ownership retains up to
 64 captured directory listings, including that root. `ListDirectory` returns one

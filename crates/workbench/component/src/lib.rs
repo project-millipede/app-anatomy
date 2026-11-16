@@ -16,7 +16,6 @@ wit_bindgen::generate!({
         // Accepting these types as inputs would require compatible lifting support.
         "apple-code:analysis/native@0.9.0/step-kind": workbench_operations::StepKind,
         "apple-code:analysis/native@0.9.0/entry-kind": filesystem_data::DirectoryEntryKind,
-        "apple-code:analysis/native@0.9.0/selection-scope": filesystem_data::SelectionScope,
         "apple-code:analysis/native@0.9.0/failure-kind": workbench_operations::FailureKind,
         "apple-code:analysis/binary@0.9.0/container-kind": binary_inspection::ContainerKind,
         "apple-code:analysis/binary@0.9.0/header-format": binary_inspection::MachOHeaderFormat,

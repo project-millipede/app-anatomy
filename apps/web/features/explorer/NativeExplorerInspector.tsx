@@ -77,7 +77,7 @@ export function NativeExplorerInspector({
               ? 'Recorded declaration · target not evaluated'
               : image
                 ? cpuLabel(image.cpu)
-                : 'Select a file in an opened application, or open a binary, then inspect its dependencies.'}
+                : 'Select a file, then inspect its dependencies.'}
           </p>
         </div>
       }

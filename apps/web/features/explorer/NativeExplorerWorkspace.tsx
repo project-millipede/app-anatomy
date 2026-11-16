@@ -15,7 +15,6 @@ import {
   useVirtualizedTree,
 } from './capabilities/tree-virtualization/useVirtualizedTree';
 import {
-  nativeExplorerSubject,
   nativeSelectedRowId,
   nativeTreePresentation,
   type NativeTreeNode,
@@ -39,10 +38,11 @@ export function NativeExplorerWorkspace({
   model,
   onTreeFailures,
 }: NativeExplorerWorkspaceProps) {
-  const { application, file } = nativeExplorerSubject(model.nativeWorkspace);
+  const root = model.nativeWorkspace?.root;
+  const file = model.nativeWorkspace?.file;
   return (
     <SelectedFileWorkspace
-      key={application?.resource ?? file?.resource ?? 'native-empty'}
+      key={root?.resource ?? file?.resource ?? 'native-empty'}
       model={model}
       onTreeFailures={onTreeFailures}
     />
@@ -55,9 +55,8 @@ function SelectedFileWorkspace({
   onTreeFailures,
 }: NativeExplorerWorkspaceProps) {
   const { report, selectedSliceIndex, selectSlice } = model;
-  const { application, file: selectedFile } = nativeExplorerSubject(
-    model.nativeWorkspace,
-  );
+  const root = model.nativeWorkspace?.root;
+  const selectedFile = model.nativeWorkspace?.file;
   const image =
     report?.resource === selectedFile?.resource
       ? report?.analysis.images[selectedSliceIndex]
@@ -70,7 +69,7 @@ function SelectedFileWorkspace({
     preview?.image === image ? (preview?.index ?? null) : null;
   const viewportElementRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(false);
-  const scopeResource = application?.resource ?? selectedFile?.resource ?? null;
+  const scopeResource = root?.resource ?? selectedFile?.resource ?? null;
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -79,9 +78,9 @@ function SelectedFileWorkspace({
   }, []);
   // Inspection and file selection do not change the retained physical topology.
   const topology = JSON.stringify([
-    application,
-    application ? model.nativeWorkspace?.directories : undefined,
-    application ? undefined : selectedFile,
+    root,
+    root ? model.nativeWorkspace?.directories : undefined,
+    root ? undefined : selectedFile,
   ]);
   const collection = useMemo(() => {
     const { rootNode } = nativeTreePresentation(model.nativeWorkspace);
@@ -206,7 +205,7 @@ function SelectedFileWorkspace({
     selectedFile,
     report,
     selectedSliceIndex,
-    application,
+    root,
   );
   return (
     <ExplorerWorkspaceLayout
@@ -221,21 +220,18 @@ function SelectedFileWorkspace({
           datasetSelector={null}
           description={null}
           summary={
-            application
-              ? `${application.name} · Application scope · Select an internal file to inspect`
+            root
+              ? `${root.name} · Select a file to inspect`
               : selectedFile
-                ? 'Standalone binary · No application scope'
-                : model.nativeWorkspace &&
-                    model.nativeWorkspace.scope !== 'empty'
-                  ? 'This selection is not an Explorer application or binary. Open an application or binary to continue.'
-                  : 'Open an application or standalone binary.'
+                ? 'Standalone file'
+                : 'Open an application or binary.'
           }
         />
       }
       canvas={
         <ExplorerRelationshipCanvas
           mode="declarations"
-          applicationName={application?.name}
+          rootName={root?.name}
           actions={
             <Button
               className={styles.inspectButton}

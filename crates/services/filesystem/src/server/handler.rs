@@ -3,9 +3,7 @@
 use std::{fs::File, path::Path, sync::Arc};
 
 use binary_inspection::input::{ByteSource, SourceError};
-use filesystem_native::{
-    NativeApplication, NativeBinary, NativeDirectory, NativeFileSource, NativeSelection,
-};
+use filesystem_native::{NativeDirectory, NativeFileSource, NativeSelection};
 use filesystem_protocol::{FileError, Request, Response, SelectedResource};
 use tokio::sync::{Mutex, OwnedMutexGuard};
 
@@ -23,8 +21,6 @@ pub(super) struct Handler {
 
 /// An opened native resource that has not replaced the retained selection.
 enum AcquiredResource {
-    Application(NativeApplication),
-    Binary(NativeBinary),
     File {
         name: String,
         source: NativeFileSource,
@@ -120,7 +116,7 @@ impl Handler {
     }
 }
 
-/// Open and validate a replacement without changing the retained selection.
+/// Acquire a replacement without changing the retained selection.
 fn acquire_resource(mode: PickMode, path: &Path) -> Result<AcquiredResource, SourceError> {
     let name = path
         .file_name()
@@ -128,16 +124,15 @@ fn acquire_resource(mode: PickMode, path: &Path) -> Result<AcquiredResource, Sou
         .to_string_lossy()
         .into_owned();
     Ok(match mode {
-        PickMode::Application => AcquiredResource::Application(NativeApplication::open(path)?),
-        PickMode::Binary => AcquiredResource::Binary(NativeBinary::open(path)?),
-        PickMode::File => AcquiredResource::File {
-            name,
-            source: NativeFileSource::new(File::open(path)?)?,
-        },
-        PickMode::Folder => AcquiredResource::Directory {
-            name,
-            directory: NativeDirectory::open(path)?,
-        },
+        PickMode::Application | PickMode::Folder => {
+            let directory = NativeDirectory::open(path)?;
+            AcquiredResource::Directory { name, directory }
+        }
+        PickMode::Binary | PickMode::File => {
+            let opened_file = File::open(path)?;
+            let source = NativeFileSource::new(opened_file)?;
+            AcquiredResource::File { name, source }
+        }
     })
 }
 
@@ -145,8 +140,6 @@ impl AcquiredResource {
     /// Consume this resource, replacing the previous selection on success.
     fn install(self, selection: &mut Selection) -> Result<SelectedResource, SourceError> {
         match self {
-            Self::Application(application) => selection.install_application(application),
-            Self::Binary(binary) => selection.install_binary(binary),
             Self::File { name, source } => selection.install_file(name, source),
             Self::Directory { name, directory } => selection.install_directory(name, directory),
         }

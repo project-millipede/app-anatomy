@@ -109,8 +109,8 @@ fn application_dialog() -> Option<PathBuf> {
     }
     #[cfg(not(target_os = "macos"))]
     {
-        // On other native hosts an .app is an ordinary directory. The same
-        // core/native validation remains authoritative after this convenience UI.
+        // On other native hosts an .app is an ordinary directory.
+        // Native directory acquisition is independent of picker filtering.
         dialog.pick_folder()
     }
 }

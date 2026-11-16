@@ -7,7 +7,6 @@ import {
 
 function mounted(): SelectionState {
   return {
-    scope: 'application',
     root: { resource: 'root', name: 'Application' },
     directory: { resource: 'root', name: 'Application' },
     file: { resource: 'opened-right-file', name: 'same' },
@@ -98,19 +97,6 @@ test('file replacement changes the authoritative selection without changing the 
   expect(after.selectedId).not.toBe(before.selectedId);
 });
 
-test('generic directories and legacy roots never become application scope by name', () => {
-  for (const scope of ['directory', 'file', undefined] as const) {
-    const state = {
-      ...mounted(),
-      scope,
-      root: { resource: 'root', name: 'LooksLike.app' },
-    };
-    const view = nativeTreePresentation(state);
-    expect(view.rootNode.children).toEqual([]);
-    expect(view.selectedId).toBeUndefined();
-  }
-});
-
 test('application contents retain resource, helper, framework and unsupported entry rows without filtering', () => {
   const state = mounted();
   const root = state.directories.find((listing) => !listing.parent)!;
@@ -128,20 +114,19 @@ test('application contents retain resource, helper, framework and unsupported en
   );
 });
 
-test('a standalone binary projects one file without application contents', () => {
-  const binary = nativeTreePresentation({
-    scope: 'binary',
+test('a standalone file projects one file without directory contents', () => {
+  const file = nativeTreePresentation({
     file: { resource: 'standalone-binary', name: 'Tool' },
     entries: [],
     directories: [],
   });
-  expect(binary.rootNode.children).toHaveLength(1);
-  expect(binary.rootNode.children![0]!.name).toBe('Tool');
-  expect(binary.selectedId).toBe(binary.rootNode.children![0]!.id);
-  expect(binary.rootNode.children![0]!.children).toBeUndefined();
+  expect(file.rootNode.children).toHaveLength(1);
+  expect(file.rootNode.children![0]!.name).toBe('Tool');
+  expect(file.selectedId).toBe(file.rootNode.children![0]!.id);
+  expect(file.rootNode.children![0]!.children).toBeUndefined();
 });
 
-test('an application root remains the center selection until an internal file is chosen', () => {
+test('a directory root remains the center selection until an internal file is chosen', () => {
   const state = { ...mounted(), file: undefined, fileEntry: undefined };
   const view = nativeTreePresentation(state);
   expect(view.selectedId).toBe(view.rootNode.children![0]!.id);

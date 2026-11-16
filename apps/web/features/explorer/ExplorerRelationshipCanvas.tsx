@@ -69,8 +69,8 @@ export type ExplorerRelationshipCanvasProps = {
   mode?: CanvasMode;
   /** Distinguish absent dependency inspection from a completed empty declaration list. */
   declarationsInspected?: boolean;
-  /** Confirmed application navigation scope; does not establish dependency targets. */
-  applicationName?: string;
+  /** Retained directory root; does not establish dependency targets. */
+  rootName?: string;
   /** Selected-file actions, supplied by the presentation owner. */
   actions?: ReactNode;
 };
@@ -89,7 +89,7 @@ export function ExplorerRelationshipCanvas({
   onBack,
   mode = 'inventory',
   declarationsInspected = true,
-  applicationName,
+  rootName,
   actions,
 }: ExplorerRelationshipCanvasProps) {
   const declarations = mode === 'declarations';
@@ -97,9 +97,9 @@ export function ExplorerRelationshipCanvas({
   const selectedContext = dataset.contexts.find(
     (context) => context.id === contextId,
   );
-  const applicationCenter = declarations && selectedEntry?.kind === 'directory';
-  const nativePrompt = applicationCenter
-    ? 'Select a file from the application to read declared references.'
+  const directoryCenter = declarations && selectedEntry?.kind === 'directory';
+  const nativePrompt = directoryCenter
+    ? 'Select a file from the folder to read declared references.'
     : selectedEntry
       ? 'Inspect the selected file to read declared references.'
       : 'Open an application or binary to begin.';
@@ -355,8 +355,8 @@ export function ExplorerRelationshipCanvas({
         <div className={styles.path}>
           <span className={styles.placeholderEyebrow}>
             {declarations
-              ? applicationCenter
-                ? 'Selected application / display name'
+              ? directoryCenter
+                ? 'Selected folder / display name'
                 : 'Selected file / display name'
               : 'Selected entry / exact location'}
           </span>
@@ -409,7 +409,7 @@ export function ExplorerRelationshipCanvas({
               <BridgeGrid
                 showBoundary={!declarations}
                 focusLabel={
-                  applicationCenter ? 'Selected application' : 'Selected file'
+                  directoryCenter ? 'Selected folder' : 'Selected file'
                 }
                 north={bridge('north')}
                 west={bridge('west')}
@@ -420,8 +420,8 @@ export function ExplorerRelationshipCanvas({
                     <div className={styles.focusPlaceholder}>
                       <span className={styles.placeholderEyebrow}>
                         {declarations
-                          ? applicationCenter
-                            ? 'Selected application'
+                          ? directoryCenter
+                            ? 'Selected folder'
                             : 'Selected source file'
                           : 'Selected entry'}
                       </span>
@@ -438,11 +438,11 @@ export function ExplorerRelationshipCanvas({
                           </strong>
                           <p>
                             {declarations
-                              ? applicationCenter
+                              ? directoryCenter
                                 ? 'Select an internal file to inspect'
                                 : selectedEntry
                                   ? 'Source file only'
-                                  : 'No Explorer scope selected'
+                                  : 'No input selected'
                               : selectedEntry?.kind?.replaceAll('-', ' ')}
                           </p>
                         </div>
@@ -461,16 +461,16 @@ export function ExplorerRelationshipCanvas({
                         {declarations ? (
                           <span
                             title={
-                              applicationName
-                                ? 'Confirmed application navigation scope; dependency targets are not evaluated.'
+                              rootName
+                                ? 'Retained folder; dependency targets are not evaluated.'
                                 : 'Standalone source; dependency targets are not evaluated.'
                             }
                           >
-                            {applicationName
-                              ? `Application: ${applicationName}`
+                            {rootName
+                              ? `Folder: ${rootName}`
                               : selectedEntry
-                                ? 'Standalone binary'
-                                : 'No scope selected'}
+                                ? 'Standalone file'
+                                : 'No input selected'}
                           </span>
                         ) : (
                           <span title={rootEntry?.name}>

@@ -7,8 +7,6 @@ interface native {
   enum failure-kind { transport, provider }
   record failure { kind: failure-kind, message: string }
   record selected-resource { name: string, %resource: string }
-  /// Explicit selected subject; absent scope identifies an older native owner.
-  enum selection-scope { empty, file, directory, application, binary }
   enum entry-kind { file, directory, symlink, other }
   record directory-entry { id: u32, name: string, kind: entry-kind }
   record directory-entry-ref { directory: string, entry-id: u32 }
@@ -18,7 +16,6 @@ interface native {
     entries: list<directory-entry>,
   }
   record selection-state {
-    scope: option<selection-scope>,
     file: option<selected-resource>,
     directory: option<selected-resource>,
     entries: list<directory-entry>,

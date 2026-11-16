@@ -17,26 +17,18 @@ export function nativeEntryRowId(directory: string, entryId: number): string {
   return JSON.stringify(['native-entry', directory, entryId]);
 }
 
-/** Admit only Rust-confirmed Explorer acquisitions; generic workbench inputs stay separate. */
-export function nativeExplorerSubject(state: SelectionState | null) {
-  const application = state?.scope === 'application' ? state.root : undefined;
-  return {
-    application,
-    file: application || state?.scope === 'binary' ? state?.file : undefined,
-  };
-}
-
 /** Match only Rust's selected file association, never a display name. */
 export function nativeSelectedRowId(
   state: SelectionState | null,
 ): string | undefined {
-  const { application, file } = nativeExplorerSubject(state);
-  if (application) {
+  const root = state?.root;
+  const file = state?.file;
+  if (root) {
     return file && state?.fileEntry
       ? nativeEntryRowId(state.fileEntry.directory, state.fileEntry.entryId)
       : file
         ? undefined
-        : JSON.stringify(['native-root', application.resource]);
+        : JSON.stringify(['native-root', root.resource]);
   }
   return file ? JSON.stringify(['native-file', file.resource]) : undefined;
 }
@@ -53,7 +45,7 @@ export function nativeTreePresentation(state: SelectionState | null): {
     };
   }
 
-  const { application, file } = nativeExplorerSubject(state);
+  const { root, file } = state;
   const childListings = new Map<string, DirectoryListing>();
   for (const listing of state.directories) {
     const { parent } = listing;
@@ -64,7 +56,7 @@ export function nativeTreePresentation(state: SelectionState | null): {
     );
   }
   const rootListing = state.directories.find(
-    (listing) => listing.directory.resource === state.root?.resource,
+    (listing) => listing.directory.resource === root?.resource,
   );
 
   function children(listing: DirectoryListing): NativeTreeNode[] {
@@ -89,11 +81,11 @@ export function nativeTreePresentation(state: SelectionState | null): {
     });
   }
 
-  const nodes: NativeTreeNode[] = application
+  const nodes: NativeTreeNode[] = root
     ? [
         {
-          id: JSON.stringify(['native-root', application.resource]),
-          name: application.name,
+          id: JSON.stringify(['native-root', root.resource]),
+          name: root.name,
           kind: 'directory',
           children: rootListing ? children(rootListing) : [],
           childrenLoaded: rootListing !== undefined,
@@ -101,7 +93,7 @@ export function nativeTreePresentation(state: SelectionState | null): {
         },
       ]
     : [];
-  if (file && !application) {
+  if (file && !root) {
     nodes.push({
       id: JSON.stringify(['native-file', file.resource]),
       name: file.name,

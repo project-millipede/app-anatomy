@@ -9,8 +9,8 @@
 //! [`MAX_RETAINED_DIRECTORIES`] captured directories. Immediate child loading is
 //! lazy and preserves the file and loaded siblings. External replacement occurs
 //! only after successful acquisition; ordinary Rust APIs need no remote service.
-//! [`NativeApplication`] and [`NativeBinary`] validate their acquisition scopes
-//! before installation. Generic file/folder acquisition keeps its generic scope.
+//! Selection records an empty owner, a standalone file or a retained directory
+//! tree. It does not check bundle layout or binary format.
 //! It has no WIT, Wasm, browser or transport dependency.
 //!
 //! The source is available on Unix and Windows. Its synchronous operations do
@@ -31,12 +31,6 @@ mod directory;
 
 #[cfg(any(unix, windows))]
 mod selection;
-
-#[cfg(any(unix, windows))]
-mod application;
-
-#[cfg(any(unix, windows))]
-pub use application::{NativeApplication, NativeBinary};
 
 #[cfg(any(unix, windows))]
 pub use selection::{

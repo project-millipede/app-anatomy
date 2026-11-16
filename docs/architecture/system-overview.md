@@ -155,15 +155,19 @@ The page mounts no `WorkbenchShell`; it owns a separate instance of the same
 runtime/model composition.
 
 Native mode queries retained selection on entry and requires an explicit
-**Inspect dependencies** invocation. Open application establishes one validated
-modern macOS `.app` root in Files, with all bundle contents available through lazy
-expansion. Open binary establishes a standalone Mach-O subject. Explorer rejects
-generic file/folder scopes and legacy unclassified observations; Base/Ark retain
-their existing generic acquisition controls.
+**Inspect dependencies** invocation. Explorer accepts the retained root or file
+regardless of which presentation or picker acquired it. A root supplies the Files
+tree and remains its owner while internal files are selected; a file without a
+root is shown as a standalone file.
+Open application retains the macOS `.app` picker convenience, while native
+acquisition reuses `NativeDirectory` without validating bundle layout. Open binary
+acquires a regular file through `NativeFileSource`. The same resources are acquired
+by the ordinary folder/file controls. Binary format is checked when inspection
+runs; its failure leaves the newly selected file retained.
 Root and listing ownership, selected-file origin and bounded projection caching
 belong to Rust; React projects returned records into Ark nodes. Expansion preserves
 the current file/report, while successful file selection recenters the canvas.
-Standalone binary selection shows a single file. The selected application root
+Standalone file selection shows a single file. The retained directory root
 stays fixed as its file selection changes. The service supplies no exact filesystem
 path or complete application relationship inventory. Library declarations appear in
 the south corridor with **Target not evaluated** status and no file endpoints.

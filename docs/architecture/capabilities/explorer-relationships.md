@@ -96,37 +96,38 @@ The default architecture-tab recipe retained its report spacing. Preview freshne
 workspace typecheck, all 22 web tests and the production build passed. This
 increment changed presentation only; Rust, WIT and native acquisition were unchanged.
 
-**Open application** selects one macOS `.app` bundle as the fixed outer root in
-Files. `/Applications` is a chooser location, not an Explorer root. The tree keeps
-all captured bundle contents, including resources, frameworks, nested helpers,
+**Open application** acquires a directory as the fixed outer root in Files.
+On macOS, the package picker starts at `/Applications` and filters for `.app`;
+direct Rust selection can acquire any directory as the retained root. The
+tree keeps all captured contents, including resources, frameworks, nested helpers,
 plists and aliases. It does not filter the tree down to binary files. Ark expands
 directories on demand and owns keyboard focus and expansion. A listed file becomes
 the center only after native acquisition succeeds. Expansion preserves that file
-and its report; file selection retains the application root and loaded siblings.
-Before a file is selected, the canvas identifies the application subject.
+and its report; file selection retains the directory root and loaded siblings.
+Before a file is selected, the canvas identifies the directory root. Ordinary
+folder selections, including those made in Base/Ark, use this same presentation.
 
-**Open binary** acquires a standalone supported Mach-O file, including a universal
-file. Acquisition checks headers through the existing ordinary Rust inspector;
-dependency inspection remains explicit. A successful external choice replaces the
-preceding subject. Cancel or failed validation preserves it.
+**Open binary** acquires a regular file through `NativeFileSource` as the standalone
+subject. Selection does not parse binary headers; explicit inspection uses the
+existing ordinary Rust analyzer. A successful acquisition replaces the preceding
+subject, including when the new file has an unsupported or malformed format.
+Inspection failure leaves that new file retained. Cancel or failed acquisition
+preserves the preceding subject.
 
-The service reports an explicit `SelectionScope`: `Empty`, `File`, `Directory`,
-`Application` or `Binary`. Generic file/folder acquisition remains available to the
-Base/Ark workbench. Explorer admits only `Application` and `Binary` and never
-infers scope from a display name. The native owner retains application scope while
-its selected file changes. A missing scope means an older service, not an empty
-owner: new acquisition methods report an update requirement before sending an
-unsupported request.
+Explorer presents the retained directory root and its selected file, or a
+standalone file without a root, regardless of the picker used. A retained root
+remains while an internal file is selected. The application/binary picker methods
+use the same request and follow-up query path as ordinary file/folder selection.
+A legacy listing cursor without retained-root metadata is not presented as a
+captured tree.
 
-Application acquisition uses the native package picker and then independently
-validates observed filesystem facts through `binary-inspection`. The supported
-root layout is a directory named `*.app`, containing a `Contents` directory and
-regular `Contents/Info.plist`. The suffix is case-sensitive; the native adapter
-does not follow a symlink at any of these three observed entries. This structural
-check does not verify plist content,
-code signatures or launch eligibility. Older flat application layouts are not
-supported. Native adapters gather filesystem facts; the portable core owns the
-application-layout policy.
+Application acquisition uses `NativeDirectory::open`, just like generic folder
+acquisition. It captures a bounded listing without checking the root's name,
+`Contents` or `Info.plist`. Root acquisition uses ordinary filesystem resolution,
+including symlinks to directories. Selecting a directory does not establish bundle
+validity, code signature validity or launch eligibility. The macOS package filter belongs to the
+picker. Other native hosts use a folder picker. Native directory acquisition is
+independent of picker filtering.
 
 `filesystem_native::NativeSelection` owns the root, captured child listings and
 selected file origin. Its ordinary Rust APIs work without a service or component.
@@ -141,13 +142,14 @@ empty listing.
 Each mount retains at most 64 directories. Each captured immediate listing retains
 the existing 512-entry and 64-KiB name limits. There is no recursive scan or live
 watcher. Captured listings are not a filesystem snapshot; later opens may fail if
-the filesystem changes. Symlinks are displayed but are not followed. Successful
-external application or binary selection replaces the mount; Cancel and failed acquisition
-preserve it. Returning to the route re-observes the root and selected file's
-ancestors, while presentation expansion and reports start with the new page owner.
+the filesystem changes. Captured symlink entries are displayed but cannot be opened
+through child-entry operations. Successful external application or binary selection
+replaces the mount; Cancel and failed acquisition preserve it. Returning to the
+route re-observes the root and selected file's ancestors, while presentation
+expansion and reports start with the new page owner.
 
 Resource IDs identify nodes; display names do not supply exact filesystem paths.
-The selected application establishes the outer navigation scope. Lazy directory
+The retained directory root establishes the outer navigation scope. Lazy directory
 listings do not establish a complete inspected bundle relationship graph.
 
 Declared libraries use the south corridor with **Target not evaluated** status.
@@ -211,6 +213,11 @@ does not retain stale graphs or alter Rust selection, transport or inspection
 semantics.
 
 ## Application subject qualification
+
+The following historical record predates removal of the application and binary
+wrappers, their selection-time validation, selection-scope metadata and the chooser
+capability preflight. It does not qualify the current acquisition and presentation
+contract.
 
 On 2026-10-29, workspace and component Rust tests passed (67 tests), along with
 Rust formatting, `pnpm engine:build`, generated-preview freshness, workspace

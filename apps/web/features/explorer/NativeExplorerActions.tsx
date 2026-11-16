@@ -4,7 +4,7 @@ import { Menu } from '@base-ui/react/menu';
 import type { WorkbenchModel } from '../workspace/types';
 import styles from './NativeExplorerActions.module.css';
 
-/** Forward explicit application/binary acquisition intents; Rust validates their scope. */
+/** Forward application and binary picker intents to Rust. */
 export function NativeExplorerActions({ model }: { model: WorkbenchModel }) {
   return (
     <div className={styles.actions}>
