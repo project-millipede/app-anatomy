@@ -1,7 +1,7 @@
 import type { CanvasConnection } from './canvasPresentation';
 
 type CorridorPage = {
-  /** One-based page number. */
+  /** Zero-based page number. */
   page: number;
   pageSize: number;
   /** Connections in this corridor before pagination. */
@@ -19,7 +19,7 @@ type CorridorPageOptions = {
   /** Maximum connections per page; a positive integer supplied by the layout. */
   pageSize: number;
 
-  /** One-based integer page requested by the caller. */
+  /** Zero-based integer page requested by the caller. */
   requestedPage: number;
 
   /**
@@ -45,7 +45,7 @@ export function getCorridorPage(
   const totalItems = connections.length;
   if (totalItems === 0) {
     return {
-      page: 1,
+      page: 0,
       pageSize,
       totalItems: 0,
       totalPages: 1,
@@ -60,14 +60,14 @@ export function getCorridorPage(
     const activeIndex = connections.findIndex(
       (connection) => connection.relationshipId === activeRelationshipId,
     );
-    if (activeIndex >= 0) page = Math.floor(activeIndex / pageSize) + 1;
+    if (activeIndex >= 0) page = Math.floor(activeIndex / pageSize);
   }
 
   // Keep the requested page within the available range after connections change.
-  if (page < 1) page = 1;
-  if (page > totalPages) page = totalPages;
+  if (page < 0) page = 0;
+  if (page >= totalPages) page = totalPages - 1;
 
-  const start = (page - 1) * pageSize;
+  const start = page * pageSize;
   const end = Math.min(start + pageSize, totalItems);
 
   return {

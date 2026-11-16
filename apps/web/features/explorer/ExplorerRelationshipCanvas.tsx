@@ -47,10 +47,10 @@ const declarationEmptyLabels = {
 } as const;
 const positions = ['north', 'west', 'east', 'south'] as const;
 const firstPages: Record<BridgePosition, number> = {
-  north: 1,
-  west: 1,
-  east: 1,
-  south: 1,
+  north: 0,
+  west: 0,
+  east: 0,
+  south: 0,
 };
 
 export type ExplorerRelationshipCanvasProps = {
@@ -224,7 +224,7 @@ export function ExplorerRelationshipCanvas({
               <>
                 <Button
                   className={styles.compactButton}
-                  disabled={view.page === 1}
+                  disabled={view.page === 0}
                   aria-label={`Previous ${title.toLowerCase()} relationships`}
                   onClick={() => changePage(position, view.page - 1)}
                 >
@@ -236,7 +236,7 @@ export function ExplorerRelationshipCanvas({
                 </span>
                 <Button
                   className={styles.compactButton}
-                  disabled={view.page === view.totalPages}
+                  disabled={view.page === view.totalPages - 1}
                   aria-label={`Next ${title.toLowerCase()} relationships`}
                   onClick={() => changePage(position, view.page + 1)}
                 >
