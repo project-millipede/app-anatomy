@@ -19,11 +19,11 @@ macro_rules! generate_bindings {
                 "apple-code:analysis/binary@0.6.0/mach-o-header-format": binary_inspection::MachOHeaderFormat,
                 "apple-code:analysis/binary@0.6.0/analysis-scope": binary_inspection::AnalysisScope,
                 "apple-code:analysis/native@0.6.0/step-kind": workbench_operations::StepKind,
+                "apple-code:analysis/native@0.6.0/failure-kind": workbench_operations::FailureKind,
                 "apple-code:analysis/native@0.6.0/selected-resource": filesystem_protocol::SelectedResource,
                 "apple-code:analysis/native@0.6.0/directory-entry-kind": filesystem_data::DirectoryEntryKind,
                 "apple-code:analysis/native@0.6.0/directory-entry": filesystem_data::DirectoryEntry,
                 "apple-code:analysis/native@0.6.0/selection-state": filesystem_protocol::SelectionState,
-                "apple-code:analysis/native@0.6.0/failure-kind": workbench_operations::FailureKind,
             },
             $($options)*
         });

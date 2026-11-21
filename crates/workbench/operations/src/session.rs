@@ -26,6 +26,7 @@ pub enum StepKind {
 ///
 /// Successful actions return `None`; successful queries return `Some(state)`,
 /// including a state with no selected file or directory.
+#[cfg_attr(feature = "wit", wit_reflect::named)]
 pub type SelectionStepOutcome = StepOutcome<StepKind, Option<SelectionState>, Failure>;
 
 /// Completed selection-related steps in execution order.
@@ -35,6 +36,7 @@ pub type SelectionStepOutcome = StepOutcome<StepKind, Option<SelectionState>, Fa
 /// is never replayed. Another caller may replace selection before the query.
 /// Neither step has an application deadline. Each must complete or fail before
 /// this outcome returns. A standalone query returns only its own step.
+#[cfg_attr(feature = "wit", wit_reflect::named)]
 pub type SelectionOutcome = Outcome<SelectionStepOutcome>;
 
 /// A transport-backed client of the native selection owner.
@@ -44,10 +46,12 @@ pub type SelectionOutcome = Outcome<SelectionStepOutcome>;
 /// Filesystem requests have no application deadline and may remain pending until
 /// their transport completes or fails. Transport connection bounds are separate.
 #[cfg_attr(feature = "wit", derive(wit_reflect::WitResource))]
+#[cfg_attr(feature = "wit", wit(interface = "native"))]
 pub struct Session {
     transport: Box<dyn Transport>,
 }
 
+#[cfg_attr(feature = "wit", wit_reflect::exports)]
 impl Session {
     /// Own a transport without sending a request or selecting a resource.
     pub fn new(transport: Box<dyn Transport>) -> Self {

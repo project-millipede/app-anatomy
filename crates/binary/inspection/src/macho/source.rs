@@ -10,6 +10,7 @@ use crate::{
 /// An analysis diagnostic or the acquisition failures observed during inspection.
 #[derive(Debug)]
 #[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
+#[cfg_attr(feature = "wit", wit(interface = "inspection"))]
 pub enum InspectionError {
     /// Structural diagnostic from inspection.
     Analysis(AnalysisError),

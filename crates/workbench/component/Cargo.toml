@@ -7,6 +7,31 @@ publish.workspace = true
 [lib]
 crate-type = ["cdylib"]
 
+# What no Rust item states about the component contract. Types and operations
+# declare their own part by marks in the owner crates; `pnpm contract:generate`
+# renders both into `wit/analysis.wit`, `src/bindings.rs` and `src/forwarding.rs`.
+[package.metadata.wit-reflect]
+package = "apple-code:analysis@0.6.0"
+world = "analysis"
+# Host WebSocket operations for the Rust filesystem client. The host binds
+# them to the Polymorph browser provider.
+imports = ["polymorph:websocket/connections@0.1.0"]
+# `native` is exported under that name instead of the interface's versioned
+# identity. Omitting `inspection` or `binary` would turn the types `native`
+# refers to into implicit imports.
+exports = [{ interface = "native", name = "native" }, "inspection", "binary"]
+
+# The session factory supplies the WebSocket transport, so it is implemented in
+# this crate. This crate compiles only once the contract is generated and
+# cannot register the function itself. A signature that differs from this entry
+# does not compile.
+[[package.metadata.wit-reflect.function]]
+interface = "native"
+name = "create-selection-session"
+returns = "session"
+path = "crate::create_selection_session"
+docs = "Create a session connected to the native filesystem service."
+
 [dependencies]
 # The generated bindings and forwarding name types of these crates by path.
 binary-inspection = { path = "../../binary/inspection", features = ["wit"] }

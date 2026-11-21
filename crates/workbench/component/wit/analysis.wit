@@ -1,6 +1,36 @@
 package apple-code:analysis@0.6.0;
 
 interface binary {
+  record error-kind-truncated {
+    /// Number of bytes requested.
+    requested-size: u64,
+    /// Number of bytes available from the requested offset within the containing region.
+    available-size: u64,
+  }
+
+  /// Machine-readable reason and associated values.
+  variant error-kind {
+    /// A requested range extends beyond its containing input region.
+    truncated(error-kind-truncated),
+    /// A file-offset calculation cannot be represented.
+    range-overflow,
+    /// The detected format is not a supported Mach-O image.
+    unsupported-image,
+    /// The upstream decoder's original error, without interpreting its message.
+    decode(string),
+  }
+
+  /// Recoverable decode or input failure.
+  ///
+  /// This implements the standard Error trait so native callers can propagate it
+  /// through ordinary error types. Match kind for policy; message wording
+  /// is for people and is not a stable machine interface.
+  record analysis-error {
+    message: string,
+    /// Failure reason, numeric evidence or upstream decoding cause.
+    kind: error-kind,
+  }
+
   /// Outer file layout; universal entry width is independent of image header width.
   enum container-kind {
     /// One Mach-O image at offset zero.
@@ -126,36 +156,6 @@ interface binary {
     /// Explicit boundary of performed analysis.
     scope: analysis-scope,
   }
-
-  record error-kind-truncated {
-    /// Number of bytes requested.
-    requested-size: u64,
-    /// Number of bytes available from the requested offset within the containing region.
-    available-size: u64,
-  }
-
-  /// Machine-readable reason and associated values.
-  variant error-kind {
-    /// A requested range extends beyond its containing input region.
-    truncated(error-kind-truncated),
-    /// A file-offset calculation cannot be represented.
-    range-overflow,
-    /// The detected format is not a supported Mach-O image.
-    unsupported-image,
-    /// The upstream decoder's original error, without interpreting its message.
-    decode(string),
-  }
-
-  /// Recoverable decode or input failure.
-  ///
-  /// This implements the standard Error trait so native callers can propagate it
-  /// through ordinary error types. Match kind for policy; message wording
-  /// is for people and is not a stable machine interface.
-  record analysis-error {
-    message: string,
-    /// Failure reason, numeric evidence or upstream decoding cause.
-    kind: error-kind,
-  }
 }
 
 interface inspection {
@@ -239,6 +239,91 @@ interface native {
     inspect,
   }
 
+  /// Identifies the client-side or filesystem-provider origin of a failure.
+  enum failure-kind {
+    transport,
+    provider,
+  }
+
+  /// A client failure that owns its original cause and renders diagnostics lazily.
+  ///
+  /// Protocol failures retain the coarse `Transport` category for compatibility.
+  /// Use `protocol_error()` to inspect protocol failures, `operation()` for transport
+  /// context, and `Error::source()` for the original backend or protocol error.
+  /// Convert to an explicit output record at WIT/JSON boundaries instead of
+  /// serializing this.
+  record failure {
+    message: string,
+    kind: failure-kind,
+  }
+
+  variant inspection-failure-kind {
+    selection(failure),
+    metadata(failure),
+    inspection(inspection-error),
+  }
+
+  /// Identifies the inspection stage while retaining its original failures.
+  record inspection-failure {
+    message: string,
+    kind: inspection-failure-kind,
+  }
+
+  /// A step's identity and original result.
+  record inspection-step-outcome {
+    /// Identifies the action that produced this result.
+    kind: step-kind,
+    /// Successful output or the original owned failure.
+    %result: result<binary-report, inspection-failure>,
+  }
+
+  /// Completed steps, independent of an execution environment.
+  ///
+  /// Values and failures are owned. The operation defines which steps execute and
+  /// whether later steps still run after an earlier failure.
+  record inspection-outcome {
+    /// Completed steps in execution order.
+    steps: list<inspection-step-outcome>,
+  }
+
+  /// A transport-backed client of the native selection owner.
+  ///
+  /// This client does not own the native selection. Dropping it releases its
+  /// transport. Successful replacement or owner shutdown releases native resources.
+  /// Filesystem requests have no application deadline and may remain pending until
+  /// their transport completes or fails. Transport connection bounds are separate.
+  resource session {
+    /// Analyze the selected native file as thin or universal Mach-O.
+    ///
+    /// Inspection does not release or replace the native selection.
+    /// Selection validation does not reserve the resource: another client's
+    /// replacement or service shutdown may cause subsequent requests to fail.
+    inspect: func(%resource: string) -> inspection-outcome;
+    /// Query selection and return its result as one completed step.
+    ///
+    /// Query failure is preserved in the step rather than interpreted as an
+    /// empty selection. This does not open a dialog or replace native resources.
+    query-selection: func() -> selection-outcome;
+    /// Ask the native owner to show its file picker, then query selection.
+    ///
+    /// Closing or cancelling the picker leaves the existing selection unchanged.
+    /// The action succeeds; the follow-up query reports selection or its own failure.
+    /// See [`SelectionOutcome`] for ordering and independent failure behavior.
+    select-file: func() -> selection-outcome;
+    /// Ask the native owner to show its folder picker, then query selection.
+    ///
+    /// Uses the same dismissal behavior and result ordering as [`Self::select_file`].
+    select-directory: func() -> selection-outcome;
+    /// Select a file from the native owner's captured listing.
+    ///
+    /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::File`].
+    open-file: func(directory: string, entry-id: u32) -> selection-outcome;
+    /// Select a directory from the native owner's captured listing.
+    ///
+    /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::Directory`].
+    open-directory: func(directory: string, entry-id: u32) -> selection-outcome;
+  }
+
   /// Display name and identity of a file or directory retained by the service.
   record selected-resource {
     /// Human-readable name of the selected file or directory for presentation.
@@ -281,24 +366,6 @@ interface native {
     entries: list<directory-entry>,
   }
 
-  /// Identifies the client-side or filesystem-provider origin of a failure.
-  enum failure-kind {
-    transport,
-    provider,
-  }
-
-  /// A client failure that owns its original cause and renders diagnostics lazily.
-  ///
-  /// Protocol failures retain the coarse `Transport` category for compatibility.
-  /// Use `protocol_error()` to inspect protocol failures, `operation()` for transport
-  /// context, and `Error::source()` for the original backend or protocol error.
-  /// Convert to an explicit output record at WIT/JSON boundaries instead of
-  /// serializing this.
-  record failure {
-    message: string,
-    kind: failure-kind,
-  }
-
   /// A step's identity and original result.
   record selection-step-outcome {
     /// Identifies the action that produced this result.
@@ -314,73 +381,6 @@ interface native {
   record selection-outcome {
     /// Completed steps in execution order.
     steps: list<selection-step-outcome>,
-  }
-
-  variant inspection-failure-kind {
-    selection(failure),
-    metadata(failure),
-    inspection(inspection-error),
-  }
-
-  /// Identifies the inspection stage while retaining its original failures.
-  record inspection-failure {
-    message: string,
-    kind: inspection-failure-kind,
-  }
-
-  /// A step's identity and original result.
-  record inspection-step-outcome {
-    /// Identifies the action that produced this result.
-    kind: step-kind,
-    /// Successful output or the original owned failure.
-    %result: result<binary-report, inspection-failure>,
-  }
-
-  /// Completed steps, independent of an execution environment.
-  ///
-  /// Values and failures are owned. The operation defines which steps execute and
-  /// whether later steps still run after an earlier failure.
-  record inspection-outcome {
-    /// Completed steps in execution order.
-    steps: list<inspection-step-outcome>,
-  }
-
-  /// A transport-backed client of the native selection owner.
-  ///
-  /// This client does not own the native selection. Dropping it releases its
-  /// transport. Successful replacement or owner shutdown releases native resources.
-  /// Filesystem requests have no application deadline and may remain pending until
-  /// their transport completes or fails. Transport connection bounds are separate.
-  resource session {
-    /// Query selection and return its result as one completed step.
-    ///
-    /// Query failure is preserved in the step rather than interpreted as an
-    /// empty selection. This does not open a dialog or replace native resources.
-    query-selection: func() -> selection-outcome;
-    /// Ask the native owner to show its file picker, then query selection.
-    ///
-    /// Closing or cancelling the picker leaves the existing selection unchanged.
-    /// The action succeeds; the follow-up query reports selection or its own failure.
-    /// See [`SelectionOutcome`] for ordering and independent failure behavior.
-    select-file: func() -> selection-outcome;
-    /// Ask the native owner to show its folder picker, then query selection.
-    ///
-    /// Uses the same dismissal behavior and result ordering as [`Self::select_file`].
-    select-directory: func() -> selection-outcome;
-    /// Select a file from the native owner's captured listing.
-    ///
-    /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::File`].
-    open-file: func(directory: string, entry-id: u32) -> selection-outcome;
-    /// Select a directory from the native owner's captured listing.
-    ///
-    /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::Directory`].
-    open-directory: func(directory: string, entry-id: u32) -> selection-outcome;
-    /// Analyze the selected native file as thin or universal Mach-O.
-    ///
-    /// Inspection does not release or replace the native selection.
-    /// Selection validation does not reserve the resource: another client's
-    /// replacement or service shutdown may cause subsequent requests to fail.
-    inspect: func(%resource: string) -> inspection-outcome;
   }
 
   /// Create a session connected to the native filesystem service.

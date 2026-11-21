@@ -28,6 +28,7 @@ pub enum ErrorKind {
 /// is for people and is not a stable machine interface.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
+#[cfg_attr(feature = "wit", wit(interface = "binary"))]
 #[cfg_attr(feature = "wit", wit(field(name = "message", into = String, with = ToString::to_string)))]
 pub struct AnalysisError {
     /// Failure reason, numeric evidence or upstream decoding cause.

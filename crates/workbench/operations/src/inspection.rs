@@ -38,10 +38,14 @@ impl std::error::Error for InspectionFailure {
     }
 }
 /// One inspection's report or original failure, identified by its step kind.
+#[cfg_attr(feature = "wit", wit_reflect::named)]
 pub type InspectionStepOutcome = StepOutcome<StepKind, BinaryReport, InspectionFailure>;
 
 /// One completed inspection step with its report or original failure.
+#[cfg_attr(feature = "wit", wit_reflect::named)]
 pub type InspectionOutcome = Outcome<InspectionStepOutcome>;
+
+#[cfg_attr(feature = "wit", wit_reflect::exports)]
 impl Session {
     /// Analyze the selected native file as thin or universal Mach-O.
     ///

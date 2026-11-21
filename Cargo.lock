@@ -117,7 +117,6 @@ name = "app-anatomy-xtask"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "binary-inspection",
  "wit-reflect",
  "workbench-operations",
 ]
@@ -2239,6 +2238,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "inventory"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6928282826c822ad91bf1c9a1cb90a30ba1c26770749929b4656cd6be829cd7c"
+dependencies = [
+ "rustversion",
 ]
 
 [[package]]
@@ -5618,18 +5626,20 @@ dependencies = [
 [[package]]
 name = "wit-reflect"
 version = "0.1.0"
-source = "git+https://github.com/project-millipede/wit-reflect?rev=64fcb3ada7a69088ff450c64981a81501c8ce45a#64fcb3ada7a69088ff450c64981a81501c8ce45a"
+source = "git+https://github.com/project-millipede/wit-reflect?rev=6e651fbfd9cb8974ed3b9ce38738ddb2bb67736e#6e651fbfd9cb8974ed3b9ce38738ddb2bb67736e"
 dependencies = [
  "heck",
+ "inventory",
  "semver",
  "thiserror 2.0.21",
+ "toml 1.1.8+spec-1.1.0",
  "wit-reflect-macros",
 ]
 
 [[package]]
 name = "wit-reflect-macros"
 version = "0.1.0"
-source = "git+https://github.com/project-millipede/wit-reflect?rev=64fcb3ada7a69088ff450c64981a81501c8ce45a#64fcb3ada7a69088ff450c64981a81501c8ce45a"
+source = "git+https://github.com/project-millipede/wit-reflect?rev=6e651fbfd9cb8974ed3b9ce38738ddb2bb67736e#6e651fbfd9cb8974ed3b9ce38738ddb2bb67736e"
 dependencies = [
  "heck",
  "proc-macro2",

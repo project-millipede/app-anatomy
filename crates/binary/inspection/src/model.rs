@@ -170,6 +170,7 @@ pub struct MachOImage {
 /// Owned facts from one successful inspection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
+#[cfg_attr(feature = "wit", wit(interface = "binary"))]
 pub struct BinaryReport {
     /// Outer file layout.
     pub container: ContainerKind,

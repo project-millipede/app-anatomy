@@ -14,6 +14,11 @@ impl crate::exports::native::Guest for Component {
 }
 
 impl crate::exports::native::GuestSession for ::wit_reflect::component::ResourceCell<workbench_operations::Session> {
+    fn inspect(&self, resource: ::std::string::String) -> crate::exports::native::InspectionOutcome {
+        let returned = workbench_operations::Session::inspect(&mut self.borrow_mut(), &resource);
+        ::wit_reflect::lower::assemble(returned)
+    }
+
     fn query_selection(&self) -> crate::exports::native::SelectionOutcome {
         let returned = workbench_operations::Session::query_selection(&mut self.borrow_mut());
         ::wit_reflect::lower::assemble(returned)
@@ -36,11 +41,6 @@ impl crate::exports::native::GuestSession for ::wit_reflect::component::Resource
 
     fn open_directory(&self, directory: ::std::string::String, entry_id: u32) -> crate::exports::native::SelectionOutcome {
         let returned = workbench_operations::Session::open_directory(&mut self.borrow_mut(), &directory, entry_id);
-        ::wit_reflect::lower::assemble(returned)
-    }
-
-    fn inspect(&self, resource: ::std::string::String) -> crate::exports::native::InspectionOutcome {
-        let returned = workbench_operations::Session::inspect(&mut self.borrow_mut(), &resource);
         ::wit_reflect::lower::assemble(returned)
     }
 }

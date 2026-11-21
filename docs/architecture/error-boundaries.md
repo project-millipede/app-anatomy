@@ -410,8 +410,9 @@ components.
 
 The file is generated from the ordinary Rust types and operations by
 [wit-reflect](../libraries/wit-reflect-adoption.md).
-[`xtask/src/contract.rs`](../../xtask/src/contract.rs) declares which interface
-exports which of them. The same declaration generates
+Marks on the items state which interface owns or exports them, and the
+component crate's [`Cargo.toml`](../../crates/workbench/component/Cargo.toml)
+holds the package and world. The same declarations generate
 [`bindings.rs`](../../crates/workbench/component/src/bindings.rs) and
 [`forwarding.rs`](../../crates/workbench/component/src/forwarding.rs); the
 component has no handwritten projection.

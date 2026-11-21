@@ -6,7 +6,8 @@ publish.workspace = true
 
 [dependencies]
 anyhow = "1"
-# The contract is generated from these crates' types and operations.
-binary-inspection = { path = "../crates/binary/inspection", features = ["wit"] }
-wit-reflect.workspace = true
+# Reads the contract settings and writes or checks the generated files.
+wit-reflect = { workspace = true, features = ["tasks"] }
+# Linked for the contract declarations its items and those of the crates it
+# depends on register. No code here calls it.
 workbench-operations = { path = "../crates/workbench/operations", features = ["wit"] }
