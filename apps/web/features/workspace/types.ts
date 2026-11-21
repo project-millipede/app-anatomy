@@ -1,4 +1,4 @@
-import type { Report as AnalysisReport } from '@apple-code/browser';
+import type { BinaryReport as AnalysisReport } from '@apple-code/browser';
 import type {
   DirectoryEntry,
   InspectionOutcome,

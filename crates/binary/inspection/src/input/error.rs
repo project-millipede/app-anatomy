@@ -4,13 +4,14 @@ use std::{error::Error, fmt, io};
 
 /// Failure reported by a source provider.
 #[derive(Debug)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum SourceError {
     /// The operation was explicitly cancelled.
     Cancelled,
     /// Original I/O error, including its kind and any native error code.
-    Io(io::Error),
+    Io(#[cfg_attr(feature = "wit", wit(display))] io::Error),
     /// Original owned provider error, without requiring its type in the core.
-    Provider(Box<dyn Error + Send + Sync>),
+    Provider(#[cfg_attr(feature = "wit", wit(display))] Box<dyn Error + Send + Sync>),
 }
 
 impl fmt::Display for SourceError {
@@ -41,6 +42,7 @@ impl From<io::Error> for SourceError {
 
 /// Recoverable acquisition or source-contract failure.
 #[derive(Debug)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum InputError {
     /// The source returned EOF before filling a validated range.
     UnexpectedEof {
@@ -52,8 +54,10 @@ pub enum InputError {
     /// A provider violated the read contract.
     InvalidReadCount {
         /// Count reported by the provider.
+        #[cfg_attr(feature = "wit", wit(widen))]
         reported: usize,
         /// Capacity of the destination given to that provider.
+        #[cfg_attr(feature = "wit", wit(widen))]
         capacity: usize,
     },
     /// A provider failed while serving the given absolute offset.
@@ -97,6 +101,7 @@ impl Error for InputError {
 /// This collection therefore has no [`Error::source`]. Enumerate [`Self::errors`]
 /// to inspect each failure and its original cause.
 #[derive(Debug)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct InputErrors {
     errors: Vec<InputError>,
 }

@@ -5,6 +5,9 @@
 //! It has no browser, WIT, Wasm, filesystem or macOS dependencies. Native callers
 //! and the separate component adapter use the same entry points.
 //!
+//! The optional `wit` feature adds reflection metadata, so the component contract
+//! can be generated from these types. It is off by default and changes no behavior.
+//!
 //! The [`input`] module supplies the portable source contract used by [`inspect_source`].
 //! Existing slice-based entry points use the same analysis traversal.
 //!
@@ -57,6 +60,8 @@ pub mod input;
 mod macho;
 mod model;
 mod object_report;
+#[cfg(feature = "wit")]
+pub mod wit;
 
 pub use error::{AnalysisError, ErrorKind};
 pub use macho::{InspectionError, inspect, inspect_source};

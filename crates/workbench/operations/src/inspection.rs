@@ -9,6 +9,8 @@ use binary_inspection::{
 
 /// Identifies the inspection stage while retaining its original failures.
 #[derive(Debug)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
+#[cfg_attr(feature = "wit", wit(field(name = "message", into = String, with = ToString::to_string), cases = "kind"))]
 pub enum InspectionFailure {
     Selection(Failure),
     Metadata(Failure),
@@ -46,6 +48,7 @@ impl Session {
     /// Inspection does not release or replace the native selection.
     /// Selection validation does not reserve the resource: another client's
     /// replacement or service shutdown may cause subsequent requests to fail.
+    #[cfg_attr(feature = "wit", wit_reflect::export)]
     pub fn inspect(&mut self, resource: &str) -> InspectionOutcome {
         let analysis = self
             .ensure_file(resource)

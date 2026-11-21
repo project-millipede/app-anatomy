@@ -6,3 +6,7 @@ publish.workspace = true
 
 [dependencies]
 anyhow = "1"
+# The contract is generated from these crates' types and operations.
+binary-inspection = { path = "../crates/binary/inspection", features = ["wit"] }
+wit-reflect.workspace = true
+workbench-operations = { path = "../crates/workbench/operations", features = ["wit"] }

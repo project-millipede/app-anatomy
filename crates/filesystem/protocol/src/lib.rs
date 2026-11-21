@@ -55,6 +55,7 @@ impl Request {
 
 /// Display name and identity of a file or directory retained by the service.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct SelectedResource {
     /// Human-readable name of the selected file or directory for presentation.
     pub name: String,
@@ -65,6 +66,7 @@ pub struct SelectedResource {
 /// An observation of the native owner's current selection.
 /// The entries belong to `directory`; another operation may subsequently replace it.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct SelectionState {
     pub file: Option<SelectedResource>,
     pub directory: Option<SelectedResource>,

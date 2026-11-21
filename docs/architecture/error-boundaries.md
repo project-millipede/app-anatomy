@@ -115,19 +115,26 @@ Our current inspection error already has this general shape:
 ```wit
 record inspection-failure {
   message: string,
-  details: list<inspection-error>,
+  kind: inspection-failure-kind,
+}
+
+variant inspection-failure-kind {
+  selection(failure),
+  metadata(failure),
+  inspection(inspection-error),
 }
 ```
 
-The application contract is `apple-code:analysis@0.5.0`. The component formats the
-complete message in Rust and projects each diagnostic into `inspection-error`.
-The `details` list is nonempty: selection, metadata and analysis failures contain
-one diagnostic; an acquisition aggregate contains every member in occurrence order.
+The application contract is `apple-code:analysis@0.6.0`. It is generated from the
+Rust types, so it has their shape. The message is the Rust error's complete
+`Display` text. `kind` names the failed stage and carries that stage's own error:
+a `failure` for selection and metadata, an `inspection-error` for analysis and
+acquisition. An acquisition failure holds every member in occurrence order.
 A consumer may use structured data for its own permitted decisions, diagnostics
 or presentation. Exposing that data does not move the service's native ownership
 or the Rust client's recovery semantics into that consumer.
 
-For example, the existing `unexpected-eof` detail carries `offset` and `remaining`.
+For example, the existing `unexpected-eof` case carries `offset` and `remaining`.
 A caller can identify the incomplete read without guessing from display wording.
 That can be meaningful public evidence rather than an implementation leak.
 Whether each other existing variant belongs in the public contract remains a
@@ -194,27 +201,28 @@ sequenceDiagram
     UI->>Component: Inspect resource
     Component->>Client: Inspect resource
     Client-->>Component: Typed InspectionFailure
-    Note over Component: PROJECT TO WIT<br/>message and ordered details
-    Component-->>UI: Outcome with message and details
-    Note over UI: SELECT FOR DISPLAY<br/>Read message only<br/>Contract still contains details
+    Note over Component: PROJECT TO WIT<br/>message and typed stage
+    Component-->>UI: Outcome with message and stage
+    Note over UI: SELECT FOR DISPLAY<br/>Read message only<br/>Contract still contains the stage
 ```
 
-The [component facade](../../crates/workbench/component/src/native.rs) formats
-Rust errors before converting their details. The browser model retains the
+The [generated forwarding](../../crates/workbench/component/src/forwarding.rs)
+calls the Rust operation and lowers its result. The message is computed from
+the Rust error before the value is taken apart. The browser model retains the
 returned outcome. [OutcomeErrors](../../apps/web/features/workspace/OutcomeErrors.tsx)
 checks each step's result tag and presents `result.val.message`. Rust retains the
 existing text for a singleton and numbers multiple acquisition failures on
 separate lines. The shared error display preserves whitespace; TypeScript does
 not parse the message or reconstruct its diagnostic wording.
 
-| Current record       | Exported fields      | Current UI use      | What that establishes                                                         |
-| -------------------- | -------------------- | ------------------- | ----------------------------------------------------------------------------- |
-| `failure`            | `kind`, `message`    | Displays `message`. | No current UI branch uses `kind`; it remains part of the declared API.        |
-| `inspection-failure` | `message`, `details` | Displays `message`. | No current UI branch uses `details`; this alone does not justify deleting it. |
+| Current record       | Exported fields   | Current UI use      | What that establishes                                                      |
+| -------------------- | ----------------- | ------------------- | -------------------------------------------------------------------------- |
+| `failure`            | `message`, `kind` | Displays `message`. | No current UI branch uses `kind`; it remains part of the declared API.     |
+| `inspection-failure` | `message`, `kind` | Displays `message`. | No current UI branch uses `kind`; this alone does not justify deleting it. |
 
-The detailed representation is already selective. Source failures carry declared
-operation/read information, but their underlying I/O or provider causes become
-messages. It does not preserve the complete Rust source chain.
+The detailed representation is already selective. A source failure carries the
+offset of the failed read, but its underlying I/O or provider cause becomes
+text. It does not preserve the complete Rust source chain.
 
 Tests of those exported fields should be evaluated against the agreed public
 contract. They are not automatically obsolete because React ignores the fields,
@@ -388,24 +396,30 @@ Wasmtime runtime errors. No trap classifier or new recovery mechanism is implied
 
 ## Current interface ownership
 
-Several owned WIT files contribute to one application component world. A file or
-a type-only interface is not another independently running component.
+One generated file,
+[`wit/analysis.wit`](../../crates/workbench/component/wit/analysis.wit), holds the
+application component's world. Its interfaces are not independently running
+components.
 
-| Definition                                                                                        | Current responsibility                                                                             |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| [`wit/native.wit`](../../crates/workbench/component/wit/native.wit)                               | Session operations, ordered step results, selection state and application failure records.         |
-| [`wit/inspection.wit`](../../crates/workbench/component/wit/inspection.wit)                       | Structured inspection/source error variants and payloads.                                          |
-| [`wit/world.wit`](../../crates/workbench/component/wit/world.wit)                                 | Reports, analysis error types and the world's imports/exports.                                     |
-| [`wit/deps/filesystem/world.wit`](../../crates/workbench/component/wit/deps/filesystem/world.wit) | Owned type-only read-error definitions used by inspection diagnostics; not upstream Polymorph WIT. |
+| Definition             | Current responsibility                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| Interface `native`     | Session operations, ordered step results, selection state and application failure records. |
+| Interface `inspection` | Structured inspection and source error variants and payloads.                              |
+| Interface `binary`     | Reports and analysis error types.                                                          |
+| World `analysis`       | The Polymorph WebSocket import and the three exports.                                      |
 
-The component owns the projection in
-[`native.rs`](../../crates/workbench/component/src/native.rs),
-[`inspection_error.rs`](../../crates/workbench/component/src/inspection_error.rs)
-and [`conversion.rs`](../../crates/workbench/component/src/conversion.rs).
-The [binding configuration](../../crates/workbench/component/src/lib.rs) already
-reuses compatible ordinary Rust types, including `FailureKind` and report enums.
-Reuse removes duplicate generated Rust types; projection remains appropriate when
-representations differ. Neither technique decides the public contract's scope.
+The file is generated from the ordinary Rust types and operations by
+[wit-reflect](../libraries/wit-reflect-adoption.md).
+[`xtask/src/contract.rs`](../../xtask/src/contract.rs) declares which interface
+exports which of them. The same declaration generates
+[`bindings.rs`](../../crates/workbench/component/src/bindings.rs) and
+[`forwarding.rs`](../../crates/workbench/component/src/forwarding.rs); the
+component has no handwritten projection.
+
+A Rust type whose shape equals its contract shape, including `FailureKind` and the
+report enums, crosses unchanged: the generated bindings use the Rust type itself.
+Any other type is converted by code its derive generates in the owning crate.
+Neither technique decides the public contract's scope.
 
 ## Criteria for further changes
 

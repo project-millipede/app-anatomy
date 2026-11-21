@@ -8,9 +8,10 @@ publish.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-binary-inspection = { path = "../../binary/inspection" }
-workbench-operations = { path = "../operations" }
-filesystem-data = { path = "../../filesystem/data" }
-filesystem-protocol = { path = "../../filesystem/protocol" }
-object.workspace = true
-wit-bindgen = { version = "=0.60.0", features = ["async"] }
+# The generated bindings and forwarding name types of these crates by path.
+binary-inspection = { path = "../../binary/inspection", features = ["wit"] }
+workbench-operations = { path = "../operations", features = ["wit"] }
+filesystem-data = { path = "../../filesystem/data", features = ["wit"] }
+filesystem-protocol = { path = "../../filesystem/protocol", features = ["wit"] }
+wit-bindgen = { version = "=0.63.0", features = ["async"] }
+wit-reflect.workspace = true

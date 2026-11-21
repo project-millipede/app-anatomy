@@ -472,10 +472,9 @@ InputError::Source → SourceError::Provider → Failure
   → original backend or protocol error
 ```
 
-The component's [conversion](../../crates/workbench/component/src/inspection_error.rs)
-projects each member into the ordered, nonempty WIT `details` list. Selection,
-metadata and analysis failures each produce one diagnostic. The complete message
-is formatted in Rust before conversion: singleton text is unchanged, and multiple
+The generated conversion keeps this nesting: the WIT `inspection-failure` names the
+failed stage, and an acquisition failure holds its members in order. The complete
+message is formatted in Rust before conversion: singleton text is unchanged, and multiple
 acquisition failures are numbered on separate lines. `Failure` is not serialized
 directly.
 

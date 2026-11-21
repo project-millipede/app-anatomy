@@ -4,6 +4,7 @@ use std::fmt;
 
 /// Machine-readable reason and associated values.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum ErrorKind {
     /// A requested range extends beyond its containing input region.
     Truncated {
@@ -17,7 +18,7 @@ pub enum ErrorKind {
     /// The detected format is not a supported Mach-O image.
     UnsupportedImage,
     /// The upstream decoder's original error, without interpreting its message.
-    Decode(object::Error),
+    Decode(#[cfg_attr(feature = "wit", wit(display))] object::Error),
 }
 
 /// Recoverable decode or input failure.
@@ -26,6 +27,8 @@ pub enum ErrorKind {
 /// through ordinary error types. Match kind for policy; message wording
 /// is for people and is not a stable machine interface.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
+#[cfg_attr(feature = "wit", wit(field(name = "message", into = String, with = ToString::to_string)))]
 pub struct AnalysisError {
     /// Failure reason, numeric evidence or upstream decoding cause.
     pub kind: ErrorKind,

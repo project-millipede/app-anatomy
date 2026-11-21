@@ -3,6 +3,7 @@
 /// Values and failures are owned. The operation defines which steps execute and
 /// whether later steps still run after an earlier failure.
 #[derive(Debug)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct Outcome<Step> {
     /// Completed steps in execution order.
     pub steps: Vec<Step>,
@@ -10,6 +11,7 @@ pub struct Outcome<Step> {
 
 /// A step's identity and original result.
 #[derive(Debug)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct StepOutcome<Kind, Output, Error> {
     /// Identifies the action that produced this result.
     pub kind: Kind,

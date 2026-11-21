@@ -1,0 +1,395 @@
+package apple-code:analysis@0.6.0;
+
+interface binary {
+  /// Outer file layout; universal entry width is independent of image header width.
+  enum container-kind {
+    /// One Mach-O image at offset zero.
+    thin,
+    /// Universal entries with 32-bit offsets and sizes.
+    universal32,
+    /// Universal entries with 64-bit offsets and sizes.
+    universal64,
+  }
+
+  /// Byte order of a header or image.
+  enum endianness {
+    /// Little endian byte order.
+    little,
+    /// Big endian byte order.
+    big,
+  }
+
+  /// Numeric Mach-O evidence with an optional canonical name from object.
+  ///
+  /// A missing name preserves the value without guessing its meaning.
+  record macho-value {
+    /// The raw value exactly as stored in the binary.
+    value: u32,
+    /// The upstream constant name, when the value is a recognized one.
+    name: option<string>,
+  }
+
+  /// CPU identity exactly as declared by the image header, including subtype flags.
+  record cpu-identity {
+    /// Raw cputype bit pattern.
+    cpu-type: macho-value,
+    /// Raw cpusubtype bit pattern, including capability bits.
+    cpu-subtype: macho-value,
+  }
+
+  /// Mach-O header layout, not CPU instruction or ABI pointer width.
+  enum mach-o-header-format {
+    /// The 28-byte mach_header layout.
+    mach-o32,
+    /// The 32-byte mach_header_64 layout.
+    mach-o64,
+  }
+
+  /// A non-overflowing absolute byte range with an exclusive end.
+  ///
+  /// Construction checks arithmetic, not membership in an input. Inspection also
+  /// checks returned ranges against the containing image.
+  record file-range {
+    offset: u64,
+    size: u64,
+  }
+
+  /// Source evidence for a platform declaration.
+  record command-location {
+    /// Command interpreted by the parser.
+    kind: macho-value,
+    /// Absolute range of the complete command, including any tool records.
+    file-range: file-range,
+  }
+
+  /// One declaration. Conflicting platform declarations remain separate evidence.
+  record platform-declaration {
+    /// Platform identifier from LC_BUILD_VERSION, including unrecognized values.
+    ///
+    /// Legacy version commands have no platform field; their OS-family evidence
+    /// remains in `source.kind`, without resolving device/simulator ambiguity.
+    platform: option<macho-value>,
+    /// Declared minimum operating-system version.
+    minimum-os: string,
+    /// Declared SDK version.
+    sdk: string,
+    /// Command and absolute range supplying these values.
+    source: command-location,
+  }
+
+  /// Location metadata only; neither the blob nor its signature has been verified.
+  ///
+  /// Duplicate commands are preserved and do not imply acceptance by Apple's tools.
+  record signature-command {
+    /// Absolute range of the LC_CODE_SIGNATURE command.
+    command-range: file-range,
+    /// Absolute signature-data range, checked within the containing image.
+    data-range: file-range,
+  }
+
+  /// One physical Mach-O image within the supplied bytes.
+  record mach-o-image {
+    /// CPU type and complete subtype bit pattern from the image header.
+    cpu: cpu-identity,
+    /// Image header layout.
+    header-format: mach-o-header-format,
+    /// Image byte order, independent of the outer universal header.
+    endianness: endianness,
+    /// Absolute range of this image.
+    file-range: file-range,
+    /// Declared file role; the value does not establish execution eligibility.
+    file-type: macho-value,
+    /// Raw header flags, retained without runtime-policy interpretation.
+    header-flags: u32,
+    /// Platform declarations in command order.
+    platforms: list<platform-declaration>,
+    /// Signature locations in command order; an empty list means absent.
+    signature-commands: list<signature-command>,
+  }
+
+  /// Analysis performed; deeper verification is never implied by a report.
+  enum analysis-scope {
+    /// Headers, command envelopes, platform declarations and signature locations.
+    headers-only,
+  }
+
+  /// Owned facts from one successful inspection.
+  record binary-report {
+    /// Outer file layout.
+    container: container-kind,
+    /// Outer header byte order.
+    container-endianness: endianness,
+    /// Total supplied input length in bytes.
+    byte-length: u64,
+    /// Images in universal-table order, or one image for thin input.
+    images: list<mach-o-image>,
+    /// Explicit boundary of performed analysis.
+    scope: analysis-scope,
+  }
+
+  record error-kind-truncated {
+    /// Number of bytes requested.
+    requested-size: u64,
+    /// Number of bytes available from the requested offset within the containing region.
+    available-size: u64,
+  }
+
+  /// Machine-readable reason and associated values.
+  variant error-kind {
+    /// A requested range extends beyond its containing input region.
+    truncated(error-kind-truncated),
+    /// A file-offset calculation cannot be represented.
+    range-overflow,
+    /// The detected format is not a supported Mach-O image.
+    unsupported-image,
+    /// The upstream decoder's original error, without interpreting its message.
+    decode(string),
+  }
+
+  /// Recoverable decode or input failure.
+  ///
+  /// This implements the standard Error trait so native callers can propagate it
+  /// through ordinary error types. Match kind for policy; message wording
+  /// is for people and is not a stable machine interface.
+  record analysis-error {
+    message: string,
+    /// Failure reason, numeric evidence or upstream decoding cause.
+    kind: error-kind,
+  }
+}
+
+interface inspection {
+  use binary.{analysis-error};
+
+  /// Failure reported by a source provider.
+  variant source-error {
+    /// The operation was explicitly cancelled.
+    cancelled,
+    /// Original I/O error, including its kind and any native error code.
+    io(string),
+    /// Original owned provider error, without requiring its type in the core.
+    provider(string),
+  }
+
+  record input-error-unexpected-eof {
+    /// Offset at which the source stopped producing bytes.
+    offset: u64,
+    /// Bytes still needed to complete the read.
+    remaining: u64,
+  }
+
+  record input-error-invalid-read-count {
+    /// Count reported by the provider.
+    reported: u64,
+    /// Capacity of the destination given to that provider.
+    capacity: u64,
+  }
+
+  record input-error-source {
+    /// Offset of the failed provider call.
+    offset: u64,
+    /// Original provider failure.
+    error: source-error,
+  }
+
+  /// Recoverable acquisition or source-contract failure.
+  variant input-error {
+    /// The source returned EOF before filling a validated range.
+    unexpected-eof(input-error-unexpected-eof),
+    /// A provider violated the read contract.
+    invalid-read-count(input-error-invalid-read-count),
+    /// A provider failed while serving the given absolute offset.
+    source(input-error-source),
+  }
+
+  /// Nonempty acquisition failures in the order observed during one inspection.
+  ///
+  /// Repeated failures remain separate entries. Each [`InputError`] retains its
+  /// own cause chain; independent entries are not causes of one another.
+  /// This collection therefore has no [`Error::source`]. Enumerate [`Self::errors`]
+  /// to inspect each failure and its original cause.
+  record input-errors {
+    errors: list<input-error>,
+  }
+
+  /// An analysis diagnostic or the acquisition failures observed during inspection.
+  variant inspection-error {
+    /// Structural diagnostic from inspection.
+    analysis(analysis-error),
+    /// Nonempty acquisition failures, each retaining its own original cause.
+    input(input-errors),
+  }
+}
+
+interface native {
+  use binary.{binary-report};
+  use inspection.{inspection-error};
+
+  /// Identifies a completed filesystem-client action.
+  enum step-kind {
+    /// Request native file selection.
+    select-file,
+    /// Request native directory selection.
+    select-directory,
+    /// Open an entry from a retained directory listing.
+    open-entry,
+    /// Query the native owner's retained selection.
+    query-selection,
+    /// Validate and analyze a retained file.
+    inspect,
+  }
+
+  /// Display name and identity of a file or directory retained by the service.
+  record selected-resource {
+    /// Human-readable name of the selected file or directory for presentation.
+    name: string,
+    /// Opaque service-issued identifier used in subsequent filesystem requests.
+    %resource: string,
+  }
+
+  /// Kind of filesystem object represented by a child listed inside a directory.
+  ///
+  /// Observed during listing without following symbolic links.
+  enum directory-entry-kind {
+    /// A regular file.
+    file,
+    /// A directory.
+    directory,
+    /// A symbolic link.
+    symlink,
+    /// Another filesystem object, such as a socket or named pipe.
+    other,
+  }
+
+  /// One child listed inside a directory, including its identifier, display name and kind.
+  ///
+  /// The child can be a file, directory, symbolic link or another filesystem object.
+  record directory-entry {
+    /// Identifier scoped to the owning listing, not a path or global identity.
+    id: u32,
+    /// Display name, potentially lossy and nonunique; not a path for opening.
+    name: string,
+    /// Type observed when the entry was listed, without following symbolic links.
+    kind: directory-entry-kind,
+  }
+
+  /// An observation of the native owner's current selection.
+  /// The entries belong to `directory`; another operation may subsequently replace it.
+  record selection-state {
+    file: option<selected-resource>,
+    directory: option<selected-resource>,
+    entries: list<directory-entry>,
+  }
+
+  /// Identifies the client-side or filesystem-provider origin of a failure.
+  enum failure-kind {
+    transport,
+    provider,
+  }
+
+  /// A client failure that owns its original cause and renders diagnostics lazily.
+  ///
+  /// Protocol failures retain the coarse `Transport` category for compatibility.
+  /// Use `protocol_error()` to inspect protocol failures, `operation()` for transport
+  /// context, and `Error::source()` for the original backend or protocol error.
+  /// Convert to an explicit output record at WIT/JSON boundaries instead of
+  /// serializing this.
+  record failure {
+    message: string,
+    kind: failure-kind,
+  }
+
+  /// A step's identity and original result.
+  record selection-step-outcome {
+    /// Identifies the action that produced this result.
+    kind: step-kind,
+    /// Successful output or the original owned failure.
+    %result: result<option<selection-state>, failure>,
+  }
+
+  /// Completed steps, independent of an execution environment.
+  ///
+  /// Values and failures are owned. The operation defines which steps execute and
+  /// whether later steps still run after an earlier failure.
+  record selection-outcome {
+    /// Completed steps in execution order.
+    steps: list<selection-step-outcome>,
+  }
+
+  variant inspection-failure-kind {
+    selection(failure),
+    metadata(failure),
+    inspection(inspection-error),
+  }
+
+  /// Identifies the inspection stage while retaining its original failures.
+  record inspection-failure {
+    message: string,
+    kind: inspection-failure-kind,
+  }
+
+  /// A step's identity and original result.
+  record inspection-step-outcome {
+    /// Identifies the action that produced this result.
+    kind: step-kind,
+    /// Successful output or the original owned failure.
+    %result: result<binary-report, inspection-failure>,
+  }
+
+  /// Completed steps, independent of an execution environment.
+  ///
+  /// Values and failures are owned. The operation defines which steps execute and
+  /// whether later steps still run after an earlier failure.
+  record inspection-outcome {
+    /// Completed steps in execution order.
+    steps: list<inspection-step-outcome>,
+  }
+
+  /// A transport-backed client of the native selection owner.
+  ///
+  /// This client does not own the native selection. Dropping it releases its
+  /// transport. Successful replacement or owner shutdown releases native resources.
+  /// Filesystem requests have no application deadline and may remain pending until
+  /// their transport completes or fails. Transport connection bounds are separate.
+  resource session {
+    /// Query selection and return its result as one completed step.
+    ///
+    /// Query failure is preserved in the step rather than interpreted as an
+    /// empty selection. This does not open a dialog or replace native resources.
+    query-selection: func() -> selection-outcome;
+    /// Ask the native owner to show its file picker, then query selection.
+    ///
+    /// Closing or cancelling the picker leaves the existing selection unchanged.
+    /// The action succeeds; the follow-up query reports selection or its own failure.
+    /// See [`SelectionOutcome`] for ordering and independent failure behavior.
+    select-file: func() -> selection-outcome;
+    /// Ask the native owner to show its folder picker, then query selection.
+    ///
+    /// Uses the same dismissal behavior and result ordering as [`Self::select_file`].
+    select-directory: func() -> selection-outcome;
+    /// Select a file from the native owner's captured listing.
+    ///
+    /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::File`].
+    open-file: func(directory: string, entry-id: u32) -> selection-outcome;
+    /// Select a directory from the native owner's captured listing.
+    ///
+    /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::Directory`].
+    open-directory: func(directory: string, entry-id: u32) -> selection-outcome;
+    /// Analyze the selected native file as thin or universal Mach-O.
+    ///
+    /// Inspection does not release or replace the native selection.
+    /// Selection validation does not reserve the resource: another client's
+    /// replacement or service shutdown may cause subsequent requests to fail.
+    inspect: func(%resource: string) -> inspection-outcome;
+  }
+
+  /// Create a session connected to the native filesystem service.
+  create-selection-session: func() -> own<session>;
+}
+
+world analysis {
+  import polymorph:websocket/connections@0.1.0;
+  export native: native;
+  export inspection;
+  export binary;
+}

@@ -4,8 +4,13 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
+[features]
+# Reflection for the generated component contract. Off for ordinary builds.
+wit = ["dep:wit-reflect"]
+
 [dependencies]
 object.workspace = true
+wit-reflect = { workspace = true, optional = true }
 
 [dev-dependencies]
 test-assets-ureq = "=0.7.0"

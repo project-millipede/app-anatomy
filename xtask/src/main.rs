@@ -1,4 +1,10 @@
-//! Download upstream WIT unchanged, then resolve it through wkg.
+//! Repository tasks: pinned WIT dependencies and the generated component contract.
+//!
+//! `wit fetch | check` download upstream WIT unchanged and resolve it through wkg.
+//! `contract generate | check` render the component's own WIT and forwarding from
+//! the Rust declarations; see [`contract`].
+
+mod contract;
 
 use anyhow::{Context, Result, bail, ensure};
 use std::{collections::BTreeMap, fs, path::Path, process::Command};
@@ -24,7 +30,11 @@ fn main() -> Result<()> {
     match arguments.as_slice() {
         [group, action] if group == "wit" && action == "fetch" => fetch(root),
         [group, action] if group == "wit" && action == "check" => check(root),
-        _ => bail!("usage: cargo run -p app-anatomy-xtask -- wit <fetch|check>"),
+        [group, action] if group == "contract" && action == "generate" => contract::generate(root),
+        [group, action] if group == "contract" && action == "check" => contract::check(root),
+        _ => bail!(
+            "usage: cargo run -p app-anatomy-xtask -- <wit fetch|wit check|contract generate|contract check>"
+        ),
     }
 }
 

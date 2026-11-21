@@ -4,7 +4,7 @@ import type {
   CpuIdentity,
   Endianness,
   FileRange,
-  HeaderFormat,
+  MachOHeaderFormat,
   MachoValue,
 } from '@apple-code/browser';
 
@@ -15,7 +15,7 @@ export const containerLabels: Record<ContainerKind, string> = {
   universal64: 'Universal Mach-O (fat64)',
 };
 
-export const headerLabels: Record<HeaderFormat, string> = {
+export const headerLabels: Record<MachOHeaderFormat, string> = {
   'mach-o32': '32-bit Mach-O header',
   'mach-o64': '64-bit Mach-O header',
 };

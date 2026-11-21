@@ -1,4 +1,4 @@
-import type { Image } from '@apple-code/browser';
+import type { MachOImage } from '@apple-code/browser';
 import {
   cpuLabel,
   endiannessLabels,
@@ -12,7 +12,7 @@ export function ImageDetails({
   image,
   styles,
 }: {
-  image: Image;
+  image: MachOImage;
   styles: { facts: string; note: string; evidence: string };
 }) {
   return (

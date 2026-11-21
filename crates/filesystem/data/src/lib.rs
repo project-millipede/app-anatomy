@@ -2,6 +2,8 @@
 //!
 //! These values describe entries; opening policy and native resource ownership
 //! belong to their providers. The optional `serde` feature supports serialization.
+//! The optional `wit` feature lets the component contract be generated from these
+//! types; it adds no behavior.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -11,6 +13,7 @@
 /// Observed during listing without following symbolic links.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum DirectoryEntryKind {
     /// A regular file.
     File,
@@ -27,6 +30,7 @@ pub enum DirectoryEntryKind {
 /// The child can be a file, directory, symbolic link or another filesystem object.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct DirectoryEntry {
     /// Identifier scoped to the owning listing, not a path or global identity.
     pub id: u32,

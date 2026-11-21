@@ -72,7 +72,7 @@ views without reconstructing the message.
 `app/page.tsx`. It calls `useNativeSession` to own one runtime created by
 `createNativeRuntime()` and passes the `getNativeSession` accessor to
 `useWorkbenchModel`. The model obtains the generated
-WIT `Session` and calls `querySelection`, `chooseFile`, `chooseFolder`, `openFile`,
+WIT `Session` and calls `querySelection`, `selectFile`, `selectDirectory`, `openFile`,
 `openDirectory` and `inspect` directly.
 
 The runtime’s `getSession()` lazily initializes and caches one component/session.
