@@ -90,7 +90,7 @@ is expanded for each type instead. The generated files did not change.
 
 | Where                                         | Lines | Content                                                                              |
 | --------------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
-| Owner crates, behind the `wit` feature        | 58    | 37 attributes holding 26 type derives, 1 resource derive, 5 rules, 10 contract marks |
+| Owner crates, behind the `wit` feature        | 67    | 34 attributes holding 26 type derives, 1 resource derive, 5 rules, 10 contract marks |
 | `crates/binary/inspection/src/wit.rs`         | 79    | The representation map, and the contract's forms of `object` values                  |
 | `crates/binary/inspection/Cargo.toml`         | 2     | The setting that names the map, and the feature that reads it                        |
 | `crates/workbench/component/Cargo.toml`       | 11    | The contract settings: package, world, imports, exports, session factory             |
@@ -104,8 +104,9 @@ name is set by hand. The contract names derive from the Rust names, and the
 web application follows them.
 
 The attributes went from 63 on 63 lines, to 50 when they were grouped, to 37
-when the map replaced the field rules. They take 58 lines, because rustfmt
-writes a grouped attribute over several.
+when the map replaced the field rules, to 34 when each remaining derive was
+merged with its `interface` mark. They take 67 lines, because rustfmt writes
+a grouped attribute over five.
 
 ## What it replaced
 
