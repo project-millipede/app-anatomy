@@ -713,15 +713,18 @@ for trying Eros. Conversely, using Eros only as another box inside the unchanged
 
 ## WIT contract design is independent of the error library
 
-The current [WIT contract](../../crates/workbench/component/wit/native.wit)
-carries concrete step outcomes. Small compatible types can be reused with the
-component's explicit `wit-bindgen` `with` configuration. This removes duplicate
-generated Rust definitions and matching code; WIT still declares the cross-language
-contract.
+The current [WIT contract](../../crates/workbench/component/wit/analysis.wit)
+carries concrete step outcomes. It is generated from the Rust types by
+[wit-reflect](../libraries/wit-reflect-adoption.md). Small compatible types are
+reused through `wit-bindgen`'s `with` configuration, which is generated too: a
+type whose Rust shape equals its contract shape is used by the bindings as it
+is. This removes duplicate generated Rust definitions and matching code; WIT
+still declares the cross-language contract.
 
-The component already reuses `FailureKind`, `ContainerKind`, `MachOHeaderFormat`
-and `AnalysisScope` through that configuration. Reusing a Rust type does not by
-itself establish that an external consumer needs the corresponding WIT field.
+The component reuses nine types this way, among them `FailureKind`,
+`ContainerKind`, `MachOHeaderFormat` and `AnalysisScope`. Reusing a Rust type
+does not by itself establish that an external consumer needs the corresponding
+WIT field.
 
 The frontend currently displays error messages without reading structured
 inspection detail or selection error classifications. That is selective use of

@@ -420,6 +420,10 @@ component has no handwritten projection.
 A Rust type whose shape equals its contract shape, including `FailureKind` and the
 report enums, crosses unchanged: the generated bindings use the Rust type itself.
 Any other type is converted by code its derive generates in the owning crate.
+How a value of another crate's type is shown, such as an `object` error or an
+`io::Error`, is stated once for the crate in the `Representations` map of
+[`binary-inspection`](../../crates/binary/inspection/src/wit.rs); the error
+variants carry no rule of their own.
 Neither technique decides the public contract's scope.
 
 ## Criteria for further changes

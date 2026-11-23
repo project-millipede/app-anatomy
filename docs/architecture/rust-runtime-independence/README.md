@@ -426,7 +426,8 @@ native filesystem or client APIs. Optional networking probes accept explicit end
   the same `inspect_source` entry point through generated forwarding. Its private
   [`websocket` module](../../../crates/workbench/component/src/websocket.rs)
   invokes Polymorph networking operations; the browser provider owns connection
-  timing. The facade owns WIT resources and result conversion.
+  timing. The generated forwarding owns WIT resources; result conversion is
+  generated in the crates that own the result types.
 - [`workbench-operations`](../../../crates/workbench/operations/src/lib.rs)
   accepts a transport through `Session::new`.
   The optional [native inspection example](../../../experiments/workbench/native/examples/inspect.rs)

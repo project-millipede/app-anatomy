@@ -1,7 +1,7 @@
 # wit-reflect adoption
 
-Recorded on 2026-11-21. The component boundary is generated from the ordinary
-Rust types and operations by
+Recorded on 2026-11-21, last updated on 2026-11-23. The component boundary is
+generated from the ordinary Rust types and operations by
 [wit-reflect](https://github.com/project-millipede/wit-reflect). This record
 states what is generated, what is still written by hand, and the evidence. The
 [generator comparison](rust-to-wit-generators/README.md) explains why the
@@ -181,5 +181,5 @@ measurement of the conversion alone.
   block names it. A new method that is not named exports nothing;
   `contract check` then passes, because the contract did not change. Review
   new session methods for the list.
-- After the change to marks, the jco scenarios below were not repeated. The
+- After the change to marks, the jco scenarios above were not repeated. The
   regenerated contract differs from the one they ran against only in order.

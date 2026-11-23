@@ -27,7 +27,7 @@ Component: Rust analyzer → Rust filesystem client → Polymorph WIT
 Native Rust application → NativeSelection → NativeFileSource → same analyzer
 ```
 
-The browser application uses the component contract `apple-code:analysis@0.5.0`.
+The browser application uses the component contract `apple-code:analysis@0.6.0`.
 Its selected operations compose ordinary Rust APIs; internal helpers are not
 additional exports. Report and inspection interfaces supply shared types, while
 native-session operations perform selection, navigation and inspection. Generated

@@ -164,7 +164,7 @@ The web package generates Panda's styling API during installation and before dev
 | `crates/distribution/integration` | Reusable OS integration; currently single-instance file locking                  |
 | `crates/distribution/composition` | Installed `native-workbench` entry point, service startup and instance ownership |
 | `crates/services/filesystem`      | Native Workbench Service: selection, dialogs and filesystem requests             |
-| `crates/workbench/component`      | WIT contract and conversion to/from core Rust types                              |
+| `crates/workbench/component`      | Generated WIT contract, bindings setup and forwarding; the socket adapter        |
 | `packages/apple-code-browser`     | Component/session initialization and environment bindings                        |
 | `packages/archer`                 | Reused browser arrow drawing, geometry and surface-local rendering state         |
 
@@ -178,6 +178,6 @@ component and UI expose the dedicated Mach-O report. See the
 [Rust API scope](docs/architecture/rust-analysis-core.md#object-file-identity)
 for parser coverage and read behavior.
 
-The component contract is `apple-code:analysis@0.5.0`. Mach-O CPU, file-type, platform and command values cross as a numeric value and optional canonical name; generated jco types define the browser contract. The ordinary Rust API uses the pinned `object` types directly, so dependency upgrades require API compatibility review. Inspection failures carry a complete Rust-formatted message and an ordered, nonempty list of typed diagnostics, preserving every acquisition failure encountered during the inspection. All file offsets and sizes remain `u64` in Rust and `BigInt` in JavaScript.
+The component contract is `apple-code:analysis@0.6.0`. It is generated from the Rust types and operations by [wit-reflect](docs/libraries/wit-reflect-adoption.md): the WIT file, the bindings setup and the forwarding are committed outputs, and `pnpm contract:check` fails when one is stale. Mach-O CPU, file-type, platform and command values cross as a numeric value and optional canonical name; generated jco types define the browser contract. The ordinary Rust API uses the pinned `object` types directly, so dependency upgrades require API compatibility review. Inspection failures carry a complete Rust-formatted message and a typed stage: a selection or metadata failure, an analysis error, or the ordered, nonempty list of acquisition failures encountered during the inspection. All file offsets and sizes remain `u64` in Rust and `BigInt` in JavaScript.
 
 No GitHub remote, deployment, external service or signing identity is configured.
