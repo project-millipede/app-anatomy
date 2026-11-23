@@ -9,13 +9,13 @@ library was written.
 
 ## Pins
 
-| Tool        | Version                                           |
-| ----------- | ------------------------------------------------- |
-| wit-reflect | commit `549389e169ee04cdd15f1386be4feceba6e91092` |
-| wit-bindgen | 0.63.0                                            |
-| jco         | 1.42.0                                            |
-| wasm-tools  | 1.251.0, for packaging                            |
-| Contract    | `apple-code:analysis@0.6.0`                       |
+| Tool        | Version                     |
+| ----------- | --------------------------- |
+| wit-reflect | 0.1.0 from crates.io        |
+| wit-bindgen | 0.63.0                      |
+| jco         | 1.42.0                      |
+| wasm-tools  | 1.251.0, for packaging      |
+| Contract    | `apple-code:analysis@0.6.0` |
 
 ## What is generated
 

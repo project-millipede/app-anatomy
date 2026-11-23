@@ -5626,7 +5626,8 @@ dependencies = [
 [[package]]
 name = "wit-reflect"
 version = "0.1.0"
-source = "git+https://github.com/project-millipede/wit-reflect?rev=549389e169ee04cdd15f1386be4feceba6e91092#549389e169ee04cdd15f1386be4feceba6e91092"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e461fa668f8285811acb33297f3094b36ec4ed52be2d425aec525f951c583fc6"
 dependencies = [
  "heck",
  "inventory",
@@ -5639,7 +5640,8 @@ dependencies = [
 [[package]]
 name = "wit-reflect-macros"
 version = "0.1.0"
-source = "git+https://github.com/project-millipede/wit-reflect?rev=549389e169ee04cdd15f1386be4feceba6e91092#549389e169ee04cdd15f1386be4feceba6e91092"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbb51ce837ac388fd306466c373046936effd9c22921c14b6f6b40e72519551d"
 dependencies = [
  "heck",
  "proc-macro2",
