@@ -7,7 +7,7 @@
 //! callers never see these types; they exist for the generated component
 //! contract.
 
-use object::{Wrap, macho};
+use object::Wrap;
 use wit_reflect::WitType;
 use wit_reflect::rule::DisplayText;
 
@@ -19,10 +19,13 @@ wit_reflect::representations! {
     pub Representations {
         object {
             object::Endianness => Endianness,
-            object::macho::CpuType => MachoValue,
-            object::macho::LoadCommandType => MachoValue,
-            object::macho::FileType => MachoValue,
-            object::macho::Platform => MachoValue,
+            // One conversion for the wrapped numbers. They share the functions
+            // it calls, not a trait, so it is expanded for each of them.
+            object::macho::CpuType
+            | object::macho::LoadCommandType
+            | object::macho::FileType
+            | object::macho::Platform => MachoValue
+                with |value| MachoValue::new(value.into_inner(), value.name()),
             object::macho::Version => DisplayText,
             object::Error => DisplayText,
         }
@@ -62,30 +65,6 @@ impl MachoValue {
             value,
             name: name.map(str::to_owned),
         }
-    }
-}
-
-impl From<macho::CpuType> for MachoValue {
-    fn from(cpu_type: macho::CpuType) -> Self {
-        Self::new(cpu_type.into_inner(), cpu_type.name())
-    }
-}
-
-impl From<macho::FileType> for MachoValue {
-    fn from(file_type: macho::FileType) -> Self {
-        Self::new(file_type.into_inner(), file_type.name())
-    }
-}
-
-impl From<macho::LoadCommandType> for MachoValue {
-    fn from(command: macho::LoadCommandType) -> Self {
-        Self::new(command.into_inner(), command.name())
-    }
-}
-
-impl From<macho::Platform> for MachoValue {
-    fn from(platform: macho::Platform) -> Self {
-        Self::new(platform.into_inner(), platform.name())
     }
 }
 

@@ -11,7 +11,7 @@ library was written.
 
 | Tool        | Version                                           |
 | ----------- | ------------------------------------------------- |
-| wit-reflect | commit `1c467d01bc3228792b13319587174574e973a383` |
+| wit-reflect | commit `4f5aff4b14036dfe9e13833b2bf7fa57d648fbd3` |
 | wit-bindgen | 0.63.0                                            |
 | jco         | 1.42.0                                            |
 | wasm-tools  | 1.251.0, for packaging                            |
@@ -67,7 +67,7 @@ What is exported is always stated. It does not follow from `pub`: the first
 because Rust callers such as `experiments/workbench/native` use them.
 
 Also since 2026-11-23, `binary-inspection` states once how each type of
-another crate is shown. Its map has nine entries in two groups: seven types of
+another crate is shown. Its map names nine types in two groups: seven types of
 `object` and two of the standard library. The crate's `Cargo.toml` names the
 map, and every derive of the crate looks its fields up in it. 13 field rules
 went: five `into`, five `display`, two `widen` and the `with` rule on
@@ -78,12 +78,20 @@ One field rule remains, on `CpuIdentity::cpu_subtype`. The name of a CPU
 subtype depends on the CPU type next to it, which is a fact about that field
 and not about its type.
 
+Also since 2026-11-23, the four wrapped numbers of `object` share one map
+entry that states their conversion: `CpuType`, `LoadCommandType`, `FileType`
+and `Platform` are shown as `MachoValue` with
+`|value| MachoValue::new(value.into_inner(), value.name())`. Four `From`
+implementations with that same body went. One implementation could not
+replace them, because `name()` is not a trait function in `object`; the entry
+is expanded for each type instead. The generated files did not change.
+
 ## What is written by hand
 
 | Where                                         | Lines | Content                                                                              |
 | --------------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
 | Owner crates, behind the `wit` feature        | 58    | 37 attributes holding 26 type derives, 1 resource derive, 5 rules, 10 contract marks |
-| `crates/binary/inspection/src/wit.rs`         | 100   | The representation map, and the contract's forms of `object` values                  |
+| `crates/binary/inspection/src/wit.rs`         | 79    | The representation map, and the contract's forms of `object` values                  |
 | `crates/binary/inspection/Cargo.toml`         | 2     | The setting that names the map, and the feature that reads it                        |
 | `crates/workbench/component/Cargo.toml`       | 11    | The contract settings: package, world, imports, exports, session factory             |
 | `xtask/src/main.rs`                           | 18    | The link line and the calls to wit-reflect's generate and check tasks                |

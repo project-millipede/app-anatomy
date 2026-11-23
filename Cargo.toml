@@ -25,7 +25,7 @@ object = { version = "=0.40.0", default-features = false, features = ["read_core
 thiserror = "=2.0.21"
 # Generates the component's WIT, result conversion and forwarding from the Rust
 # types. Owner crates enable it only through their default-off `wit` feature.
-wit-reflect = { git = "https://github.com/project-millipede/wit-reflect", rev = "1c467d01bc3228792b13319587174574e973a383" }
+wit-reflect = { git = "https://github.com/project-millipede/wit-reflect", rev = "4f5aff4b14036dfe9e13833b2bf7fa57d648fbd3" }
 
 # Pin feat/macos-standalone-event-loop so native event ownership is reproducible.
 [patch.crates-io]
