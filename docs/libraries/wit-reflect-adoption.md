@@ -200,11 +200,7 @@ measurement of the conversion alone.
   nothing else in the workbench implements the trait. The generated forwarding
   calls the function through the trait, so a missing or different
   implementation does not compile.
-- After the factory moved to the trait, the jco scenarios above were not
-  repeated either. The WIT and the bindings file did not change.
 - A method joins the contract when `wit_reflect::exports(…)` on its `impl`
   block names it. A new method that is not named exports nothing;
   `contract check` then passes, because the contract did not change. Review
   new session methods for the list.
-- After the change to marks, the jco scenarios above were not repeated. The
-  regenerated contract differs from the one they ran against only in order.
