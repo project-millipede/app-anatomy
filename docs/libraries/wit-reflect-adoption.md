@@ -11,7 +11,7 @@ library was written.
 
 | Tool        | Version                                           |
 | ----------- | ------------------------------------------------- |
-| wit-reflect | commit `0cbcd914eff33c6b8d0c0f45aa18ea437e489839` |
+| wit-reflect | commit `1c467d01bc3228792b13319587174574e973a383` |
 | wit-bindgen | 0.63.0                                            |
 | jco         | 1.42.0                                            |
 | wasm-tools  | 1.251.0, for packaging                            |
@@ -42,6 +42,7 @@ No program lists the contract. Each part is stated where it is:
 | The interface that owns a type or resource        | `wit(interface = "…")` on `BinaryReport`, `AnalysisError`, `InspectionError`, `Session` |
 | The exported methods of `Session`                 | `wit_reflect::exports(…)` on its two `impl` blocks, naming the six methods              |
 | The names of the four generic outcome types       | `wit_reflect::named` on their type aliases                                              |
+| How a type of another crate is shown              | One entry in the `Representations` map in `crates/binary/inspection/src/wit.rs`         |
 | Package, world, imports, exports, session factory | `[package.metadata.wit-reflect]` in the component crate's `Cargo.toml`                  |
 
 The marked items register themselves when the xtask is linked.
@@ -65,26 +66,38 @@ What is exported is always stated. It does not follow from `pub`: the first
 `impl Session` block has five public methods that are not in the contract,
 because Rust callers such as `experiments/workbench/native` use them.
 
+Also since 2026-11-23, `binary-inspection` states once how each type of
+another crate is shown. Its map has nine entries in two groups: seven types of
+`object` and two of the standard library. The crate's `Cargo.toml` names the
+map, and every derive of the crate looks its fields up in it. 13 field rules
+went: five `into`, five `display`, two `widen` and the `with` rule on
+`PlatformDeclaration::platform`, together with its helper function. `usize`
+needs no entry; it is shown as `u64`. The generated files did not change.
+
+One field rule remains, on `CpuIdentity::cpu_subtype`. The name of a CPU
+subtype depends on the CPU type next to it, which is a fact about that field
+and not about its type.
+
 ## What is written by hand
 
-| Where                                         | Lines | Content                                                                               |
-| --------------------------------------------- | ----- | ------------------------------------------------------------------------------------- |
-| Owner crates, behind the `wit` feature        | 71    | 50 attributes holding 26 type derives, 1 resource derive, 18 rules, 10 contract marks |
-| `crates/binary/inspection/src/wit.rs`         | 81    | Contract representations of `object` values, which carry no derive                    |
-| `crates/workbench/component/Cargo.toml`       | 11    | The contract settings: package, world, imports, exports, session factory              |
-| `xtask/src/main.rs`                           | 18    | The link line and the calls to wit-reflect's generate and check tasks                 |
-| `crates/workbench/component/src/lib.rs`       | 50    | The bindings call, the session factory and the module list                            |
-| `crates/workbench/component/src/websocket.rs` | 73    | The transport over the imported Polymorph operations, unchanged                       |
+| Where                                         | Lines | Content                                                                              |
+| --------------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
+| Owner crates, behind the `wit` feature        | 58    | 37 attributes holding 26 type derives, 1 resource derive, 5 rules, 10 contract marks |
+| `crates/binary/inspection/src/wit.rs`         | 100   | The representation map, and the contract's forms of `object` values                  |
+| `crates/binary/inspection/Cargo.toml`         | 2     | The setting that names the map, and the feature that reads it                        |
+| `crates/workbench/component/Cargo.toml`       | 11    | The contract settings: package, world, imports, exports, session factory             |
+| `xtask/src/main.rs`                           | 18    | The link line and the calls to wit-reflect's generate and check tasks                |
+| `crates/workbench/component/src/lib.rs`       | 50    | The bindings call, the session factory and the module list                           |
+| `crates/workbench/component/src/websocket.rs` | 73    | The transport over the imported Polymorph operations, unchanged                      |
 
-Every rule covers a field that has no WIT form as stored: `into` for `object`
-values, `display` for versions and foreign errors, `widen` for `usize`, `skip`
-for the internal fields of `Failure`, and a `message` holding the `Display`
-text. No name is set by hand. The contract names derive from the Rust names,
-and the web application follows them.
+The five remaining rules are the `message` field of the three error types,
+`skip` for the internal fields of `Failure`, and the rule on `cpu_subtype`. No
+name is set by hand. The contract names derive from the Rust names, and the
+web application follows them.
 
-Before they were grouped there were 63 attributes on 63 lines. There are 50
-now, because one attribute carries several declarations. They take 71 lines,
-because rustfmt writes a grouped attribute over several.
+The attributes went from 63 on 63 lines, to 50 when they were grouped, to 37
+when the map replaced the field rules. They take 58 lines, because rustfmt
+writes a grouped attribute over several.
 
 ## What it replaced
 

@@ -1,14 +1,37 @@
-//! Contract representations of `object`'s types, compiled only with `wit`.
+//! Contract representations of other crates' types, compiled only with `wit`.
 //!
 //! Reports expose `object` values directly. No derive can be placed on another
-//! crate's type, so each representation is stated once here and referenced by
-//! a rule on the field that holds the value. Native callers never see these
-//! types; they exist for the generated component contract.
+//! crate's type, so [`Representations`] states once how each one is shown. The
+//! crate's `Cargo.toml` names that map, and every derive of the crate looks
+//! its fields up in it; a field of a listed type carries no rule. Native
+//! callers never see these types; they exist for the generated component
+//! contract.
 
 use object::{Wrap, macho};
 use wit_reflect::WitType;
+use wit_reflect::rule::DisplayText;
 
-use crate::{CpuIdentity, PlatformDeclaration};
+use crate::CpuIdentity;
+
+wit_reflect::representations! {
+    /// The contract's form of each type of another crate that the reports and
+    /// their errors hold.
+    pub Representations {
+        object {
+            object::Endianness => Endianness,
+            object::macho::CpuType => MachoValue,
+            object::macho::LoadCommandType => MachoValue,
+            object::macho::FileType => MachoValue,
+            object::macho::Platform => MachoValue,
+            object::macho::Version => DisplayText,
+            object::Error => DisplayText,
+        }
+        std {
+            std::io::Error => DisplayText,
+            std::boxed::Box<dyn std::error::Error + Send + Sync> => DisplayText,
+        }
+    }
+}
 
 /// Byte order of a header or image.
 // The derive checks this declaration against `object::Endianness`: if upstream
@@ -60,6 +83,12 @@ impl From<macho::LoadCommandType> for MachoValue {
     }
 }
 
+impl From<macho::Platform> for MachoValue {
+    fn from(platform: macho::Platform) -> Self {
+        Self::new(platform.into_inner(), platform.name())
+    }
+}
+
 impl CpuIdentity {
     /// The subtype's complete bit pattern with its name for this CPU family.
     ///
@@ -67,15 +96,5 @@ impl CpuIdentity {
     /// bits, which remain in the value. It depends on the sibling CPU type.
     pub(crate) fn subtype_value(&self) -> MachoValue {
         MachoValue::new(self.cpu_subtype.into_inner(), self.subtype_name())
-    }
-}
-
-impl PlatformDeclaration {
-    /// The platform identifier, present for `LC_BUILD_VERSION`.
-    ///
-    /// Legacy commands have no platform field; `source.kind` retains their identity.
-    pub(crate) fn platform_value(&self) -> Option<MachoValue> {
-        self.platform
-            .map(|platform| MachoValue::new(platform.into_inner(), platform.name()))
     }
 }

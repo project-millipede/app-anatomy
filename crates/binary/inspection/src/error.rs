@@ -18,7 +18,7 @@ pub enum ErrorKind {
     /// The detected format is not a supported Mach-O image.
     UnsupportedImage,
     /// The upstream decoder's original error, without interpreting its message.
-    Decode(#[cfg_attr(feature = "wit", wit(display))] object::Error),
+    Decode(object::Error),
 }
 
 /// Recoverable decode or input failure.

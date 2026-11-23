@@ -5626,7 +5626,7 @@ dependencies = [
 [[package]]
 name = "wit-reflect"
 version = "0.1.0"
-source = "git+https://github.com/project-millipede/wit-reflect?rev=0cbcd914eff33c6b8d0c0f45aa18ea437e489839#0cbcd914eff33c6b8d0c0f45aa18ea437e489839"
+source = "git+https://github.com/project-millipede/wit-reflect?rev=1c467d01bc3228792b13319587174574e973a383#1c467d01bc3228792b13319587174574e973a383"
 dependencies = [
  "heck",
  "inventory",
@@ -5639,12 +5639,13 @@ dependencies = [
 [[package]]
 name = "wit-reflect-macros"
 version = "0.1.0"
-source = "git+https://github.com/project-millipede/wit-reflect?rev=0cbcd914eff33c6b8d0c0f45aa18ea437e489839#0cbcd914eff33c6b8d0c0f45aa18ea437e489839"
+source = "git+https://github.com/project-millipede/wit-reflect?rev=1c467d01bc3228792b13319587174574e973a383#1c467d01bc3228792b13319587174574e973a383"
 dependencies = [
  "heck",
  "proc-macro2",
  "quote",
  "syn 3.0.10",
+ "toml 1.1.8+spec-1.1.0",
 ]
 
 [[package]]

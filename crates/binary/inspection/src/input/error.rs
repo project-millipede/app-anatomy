@@ -9,9 +9,9 @@ pub enum SourceError {
     /// The operation was explicitly cancelled.
     Cancelled,
     /// Original I/O error, including its kind and any native error code.
-    Io(#[cfg_attr(feature = "wit", wit(display))] io::Error),
+    Io(io::Error),
     /// Original owned provider error, without requiring its type in the core.
-    Provider(#[cfg_attr(feature = "wit", wit(display))] Box<dyn Error + Send + Sync>),
+    Provider(Box<dyn Error + Send + Sync>),
 }
 
 impl fmt::Display for SourceError {
@@ -54,10 +54,8 @@ pub enum InputError {
     /// A provider violated the read contract.
     InvalidReadCount {
         /// Count reported by the provider.
-        #[cfg_attr(feature = "wit", wit(widen))]
         reported: usize,
         /// Capacity of the destination given to that provider.
-        #[cfg_attr(feature = "wit", wit(widen))]
         capacity: usize,
     },
     /// A provider failed while serving the given absolute offset.

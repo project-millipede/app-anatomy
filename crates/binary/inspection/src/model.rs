@@ -80,7 +80,6 @@ impl FileRange {
 #[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct CpuIdentity {
     /// Raw cputype bit pattern.
-    #[cfg_attr(feature = "wit", wit(into = crate::wit::MachoValue))]
     pub cpu_type: macho::CpuType,
     /// Raw cpusubtype bit pattern, including capability bits.
     #[cfg_attr(feature = "wit", wit(into = crate::wit::MachoValue, with = CpuIdentity::subtype_value))]
@@ -105,7 +104,6 @@ impl CpuIdentity {
 #[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct CommandLocation {
     /// Command interpreted by the parser.
-    #[cfg_attr(feature = "wit", wit(into = crate::wit::MachoValue))]
     pub kind: macho::LoadCommandType,
     /// Absolute range of the complete command, including any tool records.
     pub file_range: FileRange,
@@ -119,13 +117,10 @@ pub struct PlatformDeclaration {
     ///
     /// Legacy version commands have no platform field; their OS-family evidence
     /// remains in `source.kind`, without resolving device/simulator ambiguity.
-    #[cfg_attr(feature = "wit", wit(into = Option<crate::wit::MachoValue>, with = PlatformDeclaration::platform_value))]
     pub platform: Option<macho::Platform>,
     /// Declared minimum operating-system version.
-    #[cfg_attr(feature = "wit", wit(display))]
     pub minimum_os: Version,
     /// Declared SDK version.
-    #[cfg_attr(feature = "wit", wit(display))]
     pub sdk: Version,
     /// Command and absolute range supplying these values.
     pub source: CommandLocation,
@@ -152,12 +147,10 @@ pub struct MachOImage {
     /// Image header layout.
     pub header_format: MachOHeaderFormat,
     /// Image byte order, independent of the outer universal header.
-    #[cfg_attr(feature = "wit", wit(into = crate::wit::Endianness))]
     pub endianness: Endianness,
     /// Absolute range of this image.
     pub file_range: FileRange,
     /// Declared file role; the value does not establish execution eligibility.
-    #[cfg_attr(feature = "wit", wit(into = crate::wit::MachoValue))]
     pub file_type: macho::FileType,
     /// Raw header flags, retained without runtime-policy interpretation.
     pub header_flags: u32,
@@ -175,7 +168,6 @@ pub struct BinaryReport {
     /// Outer file layout.
     pub container: ContainerKind,
     /// Outer header byte order.
-    #[cfg_attr(feature = "wit", wit(into = crate::wit::Endianness))]
     pub container_endianness: Endianness,
     /// Total supplied input length in bytes.
     pub byte_length: u64,
