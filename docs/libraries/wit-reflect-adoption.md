@@ -11,7 +11,7 @@ library was written.
 
 | Tool        | Version                                           |
 | ----------- | ------------------------------------------------- |
-| wit-reflect | commit `6e651fbfd9cb8974ed3b9ce38738ddb2bb67736e` |
+| wit-reflect | commit `0cbcd914eff33c6b8d0c0f45aa18ea437e489839` |
 | wit-bindgen | 0.63.0                                            |
 | jco         | 1.42.0                                            |
 | wasm-tools  | 1.251.0, for packaging                            |
@@ -40,7 +40,7 @@ No program lists the contract. Each part is stated where it is:
 | ------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | Fields, cases and signatures                      | The Rust declarations themselves                                                        |
 | The interface that owns a type or resource        | `wit(interface = "…")` on `BinaryReport`, `AnalysisError`, `InspectionError`, `Session` |
-| The exported methods of `Session`                 | `wit_reflect::exports` on its two `impl` blocks, around the `export` marks              |
+| The exported methods of `Session`                 | `wit_reflect::exports(…)` on its two `impl` blocks, naming the six methods              |
 | The names of the four generic outcome types       | `wit_reflect::named` on their type aliases                                              |
 | Package, world, imports, exports, session factory | `[package.metadata.wit-reflect]` in the component crate's `Cargo.toml`                  |
 
@@ -55,21 +55,36 @@ one: every definition, function and world entry is the same. Only their order
 changed: definitions now follow source position, and `inspect` comes first
 among the session's functions.
 
+Since 2026-11-23 the declarations of an item are grouped above it. An `impl`
+block names its exported methods in `exports(…)` and the methods carry no mark.
+`Failure` states `skip(operation, diagnostic, cause)` once, and its fields
+carry no attribute. The three error types use `display = "message"` for the
+field that holds their `Display` text. The generated files did not change.
+
+What is exported is always stated. It does not follow from `pub`: the first
+`impl Session` block has five public methods that are not in the contract,
+because Rust callers such as `experiments/workbench/native` use them.
+
 ## What is written by hand
 
-| Where                                         | Lines | Content                                                                              |
-| --------------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
-| Owner crates, behind the `wit` feature        | 63    | 26 type derives, 1 resource derive, 6 `#[export]` marks, 20 rules, 10 contract marks |
-| `crates/binary/inspection/src/wit.rs`         | 81    | Contract representations of `object` values, which carry no derive                   |
-| `crates/workbench/component/Cargo.toml`       | 11    | The contract settings: package, world, imports, exports, session factory             |
-| `xtask/src/main.rs`                           | 18    | The link line and the calls to wit-reflect's generate and check tasks                |
-| `crates/workbench/component/src/lib.rs`       | 50    | The bindings call, the session factory and the module list                           |
-| `crates/workbench/component/src/websocket.rs` | 73    | The transport over the imported Polymorph operations, unchanged                      |
+| Where                                         | Lines | Content                                                                               |
+| --------------------------------------------- | ----- | ------------------------------------------------------------------------------------- |
+| Owner crates, behind the `wit` feature        | 71    | 50 attributes holding 26 type derives, 1 resource derive, 18 rules, 10 contract marks |
+| `crates/binary/inspection/src/wit.rs`         | 81    | Contract representations of `object` values, which carry no derive                    |
+| `crates/workbench/component/Cargo.toml`       | 11    | The contract settings: package, world, imports, exports, session factory              |
+| `xtask/src/main.rs`                           | 18    | The link line and the calls to wit-reflect's generate and check tasks                 |
+| `crates/workbench/component/src/lib.rs`       | 50    | The bindings call, the session factory and the module list                            |
+| `crates/workbench/component/src/websocket.rs` | 73    | The transport over the imported Polymorph operations, unchanged                       |
 
 Every rule covers a field that has no WIT form as stored: `into` for `object`
 values, `display` for versions and foreign errors, `widen` for `usize`, `skip`
-for private cause fields, and a computed `message`. No name is set by hand. The
-contract names derive from the Rust names, and the web application follows them.
+for the internal fields of `Failure`, and a `message` holding the `Display`
+text. No name is set by hand. The contract names derive from the Rust names,
+and the web application follows them.
+
+Before they were grouped there were 63 attributes on 63 lines. There are 50
+now, because one attribute carries several declarations. They take 71 lines,
+because rustfmt writes a grouped attribute over several.
 
 ## What it replaced
 
@@ -149,9 +164,9 @@ measurement of the conversion alone.
   `Cargo.toml`, because the factory is implemented in that crate, which
   compiles only once the contract exists. The generated forwarding calls the
   real function, so a wrong signature does not compile.
-- A method joins the contract through `wit_reflect::exports` on its `impl`
-  block. A new block without that mark exports nothing; `contract check` then
-  passes, because the contract did not change. Review new session methods for
-  the mark.
+- A method joins the contract when `wit_reflect::exports(…)` on its `impl`
+  block names it. A new method that is not named exports nothing;
+  `contract check` then passes, because the contract did not change. Review
+  new session methods for the list.
 - After the change to marks, the jco scenarios below were not repeated. The
   regenerated contract differs from the one they ran against only in order.

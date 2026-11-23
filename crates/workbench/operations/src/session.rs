@@ -51,7 +51,16 @@ pub struct Session {
     transport: Box<dyn Transport>,
 }
 
-#[cfg_attr(feature = "wit", wit_reflect::exports)]
+#[cfg_attr(
+    feature = "wit",
+    wit_reflect::exports(
+        query_selection,
+        select_file,
+        select_directory,
+        open_file,
+        open_directory
+    )
+)]
 impl Session {
     /// Own a transport without sending a request or selecting a resource.
     pub fn new(transport: Box<dyn Transport>) -> Self {
@@ -117,7 +126,6 @@ impl Session {
     ///
     /// Query failure is preserved in the step rather than interpreted as an
     /// empty selection. This does not open a dialog or replace native resources.
-    #[cfg_attr(feature = "wit", wit_reflect::export)]
     pub fn query_selection(&mut self) -> SelectionOutcome {
         let selection_query_result = self.current_selection().map(Some);
         Outcome {
@@ -133,7 +141,6 @@ impl Session {
     /// Closing or cancelling the picker leaves the existing selection unchanged.
     /// The action succeeds; the follow-up query reports selection or its own failure.
     /// See [`SelectionOutcome`] for ordering and independent failure behavior.
-    #[cfg_attr(feature = "wit", wit_reflect::export)]
     pub fn select_file(&mut self) -> SelectionOutcome {
         self.select(Request::ChooseFile, StepKind::SelectFile)
     }
@@ -141,7 +148,6 @@ impl Session {
     /// Ask the native owner to show its folder picker, then query selection.
     ///
     /// Uses the same dismissal behavior and result ordering as [`Self::select_file`].
-    #[cfg_attr(feature = "wit", wit_reflect::export)]
     pub fn select_directory(&mut self) -> SelectionOutcome {
         self.select(Request::ChooseFolder, StepKind::SelectDirectory)
     }
@@ -171,7 +177,6 @@ impl Session {
     /// Select a file from the native owner's captured listing.
     ///
     /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::File`].
-    #[cfg_attr(feature = "wit", wit_reflect::export)]
     pub fn open_file(&mut self, directory: &str, entry_id: u32) -> SelectionOutcome {
         self.select_child(directory, entry_id, DirectoryEntryKind::File)
     }
@@ -179,7 +184,6 @@ impl Session {
     /// Select a directory from the native owner's captured listing.
     ///
     /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::Directory`].
-    #[cfg_attr(feature = "wit", wit_reflect::export)]
     pub fn open_directory(&mut self, directory: &str, entry_id: u32) -> SelectionOutcome {
         self.select_child(directory, entry_id, DirectoryEntryKind::Directory)
     }

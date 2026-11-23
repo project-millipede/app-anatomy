@@ -27,9 +27,11 @@ pub enum ErrorKind {
 /// through ordinary error types. Match kind for policy; message wording
 /// is for people and is not a stable machine interface.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
-#[cfg_attr(feature = "wit", wit(interface = "binary"))]
-#[cfg_attr(feature = "wit", wit(field(name = "message", into = String, with = ToString::to_string)))]
+#[cfg_attr(
+    feature = "wit",
+    derive(wit_reflect::WitType),
+    wit(interface = "binary", display = "message")
+)]
 pub struct AnalysisError {
     /// Failure reason, numeric evidence or upstream decoding cause.
     pub kind: ErrorKind,

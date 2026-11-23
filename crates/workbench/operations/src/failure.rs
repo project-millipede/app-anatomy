@@ -27,18 +27,18 @@ pub enum TransportOperation {
 /// Convert to an explicit output record at WIT/JSON boundaries instead of
 /// serializing this.
 #[derive(Debug, thiserror::Error)]
-#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
-#[cfg_attr(feature = "wit", wit(field(name = "message", into = String, with = ToString::to_string)))]
+#[cfg_attr(
+    feature = "wit",
+    derive(wit_reflect::WitType),
+    wit(display = "message", skip(operation, diagnostic, cause))
+)]
 pub struct Failure {
     pub kind: FailureKind,
-    #[cfg_attr(feature = "wit", wit(skip))]
     operation: Option<TransportOperation>,
     // Text is present only when the failure itself supplies a diagnostic. Causes
     // are never eagerly formatted and copied here.
-    #[cfg_attr(feature = "wit", wit(skip))]
     diagnostic: Option<Cow<'static, str>>,
     #[source]
-    #[cfg_attr(feature = "wit", wit(skip))]
     cause: Option<Box<dyn Error + Send + Sync>>,
 }
 
