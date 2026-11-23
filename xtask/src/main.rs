@@ -1,7 +1,24 @@
-//! Download upstream WIT unchanged, then resolve it through wkg.
+//! Repository tasks: pinned WIT dependencies and the generated component contract.
+//!
+//! `wit fetch | check` download upstream WIT unchanged and resolve it through wkg.
+//! `contract generate | check` render the component's WIT, bindings setup and
+//! forwarding from the Rust declarations.
+//!
+//! The contract is declared where its parts are: types and operations carry
+//! marks in their owner crates, and the component crate's `Cargo.toml` holds
+//! the package and the world. wit-reflect collects the
+//! marks of every linked crate, so this program declares nothing. Both tasks
+//! cover three committed files of the component crate: `wit/analysis.wit`,
+//! `src/bindings.rs` and `src/forwarding.rs`.
 
 use anyhow::{Context, Result, bail, ensure};
 use std::{collections::BTreeMap, fs, path::Path, process::Command};
+// Rust links a dependency only if the program names it. This links the marked
+// items of `workbench-operations` and of the crates it depends on.
+use workbench_operations as _;
+
+/// The crate whose manifest holds the contract settings.
+const COMPONENT_MANIFEST: &str = "crates/workbench/component/Cargo.toml";
 
 // Latest upstream HEAD verified on 2026-09-27. Update deliberately, not per build.
 const REVISION: &str = "736c46d8eb7eae6ff766e83a7401a4a36f5a9601";
@@ -24,8 +41,36 @@ fn main() -> Result<()> {
     match arguments.as_slice() {
         [group, action] if group == "wit" && action == "fetch" => fetch(root),
         [group, action] if group == "wit" && action == "check" => check(root),
-        _ => bail!("usage: cargo run -p app-anatomy-xtask -- wit <fetch|check>"),
+        [group, action] if group == "contract" && action == "generate" => generate_contract(root),
+        [group, action] if group == "contract" && action == "check" => check_contract(root),
+        _ => bail!(
+            "usage: cargo run -p app-anatomy-xtask -- <wit fetch|wit check|contract generate|contract check>"
+        ),
     }
+}
+
+/// Rewrite the generated contract files from the declarations.
+fn generate_contract(root: &Path) -> Result<()> {
+    let written_paths = wit_reflect::tasks::generate(root.join(COMPONENT_MANIFEST))?;
+    for path in &written_paths {
+        println!("Wrote {}.", path.display());
+    }
+    if written_paths.is_empty() {
+        println!("Generated contract files are current.");
+    }
+    Ok(())
+}
+
+/// Fail when a committed contract file differs from what the declarations
+/// generate.
+///
+/// Checking never repairs: a stale file means a Rust declaration or a setting
+/// changed, and that change belongs in review.
+fn check_contract(root: &Path) -> Result<()> {
+    wit_reflect::tasks::check(root.join(COMPONENT_MANIFEST))
+        .context("run `pnpm contract:generate` once the change is reviewed")?;
+    println!("Generated contract files are current.");
+    Ok(())
 }
 
 fn fetch(root: &Path) -> Result<()> {

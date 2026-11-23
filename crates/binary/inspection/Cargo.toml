@@ -4,8 +4,19 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
+[features]
+# Reflection for the generated component contract. Off for ordinary builds.
+# `representations` lets the derives read the map named below.
+wit = ["dep:wit-reflect", "wit-reflect/representations"]
+
+# Every derive of this crate looks its fields up in this map: the contract's
+# form of each `object` and standard-library type the reports hold.
+[package.metadata.wit-reflect]
+representations = "crate::wit::Representations"
+
 [dependencies]
 object.workspace = true
+wit-reflect = { workspace = true, optional = true }
 
 [dev-dependencies]
 test-assets-ureq = "=0.7.0"

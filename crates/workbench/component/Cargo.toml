@@ -7,10 +7,25 @@ publish.workspace = true
 [lib]
 crate-type = ["cdylib"]
 
+# What no Rust item states about the component contract. Types and operations
+# declare their own part by marks in the owner crates; `pnpm contract:generate`
+# renders both into `wit/analysis.wit`, `src/bindings.rs` and `src/forwarding.rs`.
+[package.metadata.wit-reflect]
+package = "apple-code:analysis@0.6.0"
+world = "analysis"
+# Host WebSocket operations for the Rust filesystem client. The host binds
+# them to the Polymorph browser provider.
+imports = ["polymorph:websocket/connections@0.1.0"]
+# `native` is exported under that name instead of the interface's versioned
+# identity. Omitting `inspection` or `binary` would turn the types `native`
+# refers to into implicit imports.
+exports = [{ interface = "native", name = "native" }, "inspection", "binary"]
+
 [dependencies]
-binary-inspection = { path = "../../binary/inspection" }
-workbench-operations = { path = "../operations" }
-filesystem-data = { path = "../../filesystem/data" }
-filesystem-protocol = { path = "../../filesystem/protocol" }
-object.workspace = true
-wit-bindgen = { version = "=0.60.0", features = ["async"] }
+# The generated bindings and forwarding name types of these crates by path.
+binary-inspection = { path = "../../binary/inspection", features = ["wit"] }
+workbench-operations = { path = "../operations", features = ["wit"] }
+filesystem-data = { path = "../../filesystem/data", features = ["wit"] }
+filesystem-protocol = { path = "../../filesystem/protocol", features = ["wit"] }
+wit-bindgen = { version = "=0.63.0", features = ["async"] }
+wit-reflect.workspace = true

@@ -4,9 +4,19 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
+[features]
+# Reflection for the generated component contract. Off for ordinary builds.
+wit = [
+    "dep:wit-reflect",
+    "binary-inspection/wit",
+    "filesystem-data/wit",
+    "filesystem-protocol/wit",
+]
+
 [dependencies]
 binary-inspection = { path = "../../binary/inspection" }
 filesystem-data = { path = "../../filesystem/data" }
 filesystem-protocol = { path = "../../filesystem/protocol" }
 serde = { version = "1", features = ["derive"] }
 thiserror.workspace = true
+wit-reflect = { workspace = true, optional = true }

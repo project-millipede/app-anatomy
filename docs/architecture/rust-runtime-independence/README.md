@@ -188,9 +188,9 @@ error in occurrence order; it does not create an additional step for each read.
 WIT defines concrete selection and inspection records with the same `steps`,
 `kind` and `result` structure; it does not support user-defined generics. The
 component projects errors into the declared WIT representation and preserves
-their Rust-formatted messages. `inspection-failure` contains `message` and a
-nonempty `details` list. Selection, metadata and analysis failures contribute one
-diagnostic; acquisition aggregates contribute every member in order. Multiple
+their Rust-formatted messages. `inspection-failure` contains `message` and `kind`,
+the failed stage with its own error. An acquisition failure holds every member in
+order. Multiple
 acquisition failures are numbered on separate lines in Rust, while React only
 preserves the supplied message's whitespace. That projection does not retain the
 complete Rust source chain. The [error-boundary guide](../error-boundaries.md) compares reusable
@@ -421,12 +421,13 @@ native filesystem or client APIs. Optional networking probes accept explicit end
   implements the analyzer input contract. The
   [direct composition example](../../../crates/filesystem/native/examples/inspect_selection.rs)
   repeats inspection using the retained owner without networking or WIT.
-- The [native component adapter](../../../crates/workbench/component/src/native.rs)
+- The [native component](../../../crates/workbench/component/src/lib.rs)
   composes the ordinary Rust filesystem client and its bounded input source with
-  the same `inspect_source` entry point. Its private
+  the same `inspect_source` entry point through generated forwarding. Its private
   [`websocket` module](../../../crates/workbench/component/src/websocket.rs)
   invokes Polymorph networking operations; the browser provider owns connection
-  timing. The facade owns WIT resources and result conversion.
+  timing. The generated forwarding owns WIT resources; result conversion is
+  generated in the crates that own the result types.
 - [`workbench-operations`](../../../crates/workbench/operations/src/lib.rs)
   accepts a transport through `Session::new`.
   The optional [native inspection example](../../../experiments/workbench/native/examples/inspect.rs)

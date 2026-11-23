@@ -6,3 +6,8 @@ publish.workspace = true
 
 [dependencies]
 anyhow = "1"
+# Reads the contract settings and writes or checks the generated files.
+wit-reflect = { workspace = true, features = ["tasks"] }
+# Linked for the contract declarations its items and those of the crates it
+# depends on register. No code here calls it.
+workbench-operations = { path = "../crates/workbench/operations", features = ["wit"] }

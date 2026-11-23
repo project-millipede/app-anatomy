@@ -4,6 +4,7 @@ use std::{borrow::Cow, error::Error, fmt};
 
 /// Identifies the client-side or filesystem-provider origin of a failure.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum FailureKind {
     Transport,
     Provider,
@@ -26,6 +27,11 @@ pub enum TransportOperation {
 /// Convert to an explicit output record at WIT/JSON boundaries instead of
 /// serializing this.
 #[derive(Debug, thiserror::Error)]
+#[cfg_attr(
+    feature = "wit",
+    derive(wit_reflect::WitType),
+    wit(display = "message", skip(operation, diagnostic, cause))
+)]
 pub struct Failure {
     pub kind: FailureKind,
     operation: Option<TransportOperation>,

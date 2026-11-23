@@ -142,7 +142,7 @@ export function useWorkbenchModel(
    * @returns Completion of the request's presentation updates, or immediately when busy.
    */
   const chooseNativeFile = useCallback(() => {
-    return runSelection((session) => session.chooseFile());
+    return runSelection((session) => session.selectFile());
   }, [runSelection]);
 
   /**
@@ -150,7 +150,7 @@ export function useWorkbenchModel(
    * @returns Completion of the request's presentation updates, or immediately when busy.
    */
   const chooseNativeDirectory = useCallback(() => {
-    return runSelection((session) => session.chooseFolder());
+    return runSelection((session) => session.selectDirectory());
   }, [runSelection]);
 
   /**

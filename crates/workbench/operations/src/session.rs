@@ -8,6 +8,7 @@ use filesystem_protocol::{
 /// Identifies a completed filesystem-client action.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum StepKind {
     /// Request native file selection.
     SelectFile,
@@ -25,6 +26,7 @@ pub enum StepKind {
 ///
 /// Successful actions return `None`; successful queries return `Some(state)`,
 /// including a state with no selected file or directory.
+#[cfg_attr(feature = "wit", wit_reflect::named)]
 pub type SelectionStepOutcome = StepOutcome<StepKind, Option<SelectionState>, Failure>;
 
 /// Completed selection-related steps in execution order.
@@ -34,6 +36,7 @@ pub type SelectionStepOutcome = StepOutcome<StepKind, Option<SelectionState>, Fa
 /// is never replayed. Another caller may replace selection before the query.
 /// Neither step has an application deadline. Each must complete or fail before
 /// this outcome returns. A standalone query returns only its own step.
+#[cfg_attr(feature = "wit", wit_reflect::named)]
 pub type SelectionOutcome = Outcome<SelectionStepOutcome>;
 
 /// A transport-backed client of the native selection owner.
@@ -42,10 +45,21 @@ pub type SelectionOutcome = Outcome<SelectionStepOutcome>;
 /// transport. Successful replacement or owner shutdown releases native resources.
 /// Filesystem requests have no application deadline and may remain pending until
 /// their transport completes or fails. Transport connection bounds are separate.
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitResource))]
 pub struct Session {
     transport: Box<dyn Transport>,
 }
 
+#[cfg_attr(
+    feature = "wit",
+    wit_reflect::exports(
+        query_selection,
+        select_file,
+        select_directory,
+        open_file,
+        open_directory
+    )
+)]
 impl Session {
     /// Own a transport without sending a request or selecting a resource.
     pub fn new(transport: Box<dyn Transport>) -> Self {
@@ -157,6 +171,20 @@ impl Session {
     ) -> SelectionOutcome {
         let result = self.acquire_child(directory, entry_id, kind);
         self.finish_selection(StepKind::OpenEntry, result)
+    }
+
+    /// Select a file from the native owner's captured listing.
+    ///
+    /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::File`].
+    pub fn open_file(&mut self, directory: &str, entry_id: u32) -> SelectionOutcome {
+        self.select_child(directory, entry_id, DirectoryEntryKind::File)
+    }
+
+    /// Select a directory from the native owner's captured listing.
+    ///
+    /// Equivalent to [`Self::select_child`] with [`DirectoryEntryKind::Directory`].
+    pub fn open_directory(&mut self, directory: &str, entry_id: u32) -> SelectionOutcome {
+        self.select_child(directory, entry_id, DirectoryEntryKind::Directory)
     }
 
     fn acquire_child(
@@ -276,4 +304,18 @@ impl Session {
         };
         Ok(bytes)
     }
+}
+
+/// What a component's environment supplies to create a session.
+///
+/// The transport belongs to the environment, so this crate declares the
+/// function and the component crate implements it for the `Component` type of
+/// its generated forwarding.
+#[cfg_attr(
+    feature = "wit",
+    wit_reflect::exports(interface = "native", create_selection_session)
+)]
+pub trait SessionFactory {
+    /// Create a session connected to the native filesystem service.
+    fn create_selection_session() -> Session;
 }

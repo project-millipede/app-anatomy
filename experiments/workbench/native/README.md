@@ -45,8 +45,9 @@ retained source repeatedly without this client:
 cargo run --locked -p filesystem-native --example inspect_selection -- /path/to/file
 ```
 
-The main [`workbench-component`](../../../crates/workbench/component/wit/native.wit)
-exports that session API through WIT and uses the shared Rust application address.
+The main [`workbench-component`](../../../crates/workbench/component/wit/analysis.wit)
+exports that session API through its generated WIT contract and uses the shared
+Rust application address.
 This native experiment retains explicit endpoint arguments.
 The component socket adapter imports the unchanged
 upstream Polymorph WebSocket interface. Browser code supplies environment networking,

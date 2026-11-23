@@ -4,6 +4,7 @@ use std::fmt;
 
 /// Machine-readable reason and associated values.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum ErrorKind {
     /// A requested range extends beyond its containing input region.
     Truncated {
@@ -26,6 +27,11 @@ pub enum ErrorKind {
 /// through ordinary error types. Match kind for policy; message wording
 /// is for people and is not a stable machine interface.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "wit",
+    derive(wit_reflect::WitType),
+    wit(interface = "binary", display = "message")
+)]
 pub struct AnalysisError {
     /// Failure reason, numeric evidence or upstream decoding cause.
     pub kind: ErrorKind,

@@ -62,8 +62,8 @@ const { files } = await transpile(await readFile(component), {
   noComponentErrorWrapping: true,
   asyncMode: 'jspi',
   asyncExports: [
-    'native#[method]session.choose-file',
-    'native#[method]session.choose-folder',
+    'native#[method]session.select-file',
+    'native#[method]session.select-directory',
     'native#[method]session.query-selection',
     'native#[method]session.open-file',
     'native#[method]session.open-directory',

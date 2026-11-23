@@ -6,6 +6,9 @@ publish.workspace = true
 
 [features]
 serde = ["dep:serde"]
+# Reflection for the generated component contract. Off for ordinary builds.
+wit = ["dep:wit-reflect"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"], optional = true }
+wit-reflect = { workspace = true, optional = true }

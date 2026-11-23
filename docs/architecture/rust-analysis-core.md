@@ -15,17 +15,17 @@ belong in the native library.
 
 ## Reading the implementation
 
-| Module                        | Responsibility                                                        |
-| ----------------------------- | --------------------------------------------------------------------- |
-| `src/lib.rs`                  | Small public facade, usage and scope documentation                    |
-| `src/model.rs`                | Report, CPU identity, platform declarations and evidence ranges       |
-| `src/object_report.rs`        | Common file identity through the unified upstream parser              |
-| `src/error.rs`                | Typed failure reasons and standard Rust error integration             |
-| `src/macho/mod.rs`            | Public inspection facade                                              |
-| `src/macho/report.rs`         | Upstream parser orchestration and owned report conversion             |
-| `src/input/cache.rs`          | Format-independent cache ownership, partial reads and source failures |
-| `src/macho/source.rs`         | Public inspection failures and their original causes                  |
-| Component `src/conversion.rs` | Explicit native-to-WIT conversion                                     |
+| Module                 | Responsibility                                                        |
+| ---------------------- | --------------------------------------------------------------------- |
+| `src/lib.rs`           | Small public facade, usage and scope documentation                    |
+| `src/model.rs`         | Report, CPU identity, platform declarations and evidence ranges       |
+| `src/object_report.rs` | Common file identity through the unified upstream parser              |
+| `src/error.rs`         | Typed failure reasons and standard Rust error integration             |
+| `src/macho/mod.rs`     | Public inspection facade                                              |
+| `src/macho/report.rs`  | Upstream parser orchestration and owned report conversion             |
+| `src/input/cache.rs`   | Format-independent cache ownership, partial reads and source failures |
+| `src/macho/source.rs`  | Public inspection failures and their original causes                  |
+| `src/wit.rs`           | Contract representations of `object` values, behind the `wit` feature |
 
 Upstream parsers consume `ReadRef` directly. Resident members use borrowed
 subslices; source-backed members use `ReadCache::range()` over one shared cache.
@@ -117,8 +117,9 @@ an interchangeable decoder behind independent classification enums.
 
 ## Adapter and UI
 
-The WIT contract is `apple-code:analysis@0.5.0`, which exposes zero-argument native
-session construction, persistent selection and inspection outcomes.
+The WIT contract is `apple-code:analysis@0.6.0`, generated from the Rust types. It
+exposes zero-argument native session construction, persistent selection and
+inspection outcomes.
 Its `macho-value` record carries `value: u32` and `name: option<string>` for CPU,
 file-type, platform and load-command values. The platform field is optional to
 preserve the absence of an identifier in legacy commands. This serialized contract
@@ -130,12 +131,12 @@ unpublished workspace is being developed; the contract version is independent.
 
 The native component composes the ordinary Rust filesystem client and
 `inspect_source` analyzer. Requested ranges enter Wasm through the Polymorph
-provider; reports and inspection errors use explicit WIT conversion. The core
+provider; reports and inspection errors are converted by generated code. The core
 still supports resident bytes for native callers and fixtures. jco carries u64
 offsets as JavaScript BigInt and preserves structured diagnostics alongside
-Rust-formatted messages. An inspection failure contains `message` and a nonempty
-`details` list: one diagnostic for selection, metadata or analysis failure, or all
-acquisition diagnostics in occurrence order. Multiple acquisition failures use a
+Rust-formatted messages. An inspection failure contains `message` and `kind`: the
+failed stage with its own error, where an acquisition failure holds all its
+diagnostics in occurrence order. Multiple acquisition failures use a
 numbered multiline message; a singleton keeps its existing text. The shared error
 display preserves line breaks without interpreting the diagnostics.
 Both UI variants use one presentation module and one image-details component to

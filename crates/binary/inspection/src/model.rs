@@ -7,6 +7,7 @@ use object::{
 
 /// Outer file layout; universal entry width is independent of image header width.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum ContainerKind {
     /// One Mach-O image at offset zero.
     Thin,
@@ -18,6 +19,7 @@ pub enum ContainerKind {
 
 /// Mach-O header layout, not CPU instruction or ABI pointer width.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum MachOHeaderFormat {
     /// The 28-byte mach_header layout.
     MachO32,
@@ -27,6 +29,7 @@ pub enum MachOHeaderFormat {
 
 /// Analysis performed; deeper verification is never implied by a report.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum AnalysisScope {
     /// Headers, command envelopes, platform declarations and signature locations.
     HeadersOnly,
@@ -37,6 +40,7 @@ pub enum AnalysisScope {
 /// Construction checks arithmetic, not membership in an input. Inspection also
 /// checks returned ranges against the containing image.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct FileRange {
     offset: u64,
     size: u64,
@@ -73,10 +77,12 @@ impl FileRange {
 
 /// CPU identity exactly as declared by the image header, including subtype flags.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct CpuIdentity {
     /// Raw cputype bit pattern.
     pub cpu_type: macho::CpuType,
     /// Raw cpusubtype bit pattern, including capability bits.
+    #[cfg_attr(feature = "wit", wit(into = crate::wit::MachoValue, with = CpuIdentity::subtype_value))]
     pub cpu_subtype: macho::CpuSubtype,
 }
 
@@ -95,6 +101,7 @@ impl CpuIdentity {
 
 /// Source evidence for a platform declaration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct CommandLocation {
     /// Command interpreted by the parser.
     pub kind: macho::LoadCommandType,
@@ -104,6 +111,7 @@ pub struct CommandLocation {
 
 /// One declaration. Conflicting platform declarations remain separate evidence.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct PlatformDeclaration {
     /// Platform identifier from LC_BUILD_VERSION, including unrecognized values.
     ///
@@ -122,6 +130,7 @@ pub struct PlatformDeclaration {
 ///
 /// Duplicate commands are preserved and do not imply acceptance by Apple's tools.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct SignatureCommand {
     /// Absolute range of the LC_CODE_SIGNATURE command.
     pub command_range: FileRange,
@@ -131,6 +140,7 @@ pub struct SignatureCommand {
 
 /// One physical Mach-O image within the supplied bytes.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct MachOImage {
     /// CPU type and complete subtype bit pattern from the image header.
     pub cpu: CpuIdentity,
@@ -152,6 +162,11 @@ pub struct MachOImage {
 
 /// Owned facts from one successful inspection.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "wit",
+    derive(wit_reflect::WitType),
+    wit(interface = "binary")
+)]
 pub struct BinaryReport {
     /// Outer file layout.
     pub container: ContainerKind,

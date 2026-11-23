@@ -4,6 +4,7 @@ use std::{error::Error, fmt, io};
 
 /// Failure reported by a source provider.
 #[derive(Debug)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum SourceError {
     /// The operation was explicitly cancelled.
     Cancelled,
@@ -41,6 +42,7 @@ impl From<io::Error> for SourceError {
 
 /// Recoverable acquisition or source-contract failure.
 #[derive(Debug)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub enum InputError {
     /// The source returned EOF before filling a validated range.
     UnexpectedEof {
@@ -97,6 +99,7 @@ impl Error for InputError {
 /// This collection therefore has no [`Error::source`]. Enumerate [`Self::errors`]
 /// to inspect each failure and its original cause.
 #[derive(Debug)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitType))]
 pub struct InputErrors {
     errors: Vec<InputError>,
 }
