@@ -45,11 +45,7 @@ pub type SelectionOutcome = Outcome<SelectionStepOutcome>;
 /// transport. Successful replacement or owner shutdown releases native resources.
 /// Filesystem requests have no application deadline and may remain pending until
 /// their transport completes or fails. Transport connection bounds are separate.
-#[cfg_attr(
-    feature = "wit",
-    derive(wit_reflect::WitResource),
-    wit(interface = "native")
-)]
+#[cfg_attr(feature = "wit", derive(wit_reflect::WitResource))]
 pub struct Session {
     transport: Box<dyn Transport>,
 }
@@ -308,4 +304,18 @@ impl Session {
         };
         Ok(bytes)
     }
+}
+
+/// What a component's environment supplies to create a session.
+///
+/// The transport belongs to the environment, so this crate declares the
+/// function and the component crate implements it for the `Component` type of
+/// its generated forwarding.
+#[cfg_attr(
+    feature = "wit",
+    wit_reflect::exports(interface = "native", create_selection_session)
+)]
+pub trait SessionFactory {
+    /// Create a session connected to the native filesystem service.
+    fn create_selection_session() -> Session;
 }

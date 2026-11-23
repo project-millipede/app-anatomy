@@ -18,7 +18,7 @@ mod tests;
 pub use failure::{Failure, FailureKind, TransportOperation};
 pub use inspection::{InspectionFailure, InspectionOutcome, InspectionStepOutcome};
 pub use outcome::{Outcome, StepOutcome};
-pub use session::{SelectionOutcome, SelectionStepOutcome, Session, StepKind};
+pub use session::{SelectionOutcome, SelectionStepOutcome, Session, SessionFactory, StepKind};
 
 /// Exchange complete filesystem messages using environment-specific networking.
 ///

@@ -11,7 +11,7 @@ library was written.
 
 | Tool        | Version                                           |
 | ----------- | ------------------------------------------------- |
-| wit-reflect | commit `4f5aff4b14036dfe9e13833b2bf7fa57d648fbd3` |
+| wit-reflect | commit `549389e169ee04cdd15f1386be4feceba6e91092` |
 | wit-bindgen | 0.63.0                                            |
 | jco         | 1.42.0                                            |
 | wasm-tools  | 1.251.0, for packaging                            |
@@ -36,14 +36,16 @@ crate that owns the type.
 
 No program lists the contract. Each part is stated where it is:
 
-| Part                                              | Stated by                                                                               |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Fields, cases and signatures                      | The Rust declarations themselves                                                        |
-| The interface that owns a type or resource        | `wit(interface = "…")` on `BinaryReport`, `AnalysisError`, `InspectionError`, `Session` |
-| The exported methods of `Session`                 | `wit_reflect::exports(…)` on its two `impl` blocks, naming the six methods              |
-| The names of the four generic outcome types       | `wit_reflect::named` on their type aliases                                              |
-| How a type of another crate is shown              | One entry in the `Representations` map in `crates/binary/inspection/src/wit.rs`         |
-| Package, world, imports, exports, session factory | `[package.metadata.wit-reflect]` in the component crate's `Cargo.toml`                  |
+| Part                                        | Stated by                                                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Fields, cases and signatures                | The Rust declarations themselves                                                                             |
+| The interface that owns a type              | `wit(interface = "…")` on `BinaryReport`, `AnalysisError`, `InspectionError`                                 |
+| The interface of `Session`                  | The function that returns it: `create_selection_session` is in `native`                                      |
+| The session factory                         | The `SessionFactory` trait in `workbench-operations`, marked `wit_reflect::exports(interface = "native", …)` |
+| The exported methods of `Session`           | `wit_reflect::exports(…)` on its two `impl` blocks, naming the six methods                                   |
+| The names of the four generic outcome types | `wit_reflect::named` on their type aliases                                                                   |
+| How a type of another crate is shown        | One entry in the `Representations` map in `crates/binary/inspection/src/wit.rs`                              |
+| Package, world, imports, exports            | `[package.metadata.wit-reflect]` in the component crate's `Cargo.toml`                                       |
 
 The marked items register themselves when the xtask is linked.
 `use workbench_operations as _;` in `xtask/src/main.rs` links them: Rust links
@@ -86,16 +88,26 @@ implementations with that same body went. One implementation could not
 replace them, because `name()` is not a trait function in `object`; the entry
 is expanded for each type instead. The generated files did not change.
 
+Also since 2026-11-23, only a root states an interface. `Session` carries no
+`interface` mark: it belongs to `native` because `create_selection_session`
+returns it. That function is declared on the `SessionFactory` trait in
+`workbench-operations` and implemented in the component crate, for the
+generated `Component` type, because the transport is the component's. The
+entry that stated its signature in the component's `Cargo.toml` is gone, so
+the manifest holds only settings of the contract as a whole. The WIT and the
+bindings file did not change. One line of the forwarding file did: it calls
+the function through the trait.
+
 ## What is written by hand
 
 | Where                                         | Lines | Content                                                                              |
 | --------------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
-| Owner crates, behind the `wit` feature        | 67    | 34 attributes holding 26 type derives, 1 resource derive, 5 rules, 10 contract marks |
+| Owner crates, behind the `wit` feature        | 67    | 35 attributes holding 26 type derives, 1 resource derive, 5 rules, 10 contract marks |
 | `crates/binary/inspection/src/wit.rs`         | 79    | The representation map, and the contract's forms of `object` values                  |
 | `crates/binary/inspection/Cargo.toml`         | 2     | The setting that names the map, and the feature that reads it                        |
-| `crates/workbench/component/Cargo.toml`       | 11    | The contract settings: package, world, imports, exports, session factory             |
+| `crates/workbench/component/Cargo.toml`       | 5     | The contract settings: package, world, imports, exports                              |
 | `xtask/src/main.rs`                           | 18    | The link line and the calls to wit-reflect's generate and check tasks                |
-| `crates/workbench/component/src/lib.rs`       | 50    | The bindings call, the session factory and the module list                           |
+| `crates/workbench/component/src/lib.rs`       | 49    | The bindings call, the implementation of `SessionFactory` and the module list        |
 | `crates/workbench/component/src/websocket.rs` | 73    | The transport over the imported Polymorph operations, unchanged                      |
 
 The five remaining rules are the `message` field of the three error types,
@@ -105,8 +117,9 @@ web application follows them.
 
 The attributes went from 63 on 63 lines, to 50 when they were grouped, to 37
 when the map replaced the field rules, to 34 when each remaining derive was
-merged with its `interface` mark. They take 67 lines, because rustfmt writes
-a grouped attribute over five.
+merged with its `interface` mark. They are 35 now: `Session` lost its mark and
+the `SessionFactory` trait carries one. They take 67 lines, because rustfmt
+writes a grouped attribute over several.
 
 ## What it replaced
 
@@ -182,10 +195,13 @@ measurement of the conversion alone.
   ordinary Rust methods for that reason.
 - jco 1.40.0 declares a struct-like case's record and the case itself under one
   TypeScript name. jco 1.42.0 does not; the workbench requires it.
-- The session factory's signature is stated in the component crate's
-  `Cargo.toml`, because the factory is implemented in that crate, which
-  compiles only once the contract exists. The generated forwarding calls the
-  real function, so a wrong signature does not compile.
+- The `SessionFactory` trait exists for the contract. The factory needs the
+  component's transport, so `workbench-operations` can only declare it, and
+  nothing else in the workbench implements the trait. The generated forwarding
+  calls the function through the trait, so a missing or different
+  implementation does not compile.
+- After the factory moved to the trait, the jco scenarios above were not
+  repeated either. The WIT and the bindings file did not change.
 - A method joins the contract when `wit_reflect::exports(…)` on its `impl`
   block names it. A new method that is not named exports nothing;
   `contract check` then passes, because the contract did not change. Review

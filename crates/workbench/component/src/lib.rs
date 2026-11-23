@@ -37,15 +37,15 @@ use forwarding::Component;
 
 export!(Component);
 
-/// Create a session connected to the native filesystem service.
-///
-/// The contract's `create-selection-session`. It is implemented here, not in
-/// `workbench-operations`, because the transport is this environment's: the
-/// component's imported WebSocket operations. The generated forwarding calls
-/// it by this path.
-fn create_selection_session() -> workbench_operations::Session {
-    let transport = websocket::transport();
-    workbench_operations::Session::new(transport)
+// The contract's `create-selection-session`. `workbench-operations` declares
+// it; it is implemented here because the transport is this environment's: the
+// component's imported WebSocket operations. The generated forwarding calls it
+// through the trait.
+impl workbench_operations::SessionFactory for Component {
+    fn create_selection_session() -> workbench_operations::Session {
+        let transport = websocket::transport();
+        workbench_operations::Session::new(transport)
+    }
 }
 
 #[cfg(test)]

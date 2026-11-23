@@ -8,7 +8,7 @@ impl crate::exports::native::Guest for Component {
     type Session = ::wit_reflect::component::ResourceCell<workbench_operations::Session>;
 
     fn create_selection_session() -> crate::exports::native::Session {
-        let created = crate::create_selection_session();
+        let created = <Component as workbench_operations::SessionFactory>::create_selection_session();
         crate::exports::native::Session::new(::wit_reflect::component::ResourceCell::new(created))
     }
 }

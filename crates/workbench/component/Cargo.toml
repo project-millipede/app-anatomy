@@ -21,17 +21,6 @@ imports = ["polymorph:websocket/connections@0.1.0"]
 # refers to into implicit imports.
 exports = [{ interface = "native", name = "native" }, "inspection", "binary"]
 
-# The session factory supplies the WebSocket transport, so it is implemented in
-# this crate. This crate compiles only once the contract is generated and
-# cannot register the function itself. A signature that differs from this entry
-# does not compile.
-[[package.metadata.wit-reflect.function]]
-interface = "native"
-name = "create-selection-session"
-returns = "session"
-path = "crate::create_selection_session"
-docs = "Create a session connected to the native filesystem service."
-
 [dependencies]
 # The generated bindings and forwarding name types of these crates by path.
 binary-inspection = { path = "../../binary/inspection", features = ["wit"] }

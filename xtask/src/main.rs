@@ -6,7 +6,7 @@
 //!
 //! The contract is declared where its parts are: types and operations carry
 //! marks in their owner crates, and the component crate's `Cargo.toml` holds
-//! the package, the world and the session factory. wit-reflect collects the
+//! the package and the world. wit-reflect collects the
 //! marks of every linked crate, so this program declares nothing. Both tasks
 //! cover three committed files of the component crate: `wit/analysis.wit`,
 //! `src/bindings.rs` and `src/forwarding.rs`.
